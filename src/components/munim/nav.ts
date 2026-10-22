@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   StickyNote,
   Briefcase,
-  Users,
   Settings,
   Plug,
   Shield,
@@ -13,7 +12,7 @@ import {
 import type { Perfil } from "@/lib/auth";
 
 export type ItemNav = {
-  to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/equipe" | "/conexoes" | "/configuracoes" | "/admin";
+  to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/conexoes" | "/configuracoes" | "/admin";
   label: string;
   icon: LucideIcon;
   papeis?: Perfil["papel"][];
@@ -25,7 +24,6 @@ export const NAV: ItemNav[] = [
   { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2 },
   { to: "/notas", label: "Notas", icon: StickyNote },
   { to: "/carteira", label: "Carteira", icon: Briefcase },
-  { to: "/equipe", label: "Equipe", icon: Users, papeis: ["gestor", "admin"] },
   { to: "/conexoes", label: "Conexões", icon: Plug },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
   { to: "/admin", label: "Admin", icon: Shield, papeis: ["admin"] },
