@@ -1,0 +1,642 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.18"
+  }
+  public: {
+    Tables: {
+      acoes: {
+        Row: {
+          created_at: string
+          decidido_em: string | null
+          id: string
+          parametros: Json
+          resultado: Json | null
+          resumo: string | null
+          status: Database["public"]["Enums"]["status_acao"]
+          telegram_message_id: number | null
+          tipo: Database["public"]["Enums"]["tipo_acao"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decidido_em?: string | null
+          id?: string
+          parametros?: Json
+          resultado?: Json | null
+          resumo?: string | null
+          status?: Database["public"]["Enums"]["status_acao"]
+          telegram_message_id?: number | null
+          tipo: Database["public"]["Enums"]["tipo_acao"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decidido_em?: string | null
+          id?: string
+          parametros?: Json
+          resultado?: Json | null
+          resumo?: string | null
+          status?: Database["public"]["Enums"]["status_acao"]
+          telegram_message_id?: number | null
+          tipo?: Database["public"]["Enums"]["tipo_acao"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      briefings: {
+        Row: {
+          conteudo_md: string
+          enviado_em: string
+          id: string
+          tipo: Database["public"]["Enums"]["tipo_briefing"]
+          user_id: string
+        }
+        Insert: {
+          conteudo_md?: string
+          enviado_em?: string
+          id?: string
+          tipo: Database["public"]["Enums"]["tipo_briefing"]
+          user_id: string
+        }
+        Update: {
+          conteudo_md?: string
+          enviado_em?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_briefing"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "briefings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientes: {
+        Row: {
+          atividades_pendentes: number | null
+          atualizado_em: string | null
+          contato_emails: string[] | null
+          contato_nome: string | null
+          dominios: string[] | null
+          etapa: string | null
+          nome_curto: string | null
+          owner_pipedrive_id: number | null
+          pipedrive_deal_id: number
+          pipeline_id: number | null
+          proxima_atividade: string | null
+          proxima_atividade_assunto: string | null
+          stage_id: number | null
+          status: string | null
+          titulo: string | null
+          ultimo_contato_efetivo: string | null
+          ultimo_email_enviado: string | null
+          ultimo_email_recebido: string | null
+        }
+        Insert: {
+          atividades_pendentes?: number | null
+          atualizado_em?: string | null
+          contato_emails?: string[] | null
+          contato_nome?: string | null
+          dominios?: string[] | null
+          etapa?: string | null
+          nome_curto?: string | null
+          owner_pipedrive_id?: number | null
+          pipedrive_deal_id: number
+          pipeline_id?: number | null
+          proxima_atividade?: string | null
+          proxima_atividade_assunto?: string | null
+          stage_id?: number | null
+          status?: string | null
+          titulo?: string | null
+          ultimo_contato_efetivo?: string | null
+          ultimo_email_enviado?: string | null
+          ultimo_email_recebido?: string | null
+        }
+        Update: {
+          atividades_pendentes?: number | null
+          atualizado_em?: string | null
+          contato_emails?: string[] | null
+          contato_nome?: string | null
+          dominios?: string[] | null
+          etapa?: string | null
+          nome_curto?: string | null
+          owner_pipedrive_id?: number | null
+          pipedrive_deal_id?: number
+          pipeline_id?: number | null
+          proxima_atividade?: string | null
+          proxima_atividade_assunto?: string | null
+          stage_id?: number | null
+          status?: string | null
+          titulo?: string | null
+          ultimo_contato_efetivo?: string | null
+          ultimo_email_enviado?: string | null
+          ultimo_email_recebido?: string | null
+        }
+        Relationships: []
+      }
+      cobertura_historico: {
+        Row: {
+          acima_120_dias: number
+          cobertos: number
+          cs_nome: string | null
+          data: string
+          id: number
+          owner_pipedrive_id: number | null
+          sem_uso: number
+          total: number
+        }
+        Insert: {
+          acima_120_dias?: number
+          cobertos: number
+          cs_nome?: string | null
+          data: string
+          id?: number
+          owner_pipedrive_id?: number | null
+          sem_uso?: number
+          total: number
+        }
+        Update: {
+          acima_120_dias?: number
+          cobertos?: number
+          cs_nome?: string | null
+          data?: string
+          id?: number
+          owner_pipedrive_id?: number | null
+          sem_uso?: number
+          total?: number
+        }
+        Relationships: []
+      }
+      google_tokens: {
+        Row: {
+          atualizado_em: string
+          escopos: string[] | null
+          refresh_token: string | null
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          escopos?: string[] | null
+          refresh_token?: string | null
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          escopos?: string[] | null
+          refresh_token?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memoria: {
+        Row: {
+          atualizado_em: string
+          conteudo_md: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          conteudo_md?: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          conteudo_md?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memoria_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mensagens: {
+        Row: {
+          autor: Database["public"]["Enums"]["autor_msg"]
+          canal: Database["public"]["Enums"]["canal_msg"]
+          conteudo: string
+          created_at: string
+          id: number
+          meta: Json
+          user_id: string
+        }
+        Insert: {
+          autor: Database["public"]["Enums"]["autor_msg"]
+          canal: Database["public"]["Enums"]["canal_msg"]
+          conteudo: string
+          created_at?: string
+          id?: number
+          meta?: Json
+          user_id: string
+        }
+        Update: {
+          autor?: Database["public"]["Enums"]["autor_msg"]
+          canal?: Database["public"]["Enums"]["canal_msg"]
+          conteudo?: string
+          created_at?: string
+          id?: number
+          meta?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas: {
+        Row: {
+          area: string | null
+          corpo_md: string | null
+          created_at: string
+          id: string
+          lembrete_em: string | null
+          resumo: string | null
+          subcategoria: string | null
+          tags: string[] | null
+          titulo: string | null
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          corpo_md?: string | null
+          created_at?: string
+          id?: string
+          lembrete_em?: string | null
+          resumo?: string | null
+          subcategoria?: string | null
+          tags?: string[] | null
+          titulo?: string | null
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          corpo_md?: string | null
+          created_at?: string
+          id?: string
+          lembrete_em?: string | null
+          resumo?: string | null
+          subcategoria?: string | null
+          tags?: string[] | null
+          titulo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          alertas_ativos: boolean
+          created_at: string
+          email: string | null
+          fuso: string
+          google_conectado: boolean
+          horario_briefing: string
+          id: string
+          nome: string | null
+          papel: Database["public"]["Enums"]["papel_usuario"]
+          pipedrive_user_id: number | null
+          telegram_chat_id: number | null
+          telegram_codigo: string
+        }
+        Insert: {
+          alertas_ativos?: boolean
+          created_at?: string
+          email?: string | null
+          fuso?: string
+          google_conectado?: boolean
+          horario_briefing?: string
+          id: string
+          nome?: string | null
+          papel?: Database["public"]["Enums"]["papel_usuario"]
+          pipedrive_user_id?: number | null
+          telegram_chat_id?: number | null
+          telegram_codigo?: string
+        }
+        Update: {
+          alertas_ativos?: boolean
+          created_at?: string
+          email?: string | null
+          fuso?: string
+          google_conectado?: boolean
+          horario_briefing?: string
+          id?: string
+          nome?: string | null
+          papel?: Database["public"]["Enums"]["papel_usuario"]
+          pipedrive_user_id?: number | null
+          telegram_chat_id?: number | null
+          telegram_codigo?: string
+        }
+        Relationships: []
+      }
+      registros: {
+        Row: {
+          corpo_md: string | null
+          created_at: string
+          data: string
+          fonte: string
+          id: string
+          pipedrive_deal_id: number | null
+          resumo: string | null
+          risco: Database["public"]["Enums"]["nivel_risco"]
+          user_id: string
+        }
+        Insert: {
+          corpo_md?: string | null
+          created_at?: string
+          data?: string
+          fonte?: string
+          id?: string
+          pipedrive_deal_id?: number | null
+          resumo?: string | null
+          risco?: Database["public"]["Enums"]["nivel_risco"]
+          user_id: string
+        }
+        Update: {
+          corpo_md?: string | null
+          created_at?: string
+          data?: string
+          fonte?: string
+          id?: string
+          pipedrive_deal_id?: number | null
+          resumo?: string | null
+          risco?: Database["public"]["Enums"]["nivel_risco"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registros_pipedrive_deal_id_fkey"
+            columns: ["pipedrive_deal_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["pipedrive_deal_id"]
+          },
+          {
+            foreignKeyName: "registros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uso: {
+        Row: {
+          created_at: string
+          custo_usd: number | null
+          funcao: string | null
+          id: number
+          modelo: string | null
+          tokens_entrada: number | null
+          tokens_saida: number | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          custo_usd?: number | null
+          funcao?: string | null
+          id?: number
+          modelo?: string | null
+          tokens_entrada?: number | null
+          tokens_saida?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          custo_usd?: number | null
+          funcao?: string | null
+          id?: number
+          modelo?: string | null
+          tokens_entrada?: number | null
+          tokens_saida?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uso_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      cobertura_atual: {
+        Row: {
+          cobertos: number | null
+          cs_nome: string | null
+          owner_pipedrive_id: number | null
+          pct: number | null
+          total: number | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      meu_papel: {
+        Args: never
+        Returns: Database["public"]["Enums"]["papel_usuario"]
+      }
+      meu_pipedrive_id: { Args: never; Returns: number }
+    }
+    Enums: {
+      autor_msg: "usuario" | "munim" | "sistema"
+      canal_msg: "app" | "telegram"
+      nivel_risco: "baixo" | "medio" | "alto"
+      papel_usuario: "cs" | "gestor" | "admin"
+      status_acao: "pendente" | "aprovada" | "executada" | "recusada" | "erro"
+      tipo_acao:
+        | "atividade_pipedrive"
+        | "nota_pipedrive"
+        | "rascunho_gmail"
+        | "evento_agenda"
+      tipo_briefing: "manha" | "alerta" | "leitura_cs" | "rodada"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      autor_msg: ["usuario", "munim", "sistema"],
+      canal_msg: ["app", "telegram"],
+      nivel_risco: ["baixo", "medio", "alto"],
+      papel_usuario: ["cs", "gestor", "admin"],
+      status_acao: ["pendente", "aprovada", "executada", "recusada", "erro"],
+      tipo_acao: [
+        "atividade_pipedrive",
+        "nota_pipedrive",
+        "rascunho_gmail",
+        "evento_agenda",
+      ],
+      tipo_briefing: ["manha", "alerta", "leitura_cs", "rodada"],
+    },
+  },
+} as const
