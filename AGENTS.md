@@ -12,3 +12,6 @@
 ## Rules
 - Auth state (session + profile: nome, papel, pipedrive_user_id) lives in AuthProvider (src/lib/auth.tsx); read it via useAuth() so every page shares one source.
 - All app pages live under src/routes/_authenticated/; /auth is the only public page so no screen is reachable without a session.
+- App chrome (sidebar, mobile bottom bar, Ctrl+K palette) lives in src/components/munim/AppShell.tsx, mounted by the _authenticated layout; nav items and role visibility are defined once in src/components/munim/nav.ts.
+- Shared Supabase reads for the home screen live as React Query hooks in src/lib/dados.ts so sidebar counters and pages share one cache.
+- Theme is a .light class on <html> (dark is :root default), set pre-paint by SCRIPT_TEMA in __root to avoid flashes.
