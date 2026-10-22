@@ -15,3 +15,4 @@
 - App chrome (sidebar, mobile bottom bar, Ctrl+K palette) lives in src/components/munim/AppShell.tsx, mounted by the _authenticated layout; nav items and role visibility are defined once in src/components/munim/nav.ts.
 - Shared Supabase reads for the home screen live as React Query hooks in src/lib/dados.ts so sidebar counters and pages share one cache.
 - Theme is a .light class on <html> (dark is :root default), set pre-paint by SCRIPT_TEMA in __root to avoid flashes.
+- Connected-service calls (Pipedrive, Gmail, Agenda, Drive) go through src/lib/integracoes.server.ts; carteira and notas are read live from Pipedrive and the Drive "Segundo Cérebro" folder, not from local tables, so data never goes stale.
