@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronsLeft, LogOut, Menu, Mic, Search } from "lucide-react";
+import { CheckCircle2, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -164,8 +164,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-border px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden">
         {(
           [
-            { to: "/", label: "Início", icon: navVisivel(undefined)[0].icon },
-            { to: "/conversa", label: "Conversa", icon: navVisivel(undefined)[1].icon },
+            { to: "/", label: "Início", icon: Home },
+            { to: "/conversa", label: "Conversa", icon: MessageCircle },
           ] as const
         ).map((i) => (
           <Link
@@ -194,7 +194,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             path.startsWith("/aprovacoes") ? "text-primary" : "text-muted-foreground",
           )}
         >
-          <navVisivel.prototype.constructor.icon />
+          <CheckCircle2 className="h-5 w-5" />
+          Aprovações
+          {!!pendentes?.length && (
+            <span className="absolute right-3 top-0 h-2 w-2 rounded-full bg-ember" />
+          )}
         </Link>
         <button onClick={() => setMais(true)} className="flex w-16 flex-col items-center gap-1 text-[11px] text-muted-foreground">
           <Menu className="h-5 w-5" />
@@ -213,7 +217,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <PaletaComandos aberta={paleta} setAberta={setPaleta} />
-      <span className="hidden">{pendentes?.length}</span>
     </div>
   );
 }
