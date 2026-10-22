@@ -9,6 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useTema } from "@/lib/tema";
+import { useServerFn } from "@tanstack/react-start";
+import { statusConexoes } from "@/lib/conexoes.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -46,6 +48,8 @@ function Configuracoes() {
   const { session } = useAuth();
   const uid = session?.user.id;
   const qc = useQueryClient();
+  const buscarStatus = useServerFn(statusConexoes);
+  const { data: st } = useQuery({ queryKey: ["conexoes"], queryFn: () => buscarStatus() });
   const { data: p } = useQuery({
     queryKey: ["perfil-config", uid],
     enabled: !!uid,
@@ -77,14 +81,21 @@ function Configuracoes() {
     <Pagina>
       <Cabecalho titulo="Configurações" frase="Conecte suas ferramentas e ajuste a rotina do Munim." />
       <div className="grid gap-4">
-        <Bloco icon={<span className="font-display text-base font-semibold">G</span>} titulo="Google">
-          <p className="text-sm text-muted-foreground">
-            O Munim lê Gmail, Agenda e Drive e só cria rascunhos e eventos depois da sua aprovação.
-          </p>
-          <div className="mt-4">
-            <Link to="/conexoes" className="text-sm text-primary hover:underline">Ver status em Conexões</Link>
-          </div>
-        </Bloco>
+        {(["google", "pipedrive"] as const).map((k) => {
+          const s = st?.[k];
+          return (
+            <Bloco key={k} icon={<span className="font-display text-base font-semibold">{k === "google" ? "G" : "P"}</span>} titulo={k === "google" ? "Google Agenda e Gmail" : "Pipedrive"}>
+              <p className="text-sm text-muted-foreground">
+                {k === "google" ? "O Munim lê sua agenda e seus e-mails e só cria rascunhos e eventos depois da sua aprovação." : "Clientes, negócios e atividades. Nada é gravado sem sua aprovação."}
+              </p>
+              <div className="mt-3 flex items-center gap-2 text-sm">
+                <span className={`h-2.5 w-2.5 rounded-full ${!s ? "bg-muted-foreground" : s.ok ? "bg-success" : "bg-warning"}`} />
+                <span className={s?.ok ? "text-success" : "text-foreground"}>{s?.detalhe ?? "Verificando…"}</span>
+              </div>
+              <Link to="/conexoes" className="mt-3 inline-block text-sm text-primary hover:underline">Ver todas as conexões</Link>
+            </Bloco>
+          );
+        })}
 
         <Bloco icon={<Send className="h-5 w-5" />} titulo="Telegram">
           {p?.telegram_chat_id ? (
