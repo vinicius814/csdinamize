@@ -6,7 +6,7 @@ import { traduzirErroLogin, useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (s: Record<string, unknown>): { erro?: string } =>
-    typeof s.erro === "string" ? { erro: s.erro } : {},
+    typeof s["erro"] === "string" ? { erro: s["erro"] } : {},
   head: () => ({
     meta: [
       { title: "Entrar — Munim" },
