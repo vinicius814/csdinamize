@@ -44,7 +44,7 @@ export function CartaoAcao({ acao }: { acao: Acao }) {
   const decidir = useServerFn(decidirAcao);
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState(false);
-  const [local, setLocal] = useState<{ status: string; erro?: string } | null>(null);
+  const [local, setLocal] = useState<{ status: string; erro?: string | undefined } | null>(null);
   const status = local?.status ?? acao.status;
   const Icon = ICONES[acao.tipo] ?? ClipboardList;
   const params = (acao.parametros ?? {}) as Record<string, unknown>;
