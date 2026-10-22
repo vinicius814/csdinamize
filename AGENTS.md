@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Rules
+- Auth state (session + profile: nome, papel, pipedrive_user_id) lives in AuthProvider (src/lib/auth.tsx); read it via useAuth() so every page shares one source.
+- All app pages live under src/routes/_authenticated/; /auth is the only public page so no screen is reachable without a session.
