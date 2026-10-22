@@ -189,6 +189,133 @@ export type Database = {
         }
         Relationships: []
       }
+      conexoes_pipedrive: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          dominio: string
+          pipedrive_user_id: number | null
+          token_cifrado: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          dominio: string
+          pipedrive_user_id?: number | null
+          token_cifrado: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          dominio?: string
+          pipedrive_user_id?: number | null
+          token_cifrado?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conexoes_pipedrive_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      config_usuario: {
+        Row: {
+          atualizado_em: string
+          campo_ultimo_contato: string | null
+          criado_em: string
+          dias_alerta: number
+          limite_custo_usd: number
+          onboarding_concluido: boolean
+          pasta_drive_id: string | null
+          pipeline_id: number | null
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          campo_ultimo_contato?: string | null
+          criado_em?: string
+          dias_alerta?: number
+          limite_custo_usd?: number
+          onboarding_concluido?: boolean
+          pasta_drive_id?: string | null
+          pipeline_id?: number | null
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          campo_ultimo_contato?: string | null
+          criado_em?: string
+          dias_alerta?: number
+          limite_custo_usd?: number
+          onboarding_concluido?: boolean
+          pasta_drive_id?: string | null
+          pipeline_id?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_usuario_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      convites: {
+        Row: {
+          codigo: string
+          criado_em: string
+          criado_por: string | null
+          email: string | null
+          expira_em: string
+          id: string
+          usado_em: string | null
+          usado_por: string | null
+        }
+        Insert: {
+          codigo?: string
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em?: string
+          id?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Update: {
+          codigo?: string
+          criado_em?: string
+          criado_por?: string | null
+          email?: string | null
+          expira_em?: string
+          id?: string
+          usado_em?: string | null
+          usado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "convites_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "convites_usado_por_fkey"
+            columns: ["usado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_tokens: {
         Row: {
           atualizado_em: string
