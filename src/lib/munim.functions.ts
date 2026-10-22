@@ -255,11 +255,13 @@ export const decidirAcao = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const p = (acao.parametros ?? {}) as Record<string, any>;
+    const { data: perf } = await supabase.from("profiles").select("pipedrive_user_id").eq("id", context.userId).maybeSingle();
+    const dono = perf?.pipedrive_user_id ? Number(perf.pipedrive_user_id) : undefined;
     let status: "executada" | "erro" = "executada";
     let resultado: any = {};
     try {
       if (acao.tipo === "atividade_pipedrive") {
-        const r = await pipedrive("/activities", { deal_id: Number(p["deal_id"]), subject: p["assunto"], due_date: p["data"], type: p["tipo"] ?? "task" });
+        const r = await pipedrive("/activities", { deal_id: Number(p["deal_id"]), subject: p["assunto"], ...(dono ? { user_id: dono } : {}), due_date: p["data"], type: p["tipo"] ?? "task" });
         resultado = { id: r?.data?.id };
       } else if (acao.tipo === "nota_pipedrive") {
         const r = await pipedrive("/notes", { deal_id: Number(p["deal_id"]), content: p["conteudo"] });

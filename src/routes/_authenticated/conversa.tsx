@@ -151,13 +151,21 @@ function Conversa() {
     }
     setMsgs((a) => (a.some((x) => x.id === data.id) ? a : [...a, data]));
     setEstado("pensando");
-    setTimeout(() => {
+    try {
+      await conversar({ data: { conteudo } });
+      const { data: novas } = await supabase
+        .from("mensagens")
+        .select("id, autor, canal, conteudo, created_at")
+        .eq("autor", "munim")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const m = novas?.[0];
+      if (m) setMsgs((a) => (a.some((x) => x.id === m.id) ? a : [...a, { ...m, animar: true }]));
+    } catch {
+      setErroVoz("Não consegui pensar agora. Tente de novo em instantes.");
+    } finally {
       setEstado("repouso");
-      setMsgs((a) => [
-        ...a,
-        { id: `local-${Date.now()}`, autor: "munim", canal: "app", conteudo: RESPOSTA_PROVISORIA, created_at: new Date().toISOString(), animar: true },
-      ]);
-    }, 2000);
+    }
   };
 
   return (
