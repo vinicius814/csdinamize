@@ -85,10 +85,10 @@ export function useAuth() {
 }
 
 export const MSG_ACESSO_RESTRITO =
-  "Acesso restrito. Entre com seu e-mail da Dinamize ou da CRM Content.";
+  "Este acesso ainda é só para convidados. Fale com a Wojtec para entrar.";
 
 export function traduzirErroLogin(mensagem: string | null | undefined): string | null {
   if (!mensagem) return null;
   if (mensagem.includes("Acesso restrito a contas autorizadas")) return MSG_ACESSO_RESTRITO;
-  return "Não foi possível entrar. Tente novamente.";
+  return "Não deu para entrar agora. Tente de novo em instantes.";
 }
