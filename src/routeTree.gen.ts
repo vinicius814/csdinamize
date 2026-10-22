@@ -16,6 +16,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticated/conversa'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 
@@ -54,6 +55,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedConversaRoute = AuthenticatedConversaRouteImport.update({
+  id: '/conversa',
+  path: '/conversa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/conversa': typeof AuthenticatedConversaRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/notas': typeof AuthenticatedNotasRoute
 }
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/conversa': typeof AuthenticatedConversaRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/': typeof AuthenticatedIndexRoute
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/conversa': typeof AuthenticatedConversaRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/aprovacoes'
     | '/carteira'
     | '/configuracoes'
+    | '/conversa'
     | '/equipe'
     | '/notas'
   fileRoutesByTo: FileRoutesByTo
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/aprovacoes'
     | '/carteira'
     | '/configuracoes'
+    | '/conversa'
     | '/equipe'
     | '/notas'
     | '/'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/_authenticated/aprovacoes'
     | '/_authenticated/carteira'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/conversa'
     | '/_authenticated/equipe'
     | '/_authenticated/notas'
     | '/_authenticated/'
@@ -187,6 +199,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/conversa': {
+      id: '/_authenticated/conversa'
+      path: '/conversa'
+      fullPath: '/conversa'
+      preLoaderRoute: typeof AuthenticatedConversaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/equipe': {
       id: '/_authenticated/equipe'
       path: '/equipe'
@@ -209,6 +228,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedConversaRoute: typeof AuthenticatedConversaRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -219,6 +239,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedConversaRoute: AuthenticatedConversaRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
