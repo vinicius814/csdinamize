@@ -74,6 +74,7 @@ function Inicio() {
   const lemb = useLembretesHoje();
   const rotinas = useRotinas();
   const ideias = useRadarIdeias();
+  const cart = useCarteira();
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<Rotina>(() => (new Date().getHours() >= 17 ? "fechamento" : "manha"));
   const [gerando, setGerando] = useState<Rotina | null>(null);
