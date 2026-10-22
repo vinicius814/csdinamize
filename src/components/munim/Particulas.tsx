@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 type P = { left: number; size: number; dur: number; delay: number; brasa: boolean; o: number };
 
@@ -31,7 +31,7 @@ export function Particulas({ quantidade = 36 }: { quantidade?: number }) {
               animationDuration: `${p.dur}s`,
               animationDelay: `${p.delay}s`,
               "--o": p.o,
-            } as React.CSSProperties
+            } as CSSProperties
           }
         />
       ))}
