@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
+import { Route as AuthenticatedConexoesRouteImport } from './routes/_authenticated/conexoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticated/conversa'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
@@ -49,6 +50,11 @@ const AuthenticatedCarteiraRoute = AuthenticatedCarteiraRouteImport.update({
   path: '/carteira',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConexoesRoute = AuthenticatedConexoesRouteImport.update({
+  id: '/conexoes',
+  path: '/conexoes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
+  '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
+  '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
+  '/_authenticated/conexoes': typeof AuthenticatedConexoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/conversa': typeof AuthenticatedConversaRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/aprovacoes'
     | '/carteira'
+    | '/conexoes'
     | '/configuracoes'
     | '/conversa'
     | '/equipe'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/aprovacoes'
     | '/carteira'
+    | '/conexoes'
     | '/configuracoes'
     | '/conversa'
     | '/equipe'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/carteira'
+    | '/_authenticated/conexoes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/conversa'
     | '/_authenticated/equipe'
@@ -192,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCarteiraRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/conexoes': {
+      id: '/_authenticated/conexoes'
+      path: '/conexoes'
+      fullPath: '/conexoes'
+      preLoaderRoute: typeof AuthenticatedConexoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -227,6 +246,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
+  AuthenticatedConexoesRoute: typeof AuthenticatedConexoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConversaRoute: typeof AuthenticatedConversaRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
@@ -238,6 +258,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
+  AuthenticatedConexoesRoute: AuthenticatedConexoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConversaRoute: AuthenticatedConversaRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,

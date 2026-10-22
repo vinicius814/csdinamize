@@ -6,13 +6,14 @@ import {
   Briefcase,
   Users,
   Settings,
+  Plug,
   Shield,
   type LucideIcon,
 } from "lucide-react";
 import type { Perfil } from "@/lib/auth";
 
 export type ItemNav = {
-  to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/equipe" | "/configuracoes" | "/admin";
+  to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/equipe" | "/conexoes" | "/configuracoes" | "/admin";
   label: string;
   icon: LucideIcon;
   papeis?: Perfil["papel"][];
@@ -25,6 +26,7 @@ export const NAV: ItemNav[] = [
   { to: "/notas", label: "Notas", icon: StickyNote },
   { to: "/carteira", label: "Carteira", icon: Briefcase },
   { to: "/equipe", label: "Equipe", icon: Users, papeis: ["gestor", "admin"] },
+  { to: "/conexoes", label: "Conexões", icon: Plug },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
   { to: "/admin", label: "Admin", icon: Shield, papeis: ["admin"] },
 ];
