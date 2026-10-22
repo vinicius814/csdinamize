@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { pontuacao } from "./ideias";
 
 const MODELO = "anthropic/claude-sonnet-5";
 const PIPEDRIVE_GW = "https://connector-gateway.lovable.dev/pipedrive";
@@ -61,6 +62,72 @@ const FERRAMENTAS = [
     },
   },
   {
+    name: "capturar_ideia",
+    description:
+      "Guarda uma ideia solta já amadurecida: registra a versão bruta, a versão melhorada por você, potencial, impacto e esforço (1 a 5) e as perguntas que ainda faltam responder. Use sempre que ele soltar uma ideia, mesmo informal.",
+    input_schema: {
+      type: "object",
+      properties: {
+        titulo: { type: "string" },
+        area: { type: "string" },
+        ideia_bruta: { type: "string", description: "O que ele disse, fiel" },
+        versao_melhorada: { type: "string", description: "Sua versão mais forte da ideia, em Markdown: ângulo, diferencial, como testar barato" },
+        potencial: { type: "string", enum: ["alto", "medio", "baixo"] },
+        impacto: { type: "number", description: "1 a 5" },
+        esforco: { type: "number", description: "1 a 5" },
+        perguntas_abertas: { type: "array", items: { type: "string" } },
+      },
+      required: ["titulo", "ideia_bruta", "versao_melhorada", "potencial", "impacto", "esforco"],
+    },
+  },
+  {
+    name: "estruturar_projeto",
+    description:
+      "Transforma uma ideia ou demanda em projeto estruturado no Segundo Cérebro: problema, objetivo, métrica de sucesso, hipóteses, etapas com prazo, riscos, impacto/esforço e próximo passo.",
+    input_schema: {
+      type: "object",
+      properties: {
+        titulo: { type: "string" },
+        area: { type: "string" },
+        problema: { type: "string" },
+        objetivo: { type: "string" },
+        metrica_sucesso: { type: "string" },
+        hipoteses: { type: "array", items: { type: "string" } },
+        etapas: { type: "array", items: { type: "object", properties: { passo: { type: "string" }, prazo: { type: "string" } }, required: ["passo"] } },
+        riscos: { type: "array", items: { type: "string" } },
+        impacto: { type: "number" },
+        esforco: { type: "number" },
+        proximo_passo: { type: "string" },
+      },
+      required: ["titulo", "problema", "objetivo", "etapas", "impacto", "esforco", "proximo_passo"],
+    },
+  },
+  {
+    name: "listar_ideias_projetos",
+    description: "Lista as ideias e projetos guardados, com potencial, impacto, esforço e pontuação. Use para priorizar, conectar ideias ou retomar um projeto.",
+    input_schema: { type: "object", properties: { tipo: { type: "string", enum: ["ideia", "projeto", "todos"] } } },
+  },
+  {
+    name: "atualizar_projeto",
+    description: "Acrescenta novidades, decisões ou mudança de status a uma ideia/projeto existente (id vindo de listar_ideias_projetos). Pode promover uma ideia a projeto.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string" },
+        novidade_md: { type: "string" },
+        promover_a_projeto: { type: "boolean" },
+        status: { type: "string", enum: ["incubando", "ativo", "pausado", "concluido", "descartado"] },
+      },
+      required: ["id", "novidade_md"],
+    },
+  },
+  {
+    name: "radar_riscos",
+    description:
+      "Auditoria cruzada ao vivo: clientes valiosos sem contato, negócios sem próxima atividade ou com atividade atrasada, e-mails sem resposta há mais de 2 dias e carga da agenda nos próximos 5 dias.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
     name: "propor_acao",
     description:
       "Prepara uma ação para o usuário aprovar com 1 toque. Nada é executado sem aprovação. Tipos: atividade_pipedrive (parametros: deal_id, assunto, data YYYY-MM-DD, tipo), nota_pipedrive (deal_id, conteudo), rascunho_gmail (para, assunto, corpo), evento_agenda (titulo, inicio ISO, fim ISO, convidados: string[]).",
@@ -81,21 +148,56 @@ function promptSistema(p: { nome: string | null }, memoria: string, agora: strin
 Personalidade: confiante, calmo, preciso, levemente espirituoso, sempre a um passo à frente. Português do Brasil, respostas curtas em Markdown leve. Chame-o pelo nome de vez em quando.
 Agora: ${agora} (America/Sao_Paulo).
 
-Você tem acesso ao vivo a: Pipedrive (carteira e negócios), Gmail (ler e buscar), Google Agenda, e o Segundo Cérebro no Google Drive (notas .md).
+Você tem acesso ao vivo a: Pipedrive (carteira e negócios), Gmail (ler e buscar), Google Agenda, e o Segundo Cérebro no Google Drive (notas .md, ideias e projetos).
+
+Você não é um organizador de agenda. Você é conselheiro estratégico, incubador de ideias e radar de riscos.
+
 Como agir:
-- Antecipe. Ao responder, cruze fontes: um cliente citado → veja Pipedrive, e-mails recentes e notas. Aponte riscos, prazos e o que está esquecido.
+- Antecipe. Cruze fontes: um cliente citado → Pipedrive, e-mails recentes e notas. Aponte riscos, prazos e o que está esquecido.
+- Direcione. Quando houver decisão no ar, dê sua recomendação clara ("Eu faria X, porque…") com 1 alternativa e o custo de não agir.
+- Pergunte para entender melhor. Se faltar contexto que mude a resposta, faça no máximo 2 perguntas certeiras (objetivo, prazo, quem decide, métrica, restrição). Não pergunte o que dá para descobrir nas ferramentas.
+- Avalie riscos. Em todo plano ou decisão, cite os riscos relevantes (cliente, prazo, sobrecarga, reputação, financeiro) com nível baixo/médio/alto e como mitigar. Para uma visão geral, use radar_riscos.
+- Ideias soltas: SEMPRE guarde com capturar_ideia, já melhoradas — dê um ângulo mais forte, um diferencial e um teste barato em 1 semana. Avalie potencial, impacto e esforço com honestidade; diga quando a ideia é fraca.
+- Projetos: quando uma ideia ganha corpo ou ele descreve uma iniciativa, use estruturar_projeto. Quando ele voltar ao assunto, use listar_ideias_projetos e atualizar_projeto em vez de criar duplicado.
+- Grandes ideias: ao priorizar, use listar_ideias_projetos e aponte as 1 a 3 com maior potencial e por que merecem foco agora. Conecte ideias parecidas.
 - Proteja o tempo dele: priorize por impacto, diga o que pode esperar e o que pode ser delegado.
-- Melhore ideias com sugestões concretas e próximos passos, não com elogios.
 - Nunca invente dados: use as ferramentas. Se uma fonte falhar, diga com naturalidade e siga com o que tem.
-- Nada é enviado, apagado ou alterado sem aprovação: para agir no Pipedrive, Gmail ou Agenda use propor_acao e diga que está aguardando o ok em Aprovações. E-mail vira rascunho, nunca envio direto.
-- Quando ele ditar ideias, tarefas ou lembretes, salve com salvar_nota e diga onde guardou.
-- Termine com um próximo passo útil quando fizer sentido.
+- Nada é enviado, apagado ou alterado nas ferramentas externas sem aprovação: para agir no Pipedrive, Gmail ou Agenda use propor_acao e diga que está aguardando o ok em Aprovações. E-mail vira rascunho, nunca envio direto.
+- Lembretes e tarefas simples: salve com salvar_nota e diga onde guardou.
+- Termine com um próximo passo concreto ou uma pergunta que faça a ideia avançar.
 
 Memória de longo prazo (Memória.md do Segundo Cérebro — trate como verdade):
 ${memoria || "(indisponível agora)"}`;
 }
 
 type Ctx = { supabase: any; userId: string; pipedriveUserId: number | null };
+
+
+const clamp = (n: unknown) => Math.max(1, Math.min(5, Math.round(Number(n) || 3)));
+const lista = (xs?: string[]) => (xs?.length ? xs.map((x) => `- ${x}`).join("\n") : "- (a definir)");
+
+function mdIdeia(i: any) {
+  return [
+    `**Potencial:** ${i.potencial} · **Impacto:** ${clamp(i.impacto)}/5 · **Esforço:** ${clamp(i.esforco)}/5`,
+    "", "## Ideia bruta", i.ideia_bruta,
+    "", "## Versão melhorada (Munim)", i.versao_melhorada,
+    "", "## Perguntas em aberto", lista(i.perguntas_abertas),
+  ].join("\n");
+}
+
+function mdProjeto(i: any) {
+  const etapas = (i.etapas ?? []).map((e: any) => `- [ ] ${e.passo}${e.prazo ? ` — ${e.prazo}` : ""}`).join("\n") || "- [ ] (a definir)";
+  return [
+    `**Status:** ativo · **Impacto:** ${clamp(i.impacto)}/5 · **Esforço:** ${clamp(i.esforco)}/5`,
+    "", "## Problema", i.problema,
+    "", "## Objetivo", i.objetivo,
+    "", "## Métrica de sucesso", i.metrica_sucesso ?? "(a definir)",
+    "", "## Hipóteses", lista(i.hipoteses),
+    "", "## Etapas", etapas,
+    "", "## Riscos", lista(i.riscos),
+    "", "## Próximo passo", i.proximo_passo,
+  ].join("\n");
+}
 
 async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{ texto: string; acaoId?: string }> {
   const I = await import("./integracoes.server");
@@ -141,6 +243,60 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
       });
       return { texto: ondeDrive ? `nota salva (${ondeDrive})` : error ? `erro: ${error.message}` : "nota salva no Munim (Drive indisponível agora)" };
     }
+    if (nome === "capturar_ideia" || nome === "estruturar_projeto") {
+      const ehProjeto = nome === "estruturar_projeto";
+      const corpo = ehProjeto ? mdProjeto(input) : mdIdeia(input);
+      const imp = clamp(input.impacto), esf = clamp(input.esforco);
+      const tags = [
+        ehProjeto ? "projeto" : "ideia",
+        `potencial:${input.potencial ?? (imp >= 4 ? "alto" : imp >= 3 ? "medio" : "baixo")}`,
+        `impacto:${imp}`, `esforco:${esf}`,
+        `status:${ehProjeto ? "ativo" : "incubando"}`,
+      ];
+      let ondeDrive = "";
+      try {
+        const r = await I.salvarNotaDrive({ titulo: input.titulo, area: input.area, tags, corpo_md: corpo });
+        ondeDrive = ` Drive: Segundo Cérebro/01 Notas/${r.nome}`;
+      } catch (e: any) {
+        console.error("drive ideia", e?.message);
+      }
+      const { data, error } = await supabase.from("notas").insert({
+        user_id: userId, titulo: input.titulo, area: input.area ?? null, subcategoria: ehProjeto ? "projeto" : "ideia",
+        tags, corpo_md: corpo, resumo: String(ehProjeto ? input.objetivo : input.versao_melhorada ?? "").slice(0, 200),
+      }).select("id").single();
+      if (error) return { texto: `erro: ${error.message}` };
+      return { texto: `${ehProjeto ? "projeto estruturado" : "ideia guardada"} (id ${data.id}, pontuação ${pontuacao(tags)}).${ondeDrive}` };
+    }
+    if (nome === "listar_ideias_projetos") {
+      let q = supabase.from("notas").select("id, titulo, area, subcategoria, tags, resumo, created_at").in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(60);
+      if (input?.tipo === "ideia" || input?.tipo === "projeto") q = q.eq("subcategoria", input.tipo);
+      const { data } = await q;
+      const lista = (data ?? []).map((n: any) => ({ ...n, pontuacao: pontuacao(n.tags) })).sort((a: any, b: any) => b.pontuacao - a.pontuacao);
+      return { texto: JSON.stringify(lista) };
+    }
+    if (nome === "atualizar_projeto") {
+      const { data: n } = await supabase.from("notas").select("id, titulo, corpo_md, tags, subcategoria").eq("id", String(input.id)).maybeSingle();
+      if (!n) return { texto: "erro: ideia/projeto não encontrado" };
+      const data = new Date().toLocaleDateString("pt-BR", { timeZone: I.FUSO });
+      const corpo = `${n.corpo_md ?? ""}\n\n## Atualização ${data}\n${input.novidade_md}`;
+      let tags: string[] = (n.tags ?? []).filter((t: string) => !(input.status && t.startsWith("status:")));
+      if (input.status) tags.push(`status:${input.status}`);
+      const sub = input.promover_a_projeto ? "projeto" : n.subcategoria;
+      if (input.promover_a_projeto) tags = tags.map((t) => (t === "ideia" ? "projeto" : t));
+      const { error } = await supabase.from("notas").update({ corpo_md: corpo, tags, subcategoria: sub }).eq("id", n.id);
+      if (error) return { texto: `erro: ${error.message}` };
+      try {
+        const [arq] = await I.listarNotasDrive(String(n.titulo ?? "").slice(0, 60), 1);
+        if (arq) {
+          const atual = await I.lerArquivoDrive(arq.id);
+          await I.atualizarArquivoDrive(arq.id, `${atual}\n\n## Atualização ${data}\n${input.novidade_md}`);
+        }
+      } catch (e: any) {
+        console.error("drive atualizar", e?.message);
+      }
+      return { texto: "atualizado" };
+    }
+    if (nome === "radar_riscos") return { texto: JSON.stringify(await I.sinaisDeRisco(ctx.pipedriveUserId)).slice(0, 25000) };
     if (nome === "propor_acao") {
       if (!TIPOS.includes(input?.tipo)) return { texto: "erro: tipo inválido" };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

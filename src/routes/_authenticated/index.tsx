@@ -5,12 +5,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { plural, saudacao } from "@/lib/texto";
 import ReactMarkdown from "react-markdown";
-import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown, RefreshCw } from "lucide-react";
-import { gerarBriefing } from "@/lib/briefing.functions";
+import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown, Lightbulb, MessageSquare, RefreshCw } from "lucide-react";
+import { gerarRotina } from "@/lib/briefing.functions";
 import { Nucleo } from "@/components/munim/Nucleo";
 import { Pagina } from "@/components/munim/PaginaVazia";
 import { useAuth } from "@/lib/auth";
-import { useCarteira, useLembretesHoje, usePendentes, useUltimoBriefing, DIAS_SEM_CONTATO } from "@/lib/dados";
+import { useCarteira, useLembretesHoje, usePendentes, useRotinas, useRadarIdeias, DIAS_SEM_CONTATO, type Rotina } from "@/lib/dados";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -24,6 +24,14 @@ export const Route = createFileRoute("/_authenticated/")({
   }),
   component: Inicio,
 });
+
+const ABAS: [Rotina, string][] = [["manha", "Manhã"], ["riscos", "Riscos"], ["fechamento", "Fechamento"], ["semana", "Semana"]];
+const DESCRICAO: Record<Rotina, string> = {
+  manha: "Seu dia, o que pede atenção e as 3 prioridades. Monto sozinho na primeira visita do dia.",
+  riscos: "Clientes esfriando, negócios parados, e-mails sem resposta e agenda apertada, com o que fazer.",
+  fechamento: "O que andou, o que ficou e como começar amanhã. Monto sozinho a partir das 17h.",
+  semana: "Saúde da carteira, grandes ideias para priorizar e direcionamento. Monto sozinho às segundas.",
+};
 
 function Cartao({ titulo, icon: Icon, children, className }: { titulo: string; icon: typeof Bell; children: ReactNode; className?: string }) {
   return (
@@ -64,32 +72,39 @@ function Inicio() {
   const { perfil } = useAuth();
   const pend = usePendentes();
   const lemb = useLembretesHoje();
-  const brief = useUltimoBriefing();
+  const rotinas = useRotinas();
+  const ideias = useRadarIdeias();
   const cart = useCarteira();
   const [aberto, setAberto] = useState(false);
-  const [gerando, setGerando] = useState(false);
+  const [aba, setAba] = useState<Rotina>(() => (new Date().getHours() >= 17 ? "fechamento" : "manha"));
+  const [gerando, setGerando] = useState<Rotina | null>(null);
   const qc = useQueryClient();
-  const gerarFn = useServerFn(gerarBriefing);
-  const gerar = async () => {
-    setGerando(true);
+  const gerarFn = useServerFn(gerarRotina);
+  const gerar = async (tipo: Rotina) => {
+    setGerando(tipo);
     try {
-      await gerarFn();
-      await qc.invalidateQueries({ queryKey: ["ultimo-briefing"] });
+      await gerarFn({ data: { tipo } });
+      await qc.invalidateQueries({ queryKey: ["rotinas"] });
     } catch (e: any) {
-      toast.error(e?.message ?? "Não consegui montar o briefing agora.");
+      toast.error(e?.message ?? "Não consegui montar agora.");
     } finally {
-      setGerando(false);
+      setGerando(null);
     }
   };
+  // Rotinas programadas: rodam sozinhas na primeira visita do período.
   const tentou = useRef(false);
   useEffect(() => {
-    if (!brief.isSuccess || tentou.current) return;
-    const ehHoje = brief.data && new Date(brief.data.enviado_em).toDateString() === new Date().toDateString();
-    if (!ehHoje) {
-      tentou.current = true;
-      gerar();
-    }
-  }, [brief.isSuccess, brief.data]);
+    if (!rotinas.isSuccess || tentou.current) return;
+    tentou.current = true;
+    const r = rotinas.data;
+    const hoje = new Date().toDateString();
+    const ehHoje = (d?: { enviado_em: string }) => !!d && new Date(d.enviado_em).toDateString() === hoje;
+    const agora = new Date();
+    if (agora.getHours() >= 17 && !ehHoje(r.fechamento)) gerar("fechamento");
+    else if (!ehHoje(r.manha)) gerar("manha");
+    else if (agora.getDay() === 1 && !ehHoje(r.semana)) gerar("semana");
+  }, [rotinas.isSuccess]);
+  const atual = rotinas.data?.[aba];
 
   const primeiroNome = perfil?.nome?.split(" ")[0];
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
@@ -148,22 +163,35 @@ function Inicio() {
           )}
         </Cartao>
 
-        <Cartao titulo="Briefing da manhã" icon={BookOpen} className="md:col-span-2">
-          {!brief.data ? (
+        <Cartao titulo="Rotinas do Munim" icon={BookOpen} className="md:col-span-2">
+          <div className="mb-3 flex flex-wrap gap-1" role="tablist">
+            {ABAS.map(([k, rotulo]) => (
+              <button
+                key={k}
+                role="tab"
+                aria-selected={aba === k}
+                onClick={() => { setAba(k); setAberto(false); }}
+                className={cn("rounded-full px-3 py-1 text-xs transition-colors", aba === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground")}
+              >
+                {rotulo}
+              </button>
+            ))}
+          </div>
+          {!atual ? (
             <Vazio
-              texto={gerando ? "Lendo sua agenda e seus e-mails…" : "Ainda não há briefing hoje."}
-              acao={!gerando && <button onClick={gerar} className="text-sm text-primary hover:underline">Montar agora</button>}
+              texto={gerando === aba ? "Cruzando agenda, e-mails, carteira e ideias…" : DESCRICAO[aba]}
+              acao={gerando !== aba && <button onClick={() => gerar(aba)} className="text-sm text-primary hover:underline">Montar agora</button>}
             />
           ) : (
             <div>
               <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                <span>{new Date(brief.data.enviado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
-                <button onClick={gerar} disabled={gerando} className="flex items-center gap-1 text-primary hover:underline disabled:opacity-60">
-                  <RefreshCw className={cn("h-3.5 w-3.5", gerando && "animate-spin")} /> {gerando ? "Atualizando…" : "Atualizar"}
+                <span>{new Date(atual.enviado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                <button onClick={() => gerar(aba)} disabled={!!gerando} className="flex items-center gap-1 text-primary hover:underline disabled:opacity-60">
+                  <RefreshCw className={cn("h-3.5 w-3.5", gerando === aba && "animate-spin")} /> {gerando === aba ? "Atualizando…" : "Atualizar"}
                 </button>
               </div>
               <div className={cn("prose-munim relative overflow-hidden text-sm", !aberto && "max-h-64")}>
-                <ReactMarkdown>{brief.data.conteudo_md}</ReactMarkdown>
+                <ReactMarkdown>{atual.conteudo_md}</ReactMarkdown>
                 {!aberto && <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />}
               </div>
               <button onClick={() => setAberto((v) => !v)} className="mt-2 flex items-center gap-1 text-sm text-primary">
@@ -190,6 +218,37 @@ function Inicio() {
                 </p>
               </div>
             </div>
+          )}
+        </Cartao>
+
+        <Cartao titulo="Grandes ideias" icon={Lightbulb} className="md:col-span-2">
+          {!ideias.data?.length ? (
+            <Vazio
+              texto="Solte uma ideia na Conversa, mesmo crua. Eu melhoro, avalio o potencial e guardo aqui."
+              acao={<Link to="/conversa" className="text-sm text-primary hover:underline">Contar uma ideia</Link>}
+            />
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {ideias.data.slice(0, 5).map((n, i) => (
+                <li key={n.id} className="flex items-start gap-3 rounded-lg p-2 hover:bg-accent">
+                  <span className={cn("mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full font-display text-xs font-semibold", i === 0 ? "bg-ember/20 text-ember" : "bg-secondary text-foreground")}>
+                    {n.pontuacao}
+                  </span>
+                  <div className="min-w-0 flex-1 text-sm">
+                    <p className="text-foreground">
+                      {n.titulo ?? "Sem título"}
+                      <span className="ml-2 text-xs text-muted-foreground">{n.subcategoria === "projeto" ? "Projeto" : "Ideia"}{n.status ? ` · ${n.status}` : ""}</span>
+                    </p>
+                    {n.resumo && <p className="line-clamp-2 text-muted-foreground">{n.resumo}</p>}
+                  </div>
+                </li>
+              ))}
+              <li className="pt-2">
+                <Link to="/conversa" className="flex items-center gap-1 text-sm text-primary hover:underline">
+                  <MessageSquare className="h-4 w-4" /> Pedir ao Munim o que priorizar
+                </Link>
+              </li>
+            </ul>
           )}
         </Cartao>
       </div>

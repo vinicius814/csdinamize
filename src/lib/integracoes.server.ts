@@ -256,3 +256,45 @@ export async function salvarNotaDrive(n: { titulo: string; area?: string; tags?:
   });
   return { id: r?.id as string, nome };
 }
+
+/** Substitui o conteúdo de um arquivo .md existente no Drive. */
+export async function atualizarArquivoDrive(id: string, conteudo: string) {
+  await gw("google_drive", `/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media`, {
+    method: "PATCH",
+    raw: conteudo,
+    headers: { "Content-Type": "text/markdown; charset=UTF-8" },
+  });
+}
+
+/* ---------------- Radar de riscos (cruza Pipedrive, Gmail e Agenda) ---------------- */
+
+export async function sinaisDeRisco(pipedriveUserId?: number | null) {
+  const hoje = new Date().toLocaleDateString("en-CA", { timeZone: FUSO });
+  const fim = new Date(Date.now() + 5 * 86400000).toLocaleDateString("en-CA", { timeZone: FUSO });
+  const [cart, emails, agenda] = await Promise.all([
+    carteiraPipedrive(pipedriveUserId).catch((e) => ({ erro: String(e?.message ?? e) })),
+    buscarEmails("in:inbox is:unread older_than:2d newer_than:14d -category:promotions -category:social -category:updates", 12).catch((e) => ({ erro: String(e?.message ?? e) })),
+    eventos(`${hoje}T00:00:00-03:00`, `${fim}T23:59:59-03:00`).catch((e) => ({ erro: String(e?.message ?? e) })),
+  ]);
+  let carteira: any = cart;
+  if (Array.isArray(cart)) {
+    const semContato = cart.filter((c) => c.dias_sem_contato === null || c.dias_sem_contato > 45);
+    carteira = {
+      total: cart.length,
+      sem_contato_45d: semContato.length,
+      mais_criticos: semContato.sort((a, b) => b.valor - a.valor || (b.dias_sem_contato ?? 999) - (a.dias_sem_contato ?? 999)).slice(0, 12),
+      sem_proxima_atividade: cart.filter((c) => !c.proxima_atividade).slice(0, 12).map((c) => ({ deal_id: c.deal_id, titulo: c.titulo, valor: c.valor })),
+      atividades_atrasadas: cart.filter((c) => c.proxima_atividade && c.proxima_atividade < hoje).slice(0, 12).map((c) => ({ deal_id: c.deal_id, titulo: c.titulo, desde: c.proxima_atividade })),
+    };
+  }
+  let carga: any = agenda;
+  if (Array.isArray(agenda)) {
+    const porDia: Record<string, number> = {};
+    for (const e of agenda as any[]) {
+      const d = String(e.inicio ?? "").slice(0, 10);
+      if (d) porDia[d] = (porDia[d] ?? 0) + 1;
+    }
+    carga = { compromissos_proximos_5_dias: porDia, total: (agenda as any[]).length };
+  }
+  return { hoje, carteira, emails_sem_resposta_ha_2d: emails, agenda: carga };
+}

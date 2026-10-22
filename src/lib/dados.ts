@@ -90,3 +90,52 @@ export function useCarteira() {
     },
   });
 }
+
+export type Rotina = "manha" | "riscos" | "fechamento" | "semana";
+const ROTINA_DO_BANCO: Record<string, Rotina> = { manha: "manha", alerta: "riscos", rodada: "fechamento", leitura_cs: "semana" };
+
+/** Última edição de cada rotina (manhã, riscos, fechamento, semana). */
+export function useRotinas() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["rotinas", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("briefings")
+        .select("id, tipo, conteudo_md, enviado_em")
+        .order("enviado_em", { ascending: false })
+        .limit(40);
+      if (error) throw error;
+      const out: Partial<Record<Rotina, { conteudo_md: string; enviado_em: string }>> = {};
+      for (const b of data ?? []) {
+        const r = ROTINA_DO_BANCO[b.tipo];
+        if (r && !out[r]) out[r] = b;
+      }
+      return out;
+    },
+  });
+}
+
+/** Ideias e projetos do Segundo Cérebro, ordenados por pontuação. */
+export function useRadarIdeias() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["radar-ideias", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const { pontuacao, lerTag } = await import("@/lib/ideias");
+      const { data, error } = await supabase
+        .from("notas")
+        .select("id, titulo, subcategoria, tags, resumo, created_at")
+        .in("subcategoria", ["ideia", "projeto"])
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      return (data ?? [])
+        .map((n) => ({ ...n, pontuacao: pontuacao(n.tags), status: lerTag(n.tags, "status") }))
+        .filter((n) => n.pontuacao > 0)
+        .sort((a, b) => b.pontuacao - a.pontuacao);
+    },
+  });
+}
