@@ -23,7 +23,7 @@ export async function gw(conector: Conector, path: string, init: { method?: stri
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(init.body);
   }
-  const r = await fetch(`${GW}/${conector}${path}`, { method: init.method ?? "GET", headers, body });
+  const r = await fetch(`${GW}/${conector}${path}`, { method: init.method ?? "GET", headers, body: body ?? null });
   const t = await r.text();
   if (!r.ok) {
     console.error(`${conector} [${r.status}]: ${t.slice(0, 300)}`);
