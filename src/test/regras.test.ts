@@ -16,9 +16,9 @@ describe("navegação por papel", () => {
     expect(labels("cs")).not.toContain("Equipe");
     expect(labels("cs")).not.toContain("Admin");
   });
-  it("gestor vê Equipe mas não Admin", () => {
-    expect(labels("gestor")).toContain("Equipe");
-    expect(labels("gestor")).not.toContain("Admin");
+  it("ninguém vê Equipe (Munim é pessoal)", () => {
+    expect(labels("admin")).not.toContain("Equipe");
+    expect(labels("gestor")).not.toContain("Equipe");
   });
   it("admin vê Admin", () => {
     expect(labels("admin")).toContain("Admin");

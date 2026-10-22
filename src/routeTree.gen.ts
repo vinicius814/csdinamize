@@ -18,7 +18,6 @@ import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedConexoesRouteImport } from './routes/_authenticated/conexoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticated/conversa'
-import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -66,11 +65,6 @@ const AuthenticatedConversaRoute = AuthenticatedConversaRouteImport.update({
   path: '/conversa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
   id: '/notas',
   path: '/notas',
@@ -86,7 +80,6 @@ export interface FileRoutesByFullPath {
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
-  '/equipe': typeof AuthenticatedEquipeRoute
   '/notas': typeof AuthenticatedNotasRoute
 }
 export interface FileRoutesByTo {
@@ -97,7 +90,6 @@ export interface FileRoutesByTo {
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
-  '/equipe': typeof AuthenticatedEquipeRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/': typeof AuthenticatedIndexRoute
 }
@@ -111,7 +103,6 @@ export interface FileRoutesById {
   '/_authenticated/conexoes': typeof AuthenticatedConexoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/conversa': typeof AuthenticatedConversaRoute
-  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
 }
@@ -126,7 +117,6 @@ export interface FileRouteTypes {
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
-    | '/equipe'
     | '/notas'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,7 +127,6 @@ export interface FileRouteTypes {
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
-    | '/equipe'
     | '/notas'
     | '/'
   id:
@@ -150,7 +139,6 @@ export interface FileRouteTypes {
     | '/_authenticated/conexoes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/conversa'
-    | '/_authenticated/equipe'
     | '/_authenticated/notas'
     | '/_authenticated/'
   fileRoutesById: FileRoutesById
@@ -225,13 +213,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConversaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/equipe': {
-      id: '/_authenticated/equipe'
-      path: '/equipe'
-      fullPath: '/equipe'
-      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/notas': {
       id: '/_authenticated/notas'
       path: '/notas'
@@ -249,7 +230,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConexoesRoute: typeof AuthenticatedConexoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConversaRoute: typeof AuthenticatedConversaRoute
-  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
@@ -261,7 +241,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConexoesRoute: AuthenticatedConexoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConversaRoute: AuthenticatedConversaRoute,
-  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
