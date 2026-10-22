@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { pontuacao } from "./ideias";
 
 const MODELO = "anthropic/claude-sonnet-5";
 const PIPEDRIVE_GW = "https://connector-gateway.lovable.dev/pipedrive";
@@ -171,7 +172,6 @@ ${memoria || "(indisponível agora)"}`;
 
 type Ctx = { supabase: any; userId: string; pipedriveUserId: number | null };
 
-import { pontuacao } from "./ideias";
 
 const clamp = (n: unknown) => Math.max(1, Math.min(5, Math.round(Number(n) || 3)));
 const lista = (xs?: string[]) => (xs?.length ? xs.map((x) => `- ${x}`).join("\n") : "- (a definir)");
