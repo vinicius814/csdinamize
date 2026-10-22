@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { RESPOSTA_PROVISORIA } from "@/lib/texto";
 import { cn } from "@/lib/utils";
 
-type Busca = { q?: string; ouvir?: boolean };
+type Busca = { q?: string | undefined; ouvir?: boolean | undefined };
 
 export const Route = createFileRoute("/_authenticated/conversa")({
   validateSearch: (s: Record<string, unknown>): Busca => ({
@@ -120,7 +120,7 @@ function Conversa() {
     baseRef.current = texto ? texto.trimEnd() + " " : "";
     rec.onresult = (e) => {
       let t = "";
-      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      for (let i = 0; i < e.results.length; i++) t += e.results[i]?.[0]?.transcript ?? "";
       setTexto(baseRef.current + t);
     };
     rec.onend = () => setEstado((s) => (s === "ouvindo" ? "repouso" : s));
