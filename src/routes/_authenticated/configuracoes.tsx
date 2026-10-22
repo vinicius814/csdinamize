@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,15 +81,8 @@ function Configuracoes() {
           <p className="text-sm text-muted-foreground">
             O Munim lê Gmail, Agenda e Drive e só cria rascunhos e eventos depois da sua aprovação.
           </p>
-          <div className="mt-4 flex items-center gap-3">
-            <span className={p?.google_conectado ? "text-sm text-success" : "text-sm text-muted-foreground"}>
-              {p?.google_conectado ? "Conectado" : "Ainda não conectado"}
-            </span>
-            {!p?.google_conectado && (
-              <button disabled className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground opacity-60" title="Disponível em breve">
-                Conectar Google (em breve)
-              </button>
-            )}
+          <div className="mt-4">
+            <Link to="/conexoes" className="text-sm text-primary hover:underline">Ver status em Conexões</Link>
           </div>
         </Bloco>
 

@@ -1,8 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { plural, saudacao } from "@/lib/texto";
 import ReactMarkdown from "react-markdown";
-import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown } from "lucide-react";
+import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown, RefreshCw } from "lucide-react";
+import { gerarBriefing } from "@/lib/briefing.functions";
 import { Nucleo } from "@/components/munim/Nucleo";
 import { Pagina } from "@/components/munim/PaginaVazia";
 import { useAuth } from "@/lib/auth";
@@ -63,6 +67,29 @@ function Inicio() {
   const brief = useUltimoBriefing();
   const cart = useCarteira();
   const [aberto, setAberto] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const qc = useQueryClient();
+  const gerarFn = useServerFn(gerarBriefing);
+  const gerar = async () => {
+    setGerando(true);
+    try {
+      await gerarFn();
+      await qc.invalidateQueries({ queryKey: ["ultimo-briefing"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Não consegui montar o briefing agora.");
+    } finally {
+      setGerando(false);
+    }
+  };
+  const tentou = useRef(false);
+  useEffect(() => {
+    if (!brief.isSuccess || tentou.current) return;
+    const ehHoje = brief.data && new Date(brief.data.enviado_em).toDateString() === new Date().toDateString();
+    if (!ehHoje) {
+      tentou.current = true;
+      gerar();
+    }
+  }, [brief.isSuccess, brief.data]);
 
   const primeiroNome = perfil?.nome?.split(" ")[0];
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
@@ -121,15 +148,21 @@ function Inicio() {
           )}
         </Cartao>
 
-        <Cartao titulo="Último briefing" icon={BookOpen}>
+        <Cartao titulo="Briefing da manhã" icon={BookOpen} className="md:col-span-2">
           {!brief.data ? (
-            <Vazio texto="Seu primeiro briefing chega pela manhã, no horário que você escolher." acao={<Link to="/configuracoes" className="text-sm text-primary hover:underline">Ajustar horário</Link>} />
+            <Vazio
+              texto={gerando ? "Lendo sua agenda e seus e-mails…" : "Ainda não há briefing hoje."}
+              acao={!gerando && <button onClick={gerar} className="text-sm text-primary hover:underline">Montar agora</button>}
+            />
           ) : (
             <div>
-              <p className="mb-2 text-xs text-muted-foreground">
-                {new Date(brief.data.enviado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-              </p>
-              <div className={cn("prose-munim relative overflow-hidden text-sm", !aberto && "max-h-40")}>
+              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{new Date(brief.data.enviado_em).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+                <button onClick={gerar} disabled={gerando} className="flex items-center gap-1 text-primary hover:underline disabled:opacity-60">
+                  <RefreshCw className={cn("h-3.5 w-3.5", gerando && "animate-spin")} /> {gerando ? "Atualizando…" : "Atualizar"}
+                </button>
+              </div>
+              <div className={cn("prose-munim relative overflow-hidden text-sm", !aberto && "max-h-64")}>
                 <ReactMarkdown>{brief.data.conteudo_md}</ReactMarkdown>
                 {!aberto && <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />}
               </div>
