@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { conversarComMunim } from "@/lib/munim.functions";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { ArrowUp, Mic, MicOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nucleo, type EstadoNucleo } from "@/components/munim/Nucleo";
 import { useAuth } from "@/lib/auth";
-import { RESPOSTA_PROVISORIA } from "@/lib/texto";
 import { cn } from "@/lib/utils";
 
 type Busca = { q?: string | undefined; ouvir?: boolean | undefined };
@@ -66,6 +67,7 @@ function Conversa() {
   const fimRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<Reconhecedor | null>(null);
   const baseRef = useRef("");
+  const conversar = useServerFn(conversarComMunim);
 
   useEffect(() => {
     if (q) setTexto(q);
