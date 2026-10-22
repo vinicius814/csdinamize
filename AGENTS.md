@@ -16,3 +16,5 @@
 - Shared Supabase reads for the home screen live as React Query hooks in src/lib/dados.ts so sidebar counters and pages share one cache.
 - Theme is a .light class on <html> (dark is :root default), set pre-paint by SCRIPT_TEMA in __root to avoid flashes.
 - Connected-service calls (Pipedrive, Gmail, Agenda, Drive) go through src/lib/integracoes.server.ts; carteira and notas are read live from Pipedrive and the Drive "Segundo Cérebro" folder, not from local tables, so data never goes stale.
+- Ideas and projects are notas rows with subcategoria "ideia"/"projeto" and tags "potencial:/impacto:/esforco:/status:" (also mirrored as .md in Drive); scoring lives in src/lib/ideias.ts, because the schema can't be changed.
+- Routines (manhã, riscos, fechamento, semana) reuse the briefings table's existing tipo enum (manha, alerta, rodada, leitura_cs) via gerarRotina; they auto-run on the first Início visit of each period since no scheduler can be added to the database.
