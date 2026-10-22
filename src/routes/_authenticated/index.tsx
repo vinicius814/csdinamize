@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { plural, saudacao } from "@/lib/texto";
 import ReactMarkdown from "react-markdown";
 import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown } from "lucide-react";
 import { Nucleo } from "@/components/munim/Nucleo";
@@ -20,16 +21,7 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Inicio,
 });
 
-export function saudacao(d = new Date()) {
-  const h = d.getHours();
-  return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
-}
-
-export function plural(n: number, um: string, varios: string) {
-  return `${n} ${n === 1 ? um : varios}`;
-}
-
-function Cartao({ titulo, icon: Icon, children, className }: { titulo: string; icon: typeof Bell; children: React.ReactNode; className?: string }) {
+function Cartao({ titulo, icon: Icon, children, className }: { titulo: string; icon: typeof Bell; children: ReactNode; className?: string }) {
   return (
     <section className={cn("card-munim flex flex-col p-5", className)}>
       <h2 className="mb-4 flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -40,7 +32,7 @@ function Cartao({ titulo, icon: Icon, children, className }: { titulo: string; i
   );
 }
 
-function Vazio({ texto, acao }: { texto: string; acao?: React.ReactNode }) {
+function Vazio({ texto, acao }: { texto: string; acao?: ReactNode }) {
   return (
     <div className="flex flex-1 flex-col items-start justify-center gap-3 py-4 text-sm text-muted-foreground">
       <p>{texto}</p>
