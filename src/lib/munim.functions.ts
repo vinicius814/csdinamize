@@ -171,6 +171,34 @@ ${memoria || "(indisponível agora)"}`;
 
 type Ctx = { supabase: any; userId: string; pipedriveUserId: number | null };
 
+import { pontuacao } from "./ideias";
+
+const clamp = (n: unknown) => Math.max(1, Math.min(5, Math.round(Number(n) || 3)));
+const lista = (xs?: string[]) => (xs?.length ? xs.map((x) => `- ${x}`).join("\n") : "- (a definir)");
+
+function mdIdeia(i: any) {
+  return [
+    `**Potencial:** ${i.potencial} · **Impacto:** ${clamp(i.impacto)}/5 · **Esforço:** ${clamp(i.esforco)}/5`,
+    "", "## Ideia bruta", i.ideia_bruta,
+    "", "## Versão melhorada (Munim)", i.versao_melhorada,
+    "", "## Perguntas em aberto", lista(i.perguntas_abertas),
+  ].join("\n");
+}
+
+function mdProjeto(i: any) {
+  const etapas = (i.etapas ?? []).map((e: any) => `- [ ] ${e.passo}${e.prazo ? ` — ${e.prazo}` : ""}`).join("\n") || "- [ ] (a definir)";
+  return [
+    `**Status:** ativo · **Impacto:** ${clamp(i.impacto)}/5 · **Esforço:** ${clamp(i.esforco)}/5`,
+    "", "## Problema", i.problema,
+    "", "## Objetivo", i.objetivo,
+    "", "## Métrica de sucesso", i.metrica_sucesso ?? "(a definir)",
+    "", "## Hipóteses", lista(i.hipoteses),
+    "", "## Etapas", etapas,
+    "", "## Riscos", lista(i.riscos),
+    "", "## Próximo passo", i.proximo_passo,
+  ].join("\n");
+}
+
 async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{ texto: string; acaoId?: string }> {
   const I = await import("./integracoes.server");
   const { supabase, userId } = ctx;
@@ -215,6 +243,60 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
       });
       return { texto: ondeDrive ? `nota salva (${ondeDrive})` : error ? `erro: ${error.message}` : "nota salva no Munim (Drive indisponível agora)" };
     }
+    if (nome === "capturar_ideia" || nome === "estruturar_projeto") {
+      const ehProjeto = nome === "estruturar_projeto";
+      const corpo = ehProjeto ? mdProjeto(input) : mdIdeia(input);
+      const imp = clamp(input.impacto), esf = clamp(input.esforco);
+      const tags = [
+        ehProjeto ? "projeto" : "ideia",
+        `potencial:${input.potencial ?? (imp >= 4 ? "alto" : imp >= 3 ? "medio" : "baixo")}`,
+        `impacto:${imp}`, `esforco:${esf}`,
+        `status:${ehProjeto ? "ativo" : "incubando"}`,
+      ];
+      let ondeDrive = "";
+      try {
+        const r = await I.salvarNotaDrive({ titulo: input.titulo, area: input.area, tags, corpo_md: corpo });
+        ondeDrive = ` Drive: Segundo Cérebro/01 Notas/${r.nome}`;
+      } catch (e: any) {
+        console.error("drive ideia", e?.message);
+      }
+      const { data, error } = await supabase.from("notas").insert({
+        user_id: userId, titulo: input.titulo, area: input.area ?? null, subcategoria: ehProjeto ? "projeto" : "ideia",
+        tags, corpo_md: corpo, resumo: String(ehProjeto ? input.objetivo : input.versao_melhorada ?? "").slice(0, 200),
+      }).select("id").single();
+      if (error) return { texto: `erro: ${error.message}` };
+      return { texto: `${ehProjeto ? "projeto estruturado" : "ideia guardada"} (id ${data.id}, pontuação ${pontuacao(tags)}).${ondeDrive}` };
+    }
+    if (nome === "listar_ideias_projetos") {
+      let q = supabase.from("notas").select("id, titulo, area, subcategoria, tags, resumo, created_at").in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(60);
+      if (input?.tipo === "ideia" || input?.tipo === "projeto") q = q.eq("subcategoria", input.tipo);
+      const { data } = await q;
+      const lista = (data ?? []).map((n: any) => ({ ...n, pontuacao: pontuacao(n.tags) })).sort((a: any, b: any) => b.pontuacao - a.pontuacao);
+      return { texto: JSON.stringify(lista) };
+    }
+    if (nome === "atualizar_projeto") {
+      const { data: n } = await supabase.from("notas").select("id, titulo, corpo_md, tags, subcategoria").eq("id", String(input.id)).maybeSingle();
+      if (!n) return { texto: "erro: ideia/projeto não encontrado" };
+      const data = new Date().toLocaleDateString("pt-BR", { timeZone: I.FUSO });
+      const corpo = `${n.corpo_md ?? ""}\n\n## Atualização ${data}\n${input.novidade_md}`;
+      let tags: string[] = (n.tags ?? []).filter((t: string) => !(input.status && t.startsWith("status:")));
+      if (input.status) tags.push(`status:${input.status}`);
+      const sub = input.promover_a_projeto ? "projeto" : n.subcategoria;
+      if (input.promover_a_projeto) tags = tags.map((t) => (t === "ideia" ? "projeto" : t));
+      const { error } = await supabase.from("notas").update({ corpo_md: corpo, tags, subcategoria: sub }).eq("id", n.id);
+      if (error) return { texto: `erro: ${error.message}` };
+      try {
+        const [arq] = await I.listarNotasDrive(String(n.titulo ?? "").slice(0, 60), 1);
+        if (arq) {
+          const atual = await I.lerArquivoDrive(arq.id);
+          await I.atualizarArquivoDrive(arq.id, `${atual}\n\n## Atualização ${data}\n${input.novidade_md}`);
+        }
+      } catch (e: any) {
+        console.error("drive atualizar", e?.message);
+      }
+      return { texto: "atualizado" };
+    }
+    if (nome === "radar_riscos") return { texto: JSON.stringify(await I.sinaisDeRisco(ctx.pipedriveUserId)).slice(0, 25000) };
     if (nome === "propor_acao") {
       if (!TIPOS.includes(input?.tipo)) return { texto: "erro: tipo inválido" };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
