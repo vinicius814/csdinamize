@@ -17,7 +17,7 @@ describe("Telegram",()=>{
   it("envia pelo Make com chat_id, texto e reply_markup e repete falhas temporárias",async()=>{
     const fetch=vi.fn().mockResolvedValueOnce(new Response("",{status:503})).mockResolvedValue(new Response("ok"));const sleep=vi.fn(async()=>{});
     await sendViaMake("https://hook.make/x",42,"Bom dia",undefined,{fetch,sleep});
-    expect(fetch).toHaveBeenCalledTimes(2);expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({chat_id:42,texto:"Bom dia",reply_markup:EMPTY_MARKUP});expect(sleep).toHaveBeenCalledWith(2000);
+    expect(fetch).toHaveBeenCalledTimes(2);expect(JSON.parse((fetch.mock.calls[1] as any)[1].body)).toEqual({chat_id:42,texto:"Bom dia",reply_markup:EMPTY_MARKUP});expect(sleep).toHaveBeenCalledWith(2000);
   });
   it("desiste do Make após três tentativas",async()=>{const fetch=vi.fn(async()=>new Response("",{status:500}));await expect(sendViaMake("u",1,"x",undefined,{fetch,sleep:async()=>{}})).rejects.toThrow();expect(fetch).toHaveBeenCalledTimes(3);});
 });

@@ -23,7 +23,7 @@ export async function ingestDeps():Promise<IngestDeps> {
     async claim(id){const c=await db.from("telegram_updates").insert({update_id:id});if(c.error){if(c.error.code==="23505")return false;throw c.error;}return true;},
     async record(b:Ingest,userId){const r=await db.from("entradas_telegram").upsert({update_id:b.update_id,user_id:userId,chat_id:b.chat_id,tipo:b.tipo,texto:b.texto,legenda:b.legenda,arquivo:b.arquivo,extracao_erro:b.extracao_erro,status:"recebida"},{onConflict:"update_id"});if(r.error)throw r.error;},
     async finish(id,status,erro){await db.from("entradas_telegram").update({status,erro:erro??null}).eq("update_id",id);await db.from("telegram_updates").update({status:status==="erro"?"failed":"done"}).eq("update_id",id);},
-    async link(code,chat,handle){const r=await db.rpc("link_telegram_user",{code,chat,handle});if(r.error)throw new Error(r.error.message);},
+    async link(code,chat,handle){const r=await db.rpc("link_telegram_user",{code,chat,handle:handle??""});if(r.error)throw new Error(r.error.message);},
     async findUser(chat){const p=await db.from("profiles").select("id").eq("telegram_chat_id",chat).maybeSingle();if(p.error)throw p.error;return p.data?.id??null;},
     async activeRole(userId){try{return (await activeUser(userId)).role;}catch{return null;}},
     async button(userId,role,data){return as(userId,role,async()=>{
