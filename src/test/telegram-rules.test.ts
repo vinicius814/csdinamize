@@ -1,6 +1,14 @@
 import {describe,it,expect,vi} from "vitest";
 import {briefingDue,retrySend,SEND_ATTEMPTS,telegramCodeExpires,telegramCodeValid,splitResposta,sendViaMake,EMPTY_MARKUP,telegramAvailable} from "@/lib/telegram-rules";
-import {processIngest,MSG,type IngestDeps,type Ingest} from "@/lib/telegram-ingest";
+import {processIngest,ingestSchema,ingestErrorLog,MSG,type IngestDeps,type Ingest} from "@/lib/telegram-ingest";
+
+describe("Corpo recebido do Make",()=>{
+  it("aceita o corpo mínimo pedido pelo Make",()=>{expect(ingestSchema.parse({update_id:1,chat_id:42,evento:"mensagem",tipo:"texto",texto:"oi"})).toEqual({update_id:1,chat_id:42,username:null,evento:"mensagem",tipo:"texto",texto:"oi",legenda:null,arquivo:null,extracao_erro:null,callback_data:null,callback_id:null,message_id:null});});
+  it("converte números enviados como texto",()=>{const p=ingestSchema.parse({update_id:"7",chat_id:"42",message_id:"9",evento:"mensagem",tipo:"foto",texto:"",arquivo:{file_id:"F1",tamanho:"1024"}});expect([p.update_id,p.chat_id,p.message_id]).toEqual([7,42,9]);expect(p.arquivo).toEqual({file_id:"F1",mime:null,nome:null,tamanho:1024});});
+  it("normaliza ausente, null e vazio como null, e texto vazio como texto vazio",()=>{const p=ingestSchema.parse({update_id:1,chat_id:2,evento:"mensagem",tipo:"texto",texto:"",username:"",legenda:null,extracao_erro:"   ",callback_data:null,arquivo:{}});expect(p.texto).toBe("");expect([p.username,p.legenda,p.extracao_erro,p.callback_data,p.message_id]).toEqual([null,null,null,null,null]);expect(p.arquivo).toEqual({file_id:null,mime:null,nome:null,tamanho:null});});
+  it("aponta o campo inválido no log sem revelar a mensagem",()=>{const r=ingestSchema.safeParse({update_id:1,evento:"mensagem",tipo:"texto",texto:"conteudo-secreto"});expect(r.success).toBe(false);if(!r.success)expect(ingestErrorLog(r.error)).toContain("chat_id");});
+  it("segue processando o corpo mínimo normalizado",async()=>{const d=deps();const r=await processIngest(ingestSchema.parse({update_id:9,chat_id:42,evento:"mensagem",tipo:"texto",texto:"oi"}),d);expect(r.respostas[0]?.texto).toBe("Olá");expect(d.record).toHaveBeenCalled();});
+});
 
 const base:Ingest={update_id:1,chat_id:42,username:"vini",evento:"mensagem",tipo:"texto",texto:"oi",legenda:null,arquivo:null,extracao_erro:null,callback_data:null,callback_id:null,message_id:null};
 function deps(over:Partial<IngestDeps>={}){
