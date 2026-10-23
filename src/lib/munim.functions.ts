@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { comCredenciais } from "@/lib/credenciais.middleware";
 import { pontuacao } from "./ideias";
 
 const MODELO = "anthropic/claude-sonnet-5";
@@ -315,7 +315,7 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
 }
 
 export const conversarComMunim = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { conteudo: string }) => {
     const c = String(i?.conteudo ?? "").trim();
     if (!c || c.length > 8000) throw new Error("Mensagem inválida");
@@ -416,7 +416,7 @@ async function pipedrive(path: string, body: unknown) {
 }
 
 export const decidirAcao = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { acao_id: string; decisao: "aprovada" | "recusada" }) => {
     if (!i?.acao_id || !["aprovada", "recusada"].includes(i.decisao)) throw new Error("Pedido inválido");
     return i;

@@ -12,18 +12,46 @@ const CHAVES: Record<Conector, string> = {
   google_calendar: "GOOGLE_CALENDAR_API_KEY",
   google_drive: "GOOGLE_DRIVE_API_KEY",
 };
+const NOME: Record<Conector, string> = { pipedrive: "Pipedrive", google_mail: "Gmail", google_calendar: "Google Agenda", google_drive: "Google Drive" };
+
+export class SemConexao extends Error {
+  constructor(public conector: Conector) {
+    super(`Conecte seu ${NOME[conector]} em Conexões para eu usar seus dados.`);
+  }
+}
+
+/**
+ * Resolves where a call goes for the current user:
+ * their own connection first; the shared project connection only for the admin (transition fallback).
+ */
+async function destino(conector: Conector, path: string): Promise<{ url: string; headers: Record<string, string> }> {
+  const C = await import("./credenciais.server");
+  const ctx = C.contexto();
+  const lk = process.env["LOVABLE_API_KEY"];
+  if (conector === "pipedrive") {
+    const pd = await C.pipedriveAtual();
+    if (pd) {
+      const sep = path.includes("?") ? "&" : "?";
+      return { url: `https://${pd.dominio}.pipedrive.com/api/v1${path}${sep}api_token=${encodeURIComponent(pd.token)}`, headers: {} };
+    }
+  } else {
+    const chave = await C.chaveGoogleAtual(conector);
+    if (chave && lk) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": chave } };
+  }
+  const ck = process.env[CHAVES[conector]];
+  if (ctx.admin && lk && ck) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck } };
+  throw new SemConexao(conector);
+}
 
 export async function gw(conector: Conector, path: string, init: { method?: string; body?: unknown; raw?: BodyInit; headers?: Record<string, string> } = {}) {
-  const lk = process.env["LOVABLE_API_KEY"];
-  const ck = process.env[CHAVES[conector]];
-  if (!lk || !ck) throw new Error(`${conector} não está conectado`);
-  const headers: Record<string, string> = { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck, ...(init.headers ?? {}) };
+  const d = await destino(conector, path);
+  const headers: Record<string, string> = { ...d.headers, ...(init.headers ?? {}) };
   let body: BodyInit | undefined = init.raw;
   if (init.body !== undefined) {
     headers["Content-Type"] = "application/json";
     body = JSON.stringify(init.body);
   }
-  const r = await fetch(`${GW}/${conector}${path}`, { method: init.method ?? "GET", headers, body: body ?? null });
+  const r = await fetch(d.url, { method: init.method ?? "GET", headers, body: body ?? null });
   const t = await r.text();
   if (!r.ok) {
     console.error(`${conector} [${r.status}]: ${t.slice(0, 300)}`);

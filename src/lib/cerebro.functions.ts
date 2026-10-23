@@ -1,8 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { comCredenciais } from "@/lib/credenciais.middleware";
 
 export const carteiraAoVivo = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .handler(async ({ context }) => {
     const I = await import("./integracoes.server");
     const { data: perf } = await context.supabase.from("profiles").select("pipedrive_user_id").eq("id", context.userId).maybeSingle();
@@ -15,7 +15,7 @@ export const carteiraAoVivo = createServerFn({ method: "POST" })
   });
 
 export const detalheCliente = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { titulo: string }) => ({ titulo: String(i?.titulo ?? "").slice(0, 120) }))
   .handler(async ({ data }) => {
     const I = await import("./integracoes.server");
@@ -24,7 +24,7 @@ export const detalheCliente = createServerFn({ method: "POST" })
   });
 
 export const listarNotas = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { texto?: string }) => ({ texto: String(i?.texto ?? "").slice(0, 100) }))
   .handler(async ({ data }) => {
     const I = await import("./integracoes.server");
@@ -36,7 +36,7 @@ export const listarNotas = createServerFn({ method: "POST" })
   });
 
 export const lerNota = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { id: string }) => {
     if (!/^[\w-]{10,}$/.test(i?.id ?? "")) throw new Error("Nota inválida");
     return i;

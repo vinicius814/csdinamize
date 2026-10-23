@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Brain, Briefcase, CalendarDays, RefreshCw, Send, type LucideIcon } from "lucide-react";
 import { Cabecalho, Pagina } from "@/components/munim/PaginaVazia";
 import { statusConexoes, type StatusConexao } from "@/lib/conexoes.functions";
+import { ConexoesPessoais } from "@/components/munim/ConexoesPessoais";
 
 export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
@@ -31,11 +32,12 @@ const ITENS: Item[] = [
 function Conexoes() {
   const buscar = useServerFn(statusConexoes);
   const { data, isFetching, refetch } = useQuery({ queryKey: ["conexoes"], queryFn: () => buscar() });
-  const ativas = data ? Object.values(data).filter((s) => s.ok).length : 0;
+  const ativas = data ? ITENS.filter((it) => data[it.chave].ok).length : 0;
 
   return (
     <Pagina>
       <Cabecalho titulo="Conexões" frase="Os sistemas pelos quais o Munim enxerga e age por você." />
+      <ConexoesPessoais servicos={data?.servicos} pipedrive={data?.pipedrive} pipedriveDominio={data?.pipedriveDominio} />
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data ? `${ativas} de ${ITENS.length} sistemas online` : "Verificando sistemas…"}</p>
         <button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
