@@ -753,6 +753,10 @@ export type Database = {
     }
     Functions: {
       account_active: { Args: never; Returns: boolean }
+      admin_mutation: {
+        Args: { actor: string; operation: string; target: string; value: Json }
+        Returns: undefined
+      }
       has_role: {
         Args: { role: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
