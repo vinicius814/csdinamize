@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth";
 import { useCarteira, useLembretesHoje, usePendentes, useRotinas, useRadarIdeias, DIAS_SEM_CONTATO, type Rotina } from "@/lib/dados";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import {useConnectionPresence} from "@/lib/connection-presence";
 import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -23,9 +24,9 @@ export const Route = createFileRoute("/_authenticated/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { title: "Início — Munim" },
-      { name: "description", content: "Seu dia, o que pede atenção e sua carteira, num só lugar." },
+      { name: "description", content: "Seu dia, suas ideias e o que pede atenção, num só lugar." },
       { property: "og:title", content: "Início — Munim" },
-      { property: "og:description", content: "Seu dia, o que pede atenção e sua carteira, num só lugar." },
+      { property: "og:description", content: "Seu dia, suas ideias e o que pede atenção, num só lugar." },
     ],
   }),
   component: Inicio,
@@ -34,9 +35,9 @@ export const Route = createFileRoute("/_authenticated/")({
 const ABAS: [Rotina, string][] = [["manha", "Manhã"], ["riscos", "Riscos"], ["fechamento", "Fechamento"], ["semana", "Semana"]];
 const DESCRICAO: Record<Rotina, string> = {
   manha: "Seu dia, o que pede atenção e as 3 prioridades. Monto sozinho na primeira visita do dia.",
-  riscos: "Clientes esfriando, negócios parados, e-mails sem resposta e agenda apertada, com o que fazer.",
+  riscos: "Prazos, pendências e riscos que merecem atenção.",
   fechamento: "O que andou, o que ficou e como começar amanhã. Monto sozinho a partir das 17h.",
-  semana: "Saúde da carteira, grandes ideias para priorizar e direcionamento. Monto sozinho às segundas.",
+  semana: "Grandes ideias para priorizar e direcionamento pessoal. Monto sozinho às segundas.",
 };
 
 function Cartao({ titulo, icon: Icon, children, className }: { titulo: string; icon: typeof Bell; children: ReactNode; className?: string }) {
@@ -81,9 +82,10 @@ function Inicio() {
   const rotinas = useRotinas();
   const ideias = useRadarIdeias();
   const cart = useCarteira();
+  const presence=useConnectionPresence();const cs=presence.data?.pipedrive===true;
   const statusFn=useServerFn(statusConexoes);
   const connections=useQuery({queryKey:["conexoes",session?.user.id],queryFn:()=>statusFn()});
-  const connectionAlerts=connections.data ? Object.entries({Pipedrive:connections.data.pipedrive,Gmail:connections.data.servicos.google_mail,Agenda:connections.data.servicos.google_calendar,Drive:connections.data.servicos.google_drive}).filter(([,value])=>!value.ok).map(([name,value])=>({name,detail:value.detalhe})) : [];
+  const connectionAlerts=connections.data ? Object.entries({Pipedrive:connections.data.pipedrive,Gmail:connections.data.servicos.google_mail,Agenda:connections.data.servicos.google_calendar,Drive:connections.data.servicos.google_drive}).filter(([,value])=>value.proprio&&!value.ok).map(([name,value])=>({name,detail:value.detalhe})) : [];
   const briefingAlert=rotinas.data?.manha?.conteudo_md.match(/\*\*Pede aten[çc][ãa]o\*\*([\s\S]*?)(?=\*\*|$)/i)?.[1]?.trim();
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<Rotina>(() => (new Date().getHours() >= 17 ? "fechamento" : "manha"));
@@ -120,14 +122,14 @@ function Inicio() {
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const nPend = pend.data?.length ?? 0;
   const nLemb = lemb.data?.length ?? 0;
-  const nSem = cart.data?.semContato ?? 0;
-  const carregou = pend.isSuccess && lemb.isSuccess && cart.isSuccess;
+  const nSem = cs?(cart.data?.semContato ?? 0):0;
+  const carregou = pend.isSuccess && lemb.isSuccess && (!cs||cart.isSuccess);
 
-  const resumo = cart.isError || connections.isError || connectionAlerts.length ? "Algumas fontes precisam de atenção. Não consegui confirmar todos os dados do seu dia." : !carregou
+  const resumo = (cs&&cart.isError) || connections.isError || connectionAlerts.length ? "Algumas fontes precisam de atenção. Não consegui confirmar todos os dados do seu dia." : !carregou
     ? "Organizando seu dia…"
     : nPend + nLemb + nSem === 0
       ? "Nenhuma pendência encontrada nas fontes consultadas. Confira seu briefing."
-      : `Você tem ${plural(nPend, "aprovação pendente", "aprovações pendentes")}, ${plural(nLemb, "lembrete", "lembretes")} para hoje e ${plural(nSem, "cliente", "clientes")} sem contato há mais de ${DIAS_SEM_CONTATO} dias.`;
+      : `Você tem ${plural(nPend, "aprovação pendente", "aprovações pendentes")}, ${plural(nLemb, "lembrete", "lembretes")} para hoje ${cs?`e ${plural(nSem, "cliente", "clientes")} sem contato há mais de ${DIAS_SEM_CONTATO} dias`:""}.`;
 
   return (
     <Pagina>
@@ -146,10 +148,10 @@ function Inicio() {
       <div className="grid gap-4 md:grid-cols-3">
         <Cartao titulo="Pede sua atenção" icon={Bell}>
           {connectionAlerts.map(a=><div key={a.name} className="mb-3 text-sm"><p className="text-warning">{a.name} desconectado ou indisponível</p><p className="text-xs text-muted-foreground">{a.detail}</p><Button variant="link" size="sm" asChild><Link to="/conexoes">Conectar</Link></Button></div>)}
-          {cart.isError && <p className="mb-3 text-sm text-warning">{cart.error.message}</p>}
+          {cs && cart.isError && <p className="mb-3 text-sm text-warning">{cart.error.message}</p>}
           {briefingAlert && <div className="prose-munim mb-3 text-sm"><ReactMarkdown>{briefingAlert}</ReactMarkdown></div>}
           {pend.isPending || lemb.isPending ? <Skeleton className="h-24 w-full" /> : nPend + nLemb === 0 ? (
-            <Vazio texto={connectionAlerts.length || cart.isError ? "Revise os acessos acima para confirmar suas pendências." : "Nenhuma aprovação ou lembrete encontrado para hoje."} />
+            <Vazio texto={connectionAlerts.length || (cs&&cart.isError) ? "Revise os acessos acima para confirmar suas pendências." : "Nenhuma aprovação ou lembrete encontrado para hoje."} />
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
               {pend.data?.slice(0, 4).map((a) => (
@@ -193,7 +195,7 @@ function Inicio() {
           </div>
           {rotinas.isPending ? <Skeleton className="h-40 w-full" /> : !atual ? (
             <Vazio
-              texto={gerando === aba ? "Cruzando agenda, e-mails, carteira e ideias…" : DESCRICAO[aba]}
+              texto={gerando === aba ? "Organizando suas fontes e ideias…" : DESCRICAO[aba]}
               acao={gerando !== aba && <button onClick={() => gerar(aba)} className="text-sm text-primary hover:underline">Montar agora</button>}
             />
           ) : (
@@ -216,7 +218,7 @@ function Inicio() {
           )}
         </Cartao>
 
-        <Cartao titulo="Carteira" icon={Briefcase}>
+        {cs && <Cartao titulo="Carteira" icon={Briefcase}>
           {cart.isPending ? <Skeleton className="h-28 w-full" /> : cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
             <Vazio texto="Ainda não há clientes na sua carteira." acao={<Link to="/carteira" className="text-sm text-primary hover:underline">Ver carteira</Link>} />
           ) : (
@@ -233,7 +235,7 @@ function Inicio() {
               </div>
             </div>
           )}
-        </Cartao>
+        </Cartao>}
 
         <Cartao titulo="Grandes ideias" icon={Lightbulb} className="md:col-span-2">
           {ideias.isPending ? <Skeleton className="h-28 w-full" /> : !ideias.data?.length ? (
