@@ -1,4 +1,8 @@
 # Munim — cadastro, administração e confiança
+- [ ] Banco V2: restringir perfil e execução de funções; fallback Pipedrive só superadmin; conferir proteção de senhas.
+- [ ] Banco V2: diagnóstico real Google; configuração Pipedrive em Conexões e mensagens de campos ausentes.
+- [ ] Banco V2: Telegram real com texto, áudio, aprovação e horário; depende de token e agendador externo.
+- [ ] Banco V2: contraste dos botões de Conexões e evidências por item.
 - [x] Diagnosticar triggers e adicionar atualizado_em às quatro tabelas incompatíveis, preservando triggers.
 - [x] Isolar falhas de último acesso e consumo sem enfraquecer autorização ou auditoria administrativa.
 - [x] Rodar novamente os 20 testes e quatro regressões de registros auxiliares: 24 testes passaram.
