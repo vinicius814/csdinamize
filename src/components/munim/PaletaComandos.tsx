@@ -14,7 +14,7 @@ import { navVisivel } from "./nav";
 
 export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAberta: (v: boolean) => void }) {
   const navigate = useNavigate();
-  const { perfil } = useAuth();
+  const { role } = useAuth();
   const [texto, setTexto] = useState("");
 
   const fechar = () => {
@@ -55,7 +55,7 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
           </CommandItem>
         </CommandGroup>
         <CommandGroup heading="Ir para">
-          {navVisivel(perfil?.papel).map((i) => (
+          {navVisivel(role ?? undefined).map((i) => (
             <CommandItem key={i.to} onSelect={() => { fechar(); navigate({ to: i.to }); }}>
               <i.icon className="mr-2" /> {i.label}
             </CommandItem>
