@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {topics,createTopic,editTopic} from "@/lib/topics.functions";
-import {undoItem} from "@/lib/personal.functions";
+import {createItem,undoItem} from "@/lib/personal.functions";
 import {ItemDetail} from "@/components/munim/ItemDetail";
 import {Sheet,SheetContent,SheetTitle} from "@/components/ui/sheet";
 import {Menu,Plus,Pin,Archive,Pencil} from "lucide-react";
@@ -72,7 +72,7 @@ function Conversa() {
   const { session } = useAuth();
   const userId = session?.user.id;
   const [msgs, setMsgs] = useState<Msg[]>([]);
-  const qc = useQueryClient();const navigate=useNavigate();const readTopics=useServerFn(topics),newTopic=useServerFn(createTopic),updateTopic=useServerFn(editTopic),undo=useServerFn(undoItem);
+  const qc = useQueryClient();const navigate=useNavigate();const readTopics=useServerFn(topics),newTopic=useServerFn(createTopic),updateTopic=useServerFn(editTopic),undo=useServerFn(undoItem),saveCapture=useServerFn(createItem);
   const topicQuery=useQuery({queryKey:["topics",userId],queryFn:()=>readTopics(),enabled:!!userId});
   const topicId=topico??topicQuery.data?.find(t=>!t.arquivada)?.id;
   const [drawer,setDrawer]=useState(false),[topicSearch,setTopicSearch]=useState(""),[capture,setCapture]=useState<any>(null),[editCapture,setEditCapture]=useState(false);
@@ -87,7 +87,7 @@ function Conversa() {
       return data;
     },
   });
-  useEffect(() => { if (history.data) setMsgs(history.data); }, [history.data]);
+  useEffect(() => { setMsgs(history.data??[]);setCapture(null); }, [history.data,topicId]);
   const [texto, setTexto] = useState(q ?? "");
   const [estado, setEstado] = useState<EstadoNucleo>("repouso");
   const [erroVoz, setErroVoz] = useState<string | null>(null);
@@ -103,7 +103,7 @@ function Conversa() {
   useEffect(() => {
     if (!userId) return;
     const canal = supabase
-      .channel(`mensagens-${userId}`)
+      .channel(`mensagens-${userId}-${topicId??"none"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "mensagens", filter: `user_id=eq.${userId}` },
@@ -188,8 +188,8 @@ function Conversa() {
         .limit(1);
       const m = novas?.[0];
       if (m) setMsgs((a) => (a.some((x) => x.id === m.id) ? a : [...a, { ...m, animar: true }]));
-    } catch {
-      setErroVoz("Não consegui pensar agora. Tente de novo em instantes.");
+    } catch(e) {
+      setErroVoz(e instanceof Error?e.message:"Não consegui pensar agora. Tente de novo em instantes.");
     } finally {
       setEstado("repouso");
     }
@@ -256,7 +256,7 @@ function Conversa() {
       </div>
 
       <div className="pb-4">
-        {capture&&!capture.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-success">Salvei: {capture.tipo} · {capture.titulo}<Button size="sm" variant="link" onClick={()=>setEditCapture(true)}>Editar</Button><Button size="sm" variant="link" onClick={async()=>{await undo({data:{id:capture.id}});setCapture(null);qc.invalidateQueries({queryKey:["personal"]});}}>Desfazer</Button></div>}
+        {capture?.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">Guardar: {capture.tipo} · {capture.titulo}?<Button size="sm" variant="link" onClick={async()=>{try{const item=await saveCapture({data:{tipo:capture.tipo,titulo:capture.titulo,conteudo:capture.conteudo,area_id:capture.area_id,data_alvo:capture.data_alvo,pessoa:capture.pessoa}});setCapture(item);qc.invalidateQueries({queryKey:["personal"]});}catch(e){setErroVoz(e instanceof Error?e.message:"Não consegui guardar.");}}}>Guardar</Button><Button size="sm" variant="link" onClick={()=>setCapture(null)}>Agora não</Button></div>}{capture&&!capture.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-success">Salvei: {capture.tipo} · {capture.titulo}<Button size="sm" variant="link" onClick={()=>setEditCapture(true)}>Editar</Button><Button size="sm" variant="link" onClick={async()=>{await undo({data:{id:capture.id}});setCapture(null);qc.invalidateQueries({queryKey:["personal"]});}}>Desfazer</Button></div>}
         {erroVoz && <p className="mb-2 text-xs text-ember">{erroVoz}</p>}
         <form
           onSubmit={(e) => {

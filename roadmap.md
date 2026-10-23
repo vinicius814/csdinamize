@@ -1,7 +1,9 @@
 # Munim — cadastro, administração e confiança
-- [ ] Parte 3: áreas, itens, ligações, conversas e migração sem apagar originais.
-- [ ] Parte 3: captura natural, Home pessoal, mapa, projetos, tópicos e memória editável.
-- [ ] Parte 3: autonomia, Haiku, embeddings relevantes, uso e testes.
+- [x] Parte 3: áreas, itens, ligações, conversas; 1 nota original e 1 item migrado, nenhuma mensagem sem tópico; RLS e bloqueio anon verificados.
+- [x] Parte 3: captura natural, Home pessoal, mapa, projetos atômicos, tópicos e memória editável implementados.
+- [x] Parte 3: autonomia, Haiku, embeddings 3072, memória semanal, limites e contagem diária; 44 testes; build OK.
+- [ ] Parte 3: validar captura/projeto/mapa com conta nova e conta existente — Supabase externo sem sessão autenticada disponível.
+- [ ] Parte 3: testar lembrete real antes da promessa — requer publicação, conta vinculada e agendador externo.
 - [x] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback; configurações existentes preservadas.
 - [x] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão implementados.
 - [x] Parte 2: webhook registrado em munim.wojtec.com.br; proteções 401 e testes verificados.
