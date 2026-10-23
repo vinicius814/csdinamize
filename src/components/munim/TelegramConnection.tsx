@@ -10,7 +10,7 @@ import {useAuth} from "@/lib/auth";
 export function TelegramConnection(){
  const {session}=useAuth(),qc=useQueryClient();const read=useServerFn(telegramStatus),generate=useServerFn(telegramLink),disconnect=useServerFn(disconnectTelegram);
  const [link,setLink]=useState<{url:string;expiresAt:string}|null>(null);
- const q=useQuery({queryKey:["telegram-status",session?.user.id],queryFn:()=>read(),refetchInterval:link?3000:false});
+ const q=useQuery({queryKey:["telegram-status",session?.user.id],queryFn:()=>read(),refetchInterval:query=>link&&!query.state.data?.connected?3000:false});
  const fresh=useMutation({mutationFn:()=>generate(),onSuccess:r=>{if(r.url&&r.expiresAt)setLink({url:r.url,expiresAt:r.expiresAt});},onError:e=>toast.error(e.message)});
  const off=useMutation({mutationFn:()=>disconnect(),onSuccess:async()=>{setLink(null);await qc.invalidateQueries({queryKey:["telegram-status"]});await qc.invalidateQueries({queryKey:["conexoes"]});toast.success("Telegram desconectado.");},onError:e=>toast.error(e.message)});
  return <section className="card-munim flex flex-col gap-3 p-5"><h2 className="flex items-center gap-2 font-display text-lg"><Send className="h-5 w-5 text-primary"/>Telegram</h2>

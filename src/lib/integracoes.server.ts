@@ -23,7 +23,7 @@ export class SemConexao extends Error {
 
 /**
  * Resolves where a call goes for the current user:
- * their own connection first; the shared project connection only for the admin (transition fallback).
+ * Only their own explicit connection is eligible; missing connections fail closed.
  */
 async function destino(conector: Conector, path: string): Promise<{ url: string; headers: Record<string, string> }> {
   const C = await import("./credenciais.server");
