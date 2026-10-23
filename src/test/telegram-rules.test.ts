@@ -1,41 +1,38 @@
 import {describe,it,expect,vi} from "vitest";
-import {briefingDue,retrySend,SEND_ATTEMPTS,telegramCodeExpires,telegramCodeValid,splitResposta,sendViaMake,EMPTY_MARKUP,telegramAvailable} from "@/lib/telegram-rules";
-import {processIngest,ingestSchema,ingestErrorLog,MSG,type IngestDeps,type Ingest} from "@/lib/telegram-ingest";
+import {briefingDue,retrySend,SEND_ATTEMPTS,telegramCodeExpires,telegramCodeValid,splitResposta,validTokenFormat,connectBot,sendBotText,botSuggestions,type ConnectDeps} from "@/lib/telegram-rules";
+import {processUpdate,parseUpdate,MSG,type BotDeps} from "@/lib/telegram-bot";
 
-describe("Corpo recebido do Make",()=>{
-  it("aceita o corpo mínimo pedido pelo Make",()=>{expect(ingestSchema.parse({update_id:1,chat_id:42,evento:"mensagem",tipo:"texto",texto:"oi"})).toEqual({update_id:1,chat_id:42,username:null,evento:"mensagem",tipo:"texto",texto:"oi",legenda:null,arquivo:null,extracao_erro:null,callback_data:null,callback_id:null,message_id:null});});
-  it("converte números enviados como texto",()=>{const p=ingestSchema.parse({update_id:"7",chat_id:"42",message_id:"9",evento:"mensagem",tipo:"foto",texto:"",arquivo:{file_id:"F1",tamanho:"1024"}});expect([p.update_id,p.chat_id,p.message_id]).toEqual([7,42,9]);expect(p.arquivo).toEqual({file_id:"F1",mime:null,nome:null,tamanho:1024});});
-  it("normaliza ausente, null e vazio como null, e texto vazio como texto vazio",()=>{const p=ingestSchema.parse({update_id:1,chat_id:2,evento:"mensagem",tipo:"texto",texto:"",username:"",legenda:null,extracao_erro:"   ",callback_data:null,arquivo:{}});expect(p.texto).toBe("");expect([p.username,p.legenda,p.extracao_erro,p.callback_data,p.message_id]).toEqual([null,null,null,null,null]);expect(p.arquivo).toEqual({file_id:null,mime:null,nome:null,tamanho:null});});
-  it("aponta o campo inválido no log sem revelar a mensagem",()=>{const r=ingestSchema.safeParse({update_id:1,evento:"mensagem",tipo:"texto",texto:"conteudo-secreto"});expect(r.success).toBe(false);if(!r.success)expect(ingestErrorLog(r.error)).toContain("chat_id");});
-  it("segue processando o corpo mínimo normalizado",async()=>{const d=deps();const r=await processIngest(ingestSchema.parse({update_id:9,chat_id:42,evento:"mensagem",tipo:"texto",texto:"oi"}),d);expect(r.respostas[0]?.texto).toBe("Olá");expect(d.record).toHaveBeenCalled();});
+const TOKEN="123456789:AAHabcdefghijklmnopqrstuvwxyz012345";
+const ok=(result:unknown)=>new Response(JSON.stringify({ok:true,result}),{status:200});
+const bad=(status:number)=>new Response(JSON.stringify({ok:false,description:"Unauthorized"}),{status});
+const sleep=async()=>{};
+function connectDeps(fetchImpl:(url:string)=>Response,owner:string|null=null){const saved:any[]=[];const calls:string[]=[];
+  const d:ConnectDeps={fetch:(async(u:any)=>{calls.push(String(u).split("/").pop()!);return fetchImpl(String(u));}) as any,sleep,owner:async()=>owner,save:async r=>{saved.push(r);},encrypt:t=>`enc(${t})`,secret:()=>"s".repeat(64)};return {d,saved,calls};}
+
+describe("regras",()=>{
+  it("código vale 15 minutos",()=>{expect(telegramCodeValid(telegramCodeExpires(0),14*60000)).toBe(true);expect(telegramCodeValid(telegramCodeExpires(0),15*60000)).toBe(false);});
+  it("3 tentativas",()=>{expect(SEND_ATTEMPTS).toBe(3);expect(retrySend(429,2)).toBe(true);expect(retrySend(500,3)).toBe(false);expect(retrySend(401,1)).toBe(false);});
+  it("briefing no horário local",()=>{expect(briefingDue(new Date("2026-01-01T11:00:00Z"),"America/Sao_Paulo","08:00").due).toBe(true);});
+  it("divide texto e põe botões só no fim",()=>{const p=splitResposta("a".repeat(8000),{inline_keyboard:[[{text:"x",callback_data:"y"}]]});expect(p).toHaveLength(3);expect(p[0]?.teclado).toBeNull();expect(p[2]?.teclado).not.toBeNull();});
+  it("sugere nomes do bot",()=>{expect(botSuggestions("João Silva")).toEqual({nome:"Munim de João",usuario:"joao_munim_bot"});});
+  it("valida formato do token",()=>{expect(validTokenFormat(TOKEN)).toBe(true);expect(validTokenFormat("abc")).toBe(false);});
+});
+describe("conectar bot",()=>{
+  it("getMe ok: cifra, configura webhook e comandos",async()=>{const {d,saved,calls}=connectDeps(u=>u.endsWith("getMe")?ok({id:42,is_bot:true,username:"ana_munim_bot",first_name:"Munim de Ana"}):ok(true));
+    const r=await connectBot("u1",TOKEN,d);expect(r.bot_username).toBe("ana_munim_bot");expect(calls).toEqual(["getMe","setWebhook","setMyCommands"]);expect(saved[0]).toMatchObject({bot_id:42,token_cifrado:`enc(${TOKEN})`,status:"pendente_vinculo"});});
+  it("token inválido no getMe dá erro claro",async()=>{const {d,saved}=connectDeps(()=>bad(401));await expect(connectBot("u1",TOKEN,d)).rejects.toThrow("não reconheceu");expect(saved).toHaveLength(0);});
+  it("recusa bot já usado por outra conta",async()=>{const {d,saved}=connectDeps(()=>ok({id:42,is_bot:true,username:"x_bot",first_name:"X"}),"outra");await expect(connectBot("u1",TOKEN,d)).rejects.toThrow("outra conta");expect(saved).toHaveLength(0);});
+  it("envio proativo usa o token do usuário",async()=>{const f=vi.fn(async()=>ok({}));await sendBotText(TOKEN,99,"oi",undefined,{fetch:f as any,sleep});expect(String((f.mock.calls[0] as any)[0])).toContain(`/bot${TOKEN}/sendMessage`);expect(JSON.parse((f.mock.calls[0] as any)[1].body)).toMatchObject({chat_id:99,text:"oi"});});
 });
 
-const base:Ingest={update_id:1,chat_id:42,username:"vini",evento:"mensagem",tipo:"texto",texto:"oi",legenda:null,arquivo:null,extracao_erro:null,callback_data:null,callback_id:null,message_id:null};
-function deps(over:Partial<IngestDeps>={}){
-  const seen=new Set<number>();
-  const d:IngestDeps={claim:async id=>{if(seen.has(id))return false;seen.add(id);return true;},record:vi.fn(async()=>{}),finish:vi.fn(async()=>{}),link:vi.fn(async()=>{}),findUser:async()=>"u1",activeRole:async()=>"user",button:vi.fn(async()=>"Ação executada."),converse:vi.fn(async()=>({resposta:"Olá",captura:null,pendentes:[]})),...over};
-  return d;
-}
-describe("Telegram",()=>{
-  it("expira o vínculo exatamente em 15 minutos",()=>{const now=Date.parse("2026-10-23T17:21:00Z");const expiry=telegramCodeExpires(now);expect(expiry).toBe("2026-10-23T17:36:00.000Z");expect(telegramCodeValid(expiry,now+899999)).toBe(true);expect(telegramCodeValid(expiry,now+900000)).toBe(false);});
-  it("tenta enviar no máximo três vezes",()=>{expect(SEND_ATTEMPTS).toBe(3);expect(retrySend(503,2)).toBe(true);expect(retrySend(503,3)).toBe(false);expect(retrySend(403,1)).toBe(false);});
-  it("respeita horário e fuso do usuário",()=>{expect(briefingDue(new Date("2026-10-23T10:30:00Z"),"America/Sao_Paulo","07:30:00")).toEqual({date:"2026-10-23",due:true});});
-  it("divide textos acima de 3.900 caracteres e põe botões só na última parte",()=>{const r=splitResposta("a".repeat(7801),{inline_keyboard:[[{text:"x"}]]});expect(r.map(p=>p.texto.length)).toEqual([3900,3900,1]);expect(r[0]?.reply_markup).toBe(EMPTY_MARKUP);expect(JSON.parse(r[2]!.reply_markup).inline_keyboard[0][0].text).toBe("x");});
-  it("só fica disponível com os três secrets",()=>{expect(telegramAvailable({MUNIM_INGEST_SECRET:"a",MAKE_TELEGRAM_SEND_URL:"b"})).toBe(false);expect(telegramAvailable({MUNIM_INGEST_SECRET:"a",MAKE_TELEGRAM_SEND_URL:"b",TELEGRAM_BOT_USERNAME:"c"})).toBe(true);});
-  it("envia pelo Make com chat_id, texto e reply_markup e repete falhas temporárias",async()=>{
-    const fetch=vi.fn().mockResolvedValueOnce(new Response("",{status:503})).mockResolvedValue(new Response("ok"));const sleep=vi.fn(async()=>{});
-    await sendViaMake("https://hook.make/x",42,"Bom dia",undefined,{fetch,sleep});
-    expect(fetch).toHaveBeenCalledTimes(2);expect(JSON.parse((fetch.mock.calls[1] as any)[1].body)).toEqual({chat_id:42,texto:"Bom dia",reply_markup:EMPTY_MARKUP});expect(sleep).toHaveBeenCalledWith(2000);
-  });
-  it("desiste do Make após três tentativas",async()=>{const fetch=vi.fn(async()=>new Response("",{status:500}));await expect(sendViaMake("u",1,"x",undefined,{fetch,sleep:async()=>{}})).rejects.toThrow();expect(fetch).toHaveBeenCalledTimes(3);});
-});
-describe("Endpoint de entrada",()=>{
-  it("vincula com /start <codigo>",async()=>{const d=deps();const r=await processIngest({...base,tipo:"comando",texto:"/start abc123"},d);expect(d.link).toHaveBeenCalledWith("abc123",42,"vini");expect(r.respostas[0]?.texto).toBe(MSG.linked);});
-  it("orienta chat não vinculado",async()=>{const r=await processIngest(base,deps({findUser:async()=>null}));expect(r.respostas[0]?.texto).toBe(MSG.unlinked);});
-  it("bloqueia conta não ativa",async()=>{const r=await processIngest(base,deps({activeRole:async()=>null}));expect(r.respostas[0]?.texto).toBe(MSG.inactive);});
-  it("responde texto com captura e ações pendentes",async()=>{const r=await processIngest(base,deps({converse:async()=>({resposta:"Feito",captura:{id:"c1",tipo:"ideia",titulo:"App"},pendentes:[{id:"a1",resumo:"Enviar e-mail"}]})}));expect(r.respostas.map(x=>x.texto)).toEqual(["Feito","Salvei: ideia · App","Enviar e-mail"]);expect(r.respostas[2]?.reply_markup).toContain("aprovada:a1");expect(r.callback).toBeNull();});
-  it("pede reenvio quando a extração da mídia falhou",async()=>{const d=deps();const r=await processIngest({...base,tipo:"voz",texto:"",extracao_erro:"timeout"},d);expect(r.respostas[0]?.texto).toBe(MSG.extraction);expect(d.converse).not.toHaveBeenCalled();expect(d.finish).toHaveBeenCalledWith(1,"erro","timeout");});
-  it("guarda tipo e file_id da mídia como contexto",async()=>{const d=deps();await processIngest({...base,tipo:"foto",texto:"recibo",legenda:"almoço",arquivo:{file_id:"F1",mime:"image/jpeg",nome:null,tamanho:10}},d);expect(d.converse).toHaveBeenCalledWith("u1","user","almoço\n\nrecibo",{origem_tipo:"foto",file_id:"F1"});});
-  it("trata botão aprovar devolvendo callback e limpando botões",async()=>{const d=deps();const r=await processIngest({...base,evento:"botao",texto:"",callback_data:"aprovada:11111111-1111-1111-1111-111111111111",callback_id:"cb"},d);expect(d.button).toHaveBeenCalledWith("u1","user","aprovada:11111111-1111-1111-1111-111111111111");expect(r).toEqual({respostas:[],callback:{texto:"Ação executada.",limpar_botoes:true}});});
-  it("ignora update repetido",async()=>{const d=deps();await processIngest(base,d);const r=await processIngest(base,d);expect(r).toEqual({respostas:[],callback:null});expect(d.converse).toHaveBeenCalledTimes(1);});
+const msg=(text:string,chat=7,type="private",update_id=1)=>parseUpdate({update_id,message:{message_id:5,chat:{id:chat,type},text}})!;
+function deps(over:Partial<BotDeps>={}):BotDeps{const seen=new Set<number>();return {claim:async id=>{if(seen.has(id))return false;seen.add(id);return true;},record:async()=>{},finish:async()=>{},link:vi.fn(async()=>{}),activeRole:async()=>"user",extract:async()=>"texto extraído",button:async()=>"Ação executada.",converse:vi.fn(async()=>({resposta:"Olá",captura:null,pendentes:[]})),...over};}
+describe("webhook do bot",()=>{
+  it("vincula com código válido",async()=>{const d=deps();const r=await processUpdate({bot_id:1,user_id:"u1",chat_id:null},msg("/start abc"),d);expect(d.link).toHaveBeenCalledWith("abc",7);expect(r.respostas[0]?.texto).toBe(MSG.linked);});
+  it("código expirado devolve o erro do vínculo",async()=>{const d=deps({link:async()=>{throw new Error("Código inválido ou expirado. Gere outro no Munim.");}});const r=await processUpdate({bot_id:1,user_id:"u1",chat_id:null},msg("/start velho"),d);expect(r.respostas[0]?.texto).toContain("expirado");});
+  it("ignora mensagem de outro chat depois de vinculado",async()=>{const d=deps();const r=await processUpdate({bot_id:1,user_id:"u1",chat_id:7},msg("oi",8),d);expect(r.respostas).toHaveLength(0);expect(d.converse).not.toHaveBeenCalled();});
+  it("idempotência por update",async()=>{const d=deps();const bot={bot_id:1,user_id:"u1",chat_id:7};expect((await processUpdate(bot,msg("oi"),d)).respostas[0]?.texto).toBe("Olá");expect((await processUpdate(bot,msg("oi"),d)).respostas).toHaveLength(0);});
+  it("voz é transcrita e marcada na origem",async()=>{const d=deps();const e=parseUpdate({update_id:2,message:{message_id:1,chat:{id:7,type:"private"},voice:{file_id:"f1",file_size:100}}})!;await processUpdate({bot_id:1,user_id:"u1",chat_id:7},e,d);expect(d.converse).toHaveBeenCalledWith("u1","user","texto extraído",{origem_tipo:"voz",file_id:"f1"});});
+  it("vídeo não é suportado",async()=>{const e=parseUpdate({update_id:3,message:{message_id:1,chat:{id:7,type:"private"},video:{file_id:"v"}}})!;expect((await processUpdate({bot_id:1,user_id:"u1",chat_id:7},e,deps())).respostas[0]?.texto).toBe(MSG.unsupported);});
+  it("botão aprova e limpa os botões",async()=>{const e=parseUpdate({update_id:4,callback_query:{id:"cb",data:"aprovada:00000000-0000-0000-0000-000000000000",message:{message_id:9,chat:{id:7,type:"private"}}}})!;const r=await processUpdate({bot_id:1,user_id:"u1",chat_id:7},e,deps());expect(r.callback).toEqual({id:"cb",texto:"Ação executada.",limpar:true,message_id:9});});
 });
