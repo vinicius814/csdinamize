@@ -917,7 +917,9 @@ export type Database = {
           memoria_compacta: string
           pergunta_respondida_em: string | null
           perguntas_dia: number
+          sugestoes_data: string | null
           sugestoes_dia: number
+          sugestoes_usadas: number
           telegram_fim: string
           telegram_inicio: string
           user_id: string
@@ -932,7 +934,9 @@ export type Database = {
           memoria_compacta?: string
           pergunta_respondida_em?: string | null
           perguntas_dia?: number
+          sugestoes_data?: string | null
           sugestoes_dia?: number
+          sugestoes_usadas?: number
           telegram_fim?: string
           telegram_inicio?: string
           user_id: string
@@ -947,7 +951,9 @@ export type Database = {
           memoria_compacta?: string
           pergunta_respondida_em?: string | null
           perguntas_dia?: number
+          sugestoes_data?: string | null
           sugestoes_dia?: number
+          sugestoes_usadas?: number
           telegram_fim?: string
           telegram_inicio?: string
           user_id?: string
