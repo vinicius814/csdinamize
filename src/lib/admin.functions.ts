@@ -19,10 +19,10 @@ export const adminOverview = createServerFn({ method: "POST" }).middleware([requ
     } return rows;
   }
   const month = new Date(); month.setUTCDate(1); month.setUTCHours(0,0,0,0);
-  const [profiles, access, roles, configs, pipes, google, settings] = await Promise.all([
+  const [profiles, access, roles, configs, pipes, bots, google, settings] = await Promise.all([
     all("profiles", "id,nome,email,created_at,telegram_chat_id"), all("account_access", "user_id,status,last_access_at"),
     all("user_roles", "user_id,role"), all("config_usuario", "user_id,onboarding_concluido,limite_custo_usd"),
-    all("conexoes_pipedrive", "user_id"), all("app_user_connections", "user_id,connector_id"),
+    all("conexoes_pipedrive", "user_id"), all("telegram_bots" as any, "user_id,status,chat_id"), all("app_user_connections", "user_id,connector_id"),
     db.from("admin_settings").select("manual_approval").eq("id", true).single(),
   ]);
   if (settings.error) throw settings.error;
@@ -39,7 +39,7 @@ export const adminOverview = createServerFn({ method: "POST" }).middleware([requ
     if (error) throw error;
     return { id:p.id,nome:p.nome,email:p.email,created_at:p.created_at,status:a?.status ?? "pendente",last_access_at:a?.last_access_at ?? null,
       role:roles.find(r=>r.user_id===p.id)?.role ?? "user",onboarded:c?.onboarding_concluido ?? false,limit:Number(c?.limite_custo_usd ?? 20),
-      telegram:!!p.telegram_chat_id,pipedrive:pipes.some(r=>r.user_id===p.id),gmail:google.some(r=>r.user_id===p.id && r.connector_id==="google_mail"),
+      telegram:(()=>{const b=bots.find(r=>r.user_id===p.id);return b?(b.status==="ativo"&&b.chat_id?"conectado":b.status):"não";})(),pipedrive:pipes.some(r=>r.user_id===p.id),gmail:google.some(r=>r.user_id===p.id && r.connector_id==="google_mail"),
       agenda:google.some(r=>r.user_id===p.id && r.connector_id==="google_calendar"),drive:google.some(r=>r.user_id===p.id && r.connector_id==="google_drive"),messages:count ?? 0,cost:costs[p.id] ?? 0 };
   }));
   const active=(days:number)=>users.filter(u=>u.last_access_at && new Date(u.last_access_at).getTime()>=Date.now()-days*86400000).length;

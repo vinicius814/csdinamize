@@ -223,10 +223,10 @@ function TelegramMic() {
   const { session } = useAuth();
   const read = useServerFn(telegramStatus);
   const q = useQuery({ queryKey: ["telegram-status", session?.user.id], queryFn: () => read(), staleTime: 300_000, enabled: !!session });
-  const bot = q.data?.bot;
+  const bot = q.data?.connected ? q.data.bot : null;
   return (
     <a
-      href={bot ? `https://t.me/${bot}` : "/conexoes"}
+      href={bot ? `https://t.me/${bot}` : "/conexoes#telegram"}
       target={bot ? "_blank" : undefined}
       rel="noreferrer"
       className="-mt-6 flex w-20 flex-col items-center gap-1 text-center text-[10px] leading-tight text-muted-foreground"

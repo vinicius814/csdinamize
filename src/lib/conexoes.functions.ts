@@ -92,14 +92,14 @@ export const statusConexoes = createServerFn({ method: "POST" })
       detalhe: `Gmail: ${servicos.google_mail.detalhe} · Agenda: ${servicos.google_calendar.detalhe} · Drive: ${servicos.google_drive.detalhe}`,
     };
 
-    const { data: p } = await context.supabase.from("profiles").select("telegram_chat_id").eq("id", context.userId).single();
-    const botConfigured = !!process.env["MUNIM_INGEST_SECRET"] && !!process.env["MAKE_TELEGRAM_SEND_URL"] && !!process.env["TELEGRAM_BOT_USERNAME"];
+    const { supabaseAdmin: tdb } = await import("@/integrations/supabase/client.server");
+    const { data: tb } = await tdb.from("telegram_bots").select("status,chat_id,ultimo_erro").eq("user_id", context.userId).maybeSingle();
 
     return {
       ia,
       pipedrive,
       google,
-      telegram: { ok: botConfigured && !!p?.telegram_chat_id, detalhe: !botConfigured ? "Telegram ainda não configurado." : p?.telegram_chat_id ? "Canal móvel ativo." : "Abra o bot para vincular sua conta." } as StatusConexao,
+      telegram: { ok: tb?.status === "ativo" && !!tb.chat_id, detalhe: !tb ? "Crie e conecte seu bot." : tb.status === "erro" ? (tb.ultimo_erro ?? "Bot com erro.") : tb.chat_id ? "Canal móvel ativo." : "Abra seu bot para vincular o chat." } as StatusConexao,
       servicos,
       pipedriveDominio: pd?.dominio ?? null,
     };

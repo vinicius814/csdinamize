@@ -542,6 +542,7 @@ export type Database = {
         Row: {
           arquivo: Json | null
           atualizado_em: string
+          bot_id: number | null
           chat_id: number
           created_at: string
           erro: string | null
@@ -557,6 +558,7 @@ export type Database = {
         Insert: {
           arquivo?: Json | null
           atualizado_em?: string
+          bot_id?: number | null
           chat_id: number
           created_at?: string
           erro?: string | null
@@ -572,6 +574,7 @@ export type Database = {
         Update: {
           arquivo?: Json | null
           atualizado_em?: string
+          bot_id?: number | null
           chat_id?: number
           created_at?: string
           erro?: string | null
@@ -1156,6 +1159,83 @@ export type Database = {
           },
         ]
       }
+      telegram_bot_updates: {
+        Row: {
+          bot_id: number
+          created_at: string
+          status: string
+          update_id: number
+        }
+        Insert: {
+          bot_id: number
+          created_at?: string
+          status?: string
+          update_id: number
+        }
+        Update: {
+          bot_id?: number
+          created_at?: string
+          status?: string
+          update_id?: number
+        }
+        Relationships: []
+      }
+      telegram_bots: {
+        Row: {
+          atualizado_em: string
+          bot_id: number
+          bot_nome: string
+          bot_username: string
+          chat_id: number | null
+          codigo_vinculo: string | null
+          conectado_em: string
+          expira_em: string | null
+          status: string
+          token_cifrado: string
+          ultimo_erro: string | null
+          user_id: string
+          webhook_secret: string
+        }
+        Insert: {
+          atualizado_em?: string
+          bot_id: number
+          bot_nome: string
+          bot_username: string
+          chat_id?: number | null
+          codigo_vinculo?: string | null
+          conectado_em?: string
+          expira_em?: string | null
+          status?: string
+          token_cifrado: string
+          ultimo_erro?: string | null
+          user_id: string
+          webhook_secret: string
+        }
+        Update: {
+          atualizado_em?: string
+          bot_id?: number
+          bot_nome?: string
+          bot_username?: string
+          chat_id?: number | null
+          codigo_vinculo?: string | null
+          conectado_em?: string
+          expira_em?: string | null
+          status?: string
+          token_cifrado?: string
+          ultimo_erro?: string | null
+          user_id?: string
+          webhook_secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bots_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       telegram_deliveries: {
         Row: {
           created_at: string
@@ -1362,6 +1442,10 @@ export type Database = {
       meu_pipedrive_id: { Args: never; Returns: number }
       registrar_acesso_auxiliar: { Args: { uid: string }; Returns: undefined }
       registrar_meu_acesso: { Args: never; Returns: undefined }
+      vincular_bot_telegram: {
+        Args: { bot: number; chat: number; code: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "superadmin" | "admin" | "user"
