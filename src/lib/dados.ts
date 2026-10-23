@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { coberturaAoVivo } from "./cerebro.functions";
 import { useAuth } from "@/lib/auth";
 
 export const DIAS_SEM_CONTATO = 60;
@@ -73,22 +75,8 @@ export function semContatoHaMais(ultimo: string | null, hoje = new Date(), dias 
 }
 
 export function useCarteira() {
-  const { session, perfil } = useAuth();
-  return useQuery({
-    queryKey: ["carteira", session?.user.id, perfil?.papel, perfil?.pipedrive_user_id],
-    enabled: !!session,
-    queryFn: async () => {
-      let q = supabase.from("clientes").select("pipedrive_deal_id, ultimo_contato_efetivo");
-      if (perfil?.papel === "cs" && perfil.pipedrive_user_id)
-        q = q.eq("owner_pipedrive_id", perfil.pipedrive_user_id);
-      const { data, error } = await q;
-      if (error) throw error;
-      const total = data.length;
-      const semContato = data.filter((c) => semContatoHaMais(c.ultimo_contato_efetivo)).length;
-      const pct = total ? Math.round(((total - semContato) / total) * 100) : null;
-      return { total, semContato, pct };
-    },
-  });
+ const {session}=useAuth();const fetch=useServerFn(coberturaAoVivo);
+ return useQuery({queryKey:["carteira",session?.user.id],enabled:!!session,queryFn:()=>fetch()});
 }
 
 export type Rotina = "manha" | "riscos" | "fechamento" | "semana";

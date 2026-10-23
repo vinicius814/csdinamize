@@ -78,33 +78,46 @@ export type ClienteVivo = {
   valor: number;
 };
 
+export async function userSettings() {
+  const C = await import("./credenciais.server");
+  const {userId,admin}=C.contexto();
+  const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");
+  const [config,profile]=await Promise.all([db.from("config_usuario").select("pipeline_id,campo_ultimo_contato,dias_alerta").eq("user_id",userId).maybeSingle(),db.from("profiles").select("pipedrive_user_id,fuso").eq("id",userId).single()]);
+  if(config.error||profile.error)throw new Error("Não consegui carregar suas configurações.");
+  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(admin?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(admin?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
+}
 export async function carteiraPipedrive(pipedriveUserId?: number | null): Promise<ClienteVivo[]> {
-  const out: ClienteVivo[] = [];
-  let start = 0;
-  for (let i = 0; i < 6; i++) {
-    const q = new URLSearchParams({ status: "open", limit: "500", start: String(start) });
-    if (pipedriveUserId) q.set("user_id", String(pipedriveUserId));
-    const j = await gw("pipedrive", `/deals?${q}`);
-    for (const d of j?.data ?? []) {
-      if (d.pipeline_id !== PIPELINE_CS) continue;
-      const uc: string | null = d[CAMPO_ULTIMO_CONTATO] || null;
-      out.push({
-        deal_id: d.id,
-        titulo: d.title,
-        organizacao: d.org_name ?? null,
-        etapa_id: d.stage_id,
-        ultimo_contato: uc,
-        dias_sem_contato: uc ? Math.floor((Date.now() - new Date(uc + "T12:00:00-03:00").getTime()) / 86400000) : null,
-        proxima_atividade: d.next_activity_date ?? null,
-        atividades_pendentes: d.undone_activities_count ?? 0,
-        valor: d.value ?? 0,
-      });
+  const settings=await userSettings();
+  const owner=pipedriveUserId??settings.owner;
+  if(!owner)throw new Error("Seu responsável no Pipedrive não está configurado. Conecte seu Pipedrive em /conexoes.");
+  if(!settings.pipeline||!settings.field)throw new Error("Escolha o pipeline e o campo de último contato em /onboarding.");
+  const out:ClienteVivo[]=[];let start=0;
+  for(let page=0;page<200;page++){
+    const j=await gw("pipedrive",`/deals?${new URLSearchParams({status:"open",limit:"500",start:String(start),user_id:String(owner)})}`);
+    if(j?.success===false||!Array.isArray(j?.data))throw new Error("Resposta inválida do Pipedrive; cobertura indisponível.");
+    for(const d of j.data){
+      if(Number(d.pipeline_id)!==settings.pipeline||Number(d.user_id?.id??d.user_id)!==owner)continue;
+      const uc:string|null=d[settings.field]||null;
+      out.push({deal_id:d.id,titulo:d.title,organizacao:d.org_name??null,etapa_id:d.stage_id,ultimo_contato:uc,dias_sem_contato:uc?Math.floor((Date.now()-new Date(uc+"T12:00:00Z").getTime())/86400000):null,proxima_atividade:d.next_activity_date??null,atividades_pendentes:d.undone_activities_count??0,valor:d.value??0});
     }
-    const pag = j?.additional_data?.pagination;
-    if (!pag?.more_items_in_collection) break;
-    start = pag.next_start;
+    const pag=j.additional_data?.pagination;
+    if(!pag?.more_items_in_collection)return out;
+    if(!Number.isFinite(pag.next_start)||pag.next_start<=start)throw new Error("Paginação incompleta do Pipedrive.");
+    start=pag.next_start;
   }
-  return out;
+  throw new Error("Carteira incompleta: limite de paginação. Não calcule cobertura.");
+}
+export async function atividadesPipedrive(periodo:"hoje"|"amanha"|"semana",responsavel?:number|null){
+ const settings=await userSettings(),owner=responsavel??settings.owner;
+ if(!owner)throw new Error("Conecte seu Pipedrive em /conexoes para identificar seu responsável.");
+ const {periodDates}=await import("./reliability");const dates=periodDates(periodo,settings.timezone);const items:any[]=[];let start=0;
+ for(let page=0;page<200;page++){
+  const j=await gw("pipedrive",`/activities?${new URLSearchParams({user_id:String(owner),start_date:dates.start,end_date:dates.end,limit:"500",start:String(start)})}`);
+  if(j?.success===false||!Array.isArray(j?.data))throw new Error("Não consegui consultar atividades.");
+  items.push(...j.data.filter((a:any)=>Number(a.user_id)===owner&&a.due_date>=dates.start&&a.due_date<=dates.end).map((a:any)=>({id:a.id,assunto:a.subject,data:a.due_date,hora:a.due_time,feita:a.done,deal_id:a.deal_id})));
+  const p=j.additional_data?.pagination;if(!p?.more_items_in_collection)return {responsavel:owner,periodo,...dates,total:items.length,atividades:items};
+  if(!Number.isFinite(p.next_start)||p.next_start<=start)throw new Error("Atividades incompletas.");start=p.next_start;
+ }throw new Error("Atividades incompletas; limite de paginação.");
 }
 
 export async function buscarDealPipedrive(termo: string) {
@@ -113,8 +126,8 @@ export async function buscarDealPipedrive(termo: string) {
   const det = await Promise.all(
     itens.slice(0, 3).map(async (it: any) => {
       const [notas, ativ] = await Promise.all([
-        gw("pipedrive", `/notes?deal_id=${it.id}&limit=5&sort=add_time DESC`).catch(() => null),
-        gw("pipedrive", `/deals/${it.id}/activities?limit=10`).catch(() => null),
+        gw("pipedrive", `/notes?deal_id=${it.id}&limit=5&sort=add_time DESC`),
+        gw("pipedrive", `/deals/${it.id}/activities?limit=10`),
       ]);
       return {
         deal_id: it.id,
@@ -136,7 +149,7 @@ export async function buscarEmails(q: string, max = 8) {
   const ids: string[] = (lista?.messages ?? []).map((m: any) => m.id);
   const det = await Promise.all(
     ids.map((id) =>
-      gw("google_mail", `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`).catch(() => null),
+      gw("google_mail", `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`),
     ),
   );
   return det.filter(Boolean).map((m: any) => {
@@ -216,15 +229,11 @@ async function idPorNome(nome: string, pai?: string, pasta = true) {
   return (j?.files?.[0]?.id as string) ?? null;
 }
 
-let cachePastas: { raiz: string; sistema: string | null; notas: string | null; digests: string | null; t: number } | null = null;
-
 export async function pastasCerebro() {
-  if (cachePastas && Date.now() - cachePastas.t < 10 * 60_000) return cachePastas;
-  const raiz = await idPorNome(PASTA_CEREBRO);
-  if (!raiz) throw new Error("Pasta Segundo Cérebro não encontrada no Drive");
-  const [sistema, notas, digests] = await Promise.all([idPorNome("00 Sistema", raiz), idPorNome("01 Notas", raiz), idPorNome("03 Digests", raiz)]);
-  cachePastas = { raiz, sistema, notas, digests, t: Date.now() };
-  return cachePastas;
+  const raiz=await idPorNome(PASTA_CEREBRO);
+  if(!raiz)throw new Error("Pasta Segundo Cérebro não encontrada no seu Drive.");
+  const [sistema,notas,digests]=await Promise.all([idPorNome("00 Sistema",raiz),idPorNome("01 Notas",raiz),idPorNome("03 Digests",raiz)]);
+  return {raiz,sistema,notas,digests};
 }
 
 export async function lerArquivoDrive(id: string) {
@@ -306,10 +315,12 @@ export async function sinaisDeRisco(pipedriveUserId?: number | null) {
   ]);
   let carteira: any = cart;
   if (Array.isArray(cart)) {
-    const semContato = cart.filter((c) => c.dias_sem_contato === null || c.dias_sem_contato > 45);
+    const {coverage}=await import("./reliability");
+    const settings=await userSettings();
+    const semContato = cart.filter((c) => c.dias_sem_contato === null || c.dias_sem_contato > settings.days);
     carteira = {
       total: cart.length,
-      sem_contato_45d: semContato.length,
+      cobertura:coverage(cart,settings.days),
       mais_criticos: semContato.sort((a, b) => b.valor - a.valor || (b.dias_sem_contato ?? 999) - (a.dias_sem_contato ?? 999)).slice(0, 12),
       sem_proxima_atividade: cart.filter((c) => !c.proxima_atividade).slice(0, 12).map((c) => ({ deal_id: c.deal_id, titulo: c.titulo, valor: c.valor })),
       atividades_atrasadas: cart.filter((c) => c.proxima_atividade && c.proxima_atividade < hoje).slice(0, 12).map((c) => ({ deal_id: c.deal_id, titulo: c.titulo, desde: c.proxima_atividade })),
