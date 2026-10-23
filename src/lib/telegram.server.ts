@@ -64,10 +64,10 @@ async function extractMedia(token:string,userId:string,e:Entrada){
   const key=process.env["LOVABLE_API_KEY"];if(!key)throw new Error("IA sem chave configurada.");
   const {checkBudget}=await import("./budget.server");await checkBudget(userId);
   for(let attempt=1;;attempt++){
-    const r=await fetch("https://ai.gateway.lovable.dev/v1/chat/completions",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({model:"google/gemini-2.5-flash",messages:[{role:"user",content:[{type:"text",text:ask},part]}]})});
+    const r=await fetch("https://ai.gateway.lovable.dev/v1/chat/completions",{method:"POST",headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json"},body:JSON.stringify({model:"google/gemini-3.8-flash",messages:[{role:"user",content:[{type:"text",text:ask},part]}]})});
     if(r.ok){const j=await r.json() as {choices?:{message?:{content?:string}}[];usage?:{prompt_tokens?:number;completion_tokens?:number}};
       const {recordAuxiliary}=await import("./auxiliary-record");const db=await admin();const u=j.usage??{};
-      await recordAuxiliary(()=>db.from("uso").insert({user_id:userId,funcao:`telegram_${e.tipo}`,modelo:"google/gemini-2.5-flash",tokens_entrada:u.prompt_tokens??0,tokens_saida:u.completion_tokens??0,custo_usd:((u.prompt_tokens??0)*0.3+(u.completion_tokens??0)*2.5)/1000000}),"chat_usage");
+      await recordAuxiliary(()=>db.from("uso").insert({user_id:userId,funcao:`telegram_${e.tipo}`,modelo:"google/gemini-3.8-flash",tokens_entrada:u.prompt_tokens??0,tokens_saida:u.completion_tokens??0,custo_usd:((u.prompt_tokens??0)*0.3+(u.completion_tokens??0)*2.5)/1000000}),"chat_usage");
       return j.choices?.[0]?.message?.content??"";}
     const body=await r.text();if(attempt>=3||(r.status!==429&&r.status<500))throw new Error(`Leitura falhou [${r.status}]: ${body.slice(0,200)}`);
     await new Promise(res=>setTimeout(res,1000*2**attempt));
