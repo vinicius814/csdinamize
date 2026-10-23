@@ -142,6 +142,7 @@ function Inicio() {
         </div>
       </div>
 
+      <div className="mb-4 flex justify-end"><RefreshIntegrations /></div>
       <div className="grid gap-4 md:grid-cols-3">
         <Cartao titulo="Pede sua atenção" icon={Bell}>
           {connectionAlerts.map(a=><div key={a.name} className="mb-3 text-sm"><p className="text-warning">{a.name} desconectado ou indisponível</p><p className="text-xs text-muted-foreground">{a.detail}</p><Button variant="link" size="sm" asChild><Link to="/conexoes">Conectar</Link></Button></div>)}
@@ -190,7 +191,7 @@ function Inicio() {
               </button>
             ))}
           </div>
-          {!atual ? (
+          {rotinas.isPending ? <Skeleton className="h-40 w-full" /> : !atual ? (
             <Vazio
               texto={gerando === aba ? "Cruzando agenda, e-mails, carteira e ideias…" : DESCRICAO[aba]}
               acao={gerando !== aba && <button onClick={() => gerar(aba)} className="text-sm text-primary hover:underline">Montar agora</button>}
@@ -216,7 +217,7 @@ function Inicio() {
         </Cartao>
 
         <Cartao titulo="Carteira" icon={Briefcase}>
-          {cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
+          {cart.isPending ? <Skeleton className="h-28 w-full" /> : cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
             <Vazio texto="Ainda não há clientes na sua carteira." acao={<Link to="/carteira" className="text-sm text-primary hover:underline">Ver carteira</Link>} />
           ) : (
             <div className="flex items-center gap-4">
@@ -235,7 +236,7 @@ function Inicio() {
         </Cartao>
 
         <Cartao titulo="Grandes ideias" icon={Lightbulb} className="md:col-span-2">
-          {!ideias.data?.length ? (
+          {ideias.isPending ? <Skeleton className="h-28 w-full" /> : !ideias.data?.length ? (
             <Vazio
               texto="Solte uma ideia na Conversa, mesmo crua. Eu melhoro, avalio o potencial e guardo aqui."
               acao={<Link to="/conversa" className="text-sm text-primary hover:underline">Contar uma ideia</Link>}

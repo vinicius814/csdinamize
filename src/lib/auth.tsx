@@ -50,15 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let ativo = true;
-    let identity: string | null = null;
+    let identity: string | null | undefined;
     let generation = 0;
     const aplicar = async (s: Session | null) => {
       const current = ++generation;
-      if (identity !== (s?.user.id ?? null)) {
-        identity = s?.user.id ?? null;
+      if (identity !== undefined && identity !== (s?.user.id ?? null)) {
         await qc.cancelQueries();
         qc.clear();
       }
+      identity = s?.user.id ?? null;
       if (!ativo || current !== generation) return;
       setSession(s);
       if (!s) {
