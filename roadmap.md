@@ -1,4 +1,7 @@
 # Munim — cadastro, administração e confiança
+- [ ] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback.
+- [ ] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão.
+- [ ] Parte 2: testes e verificação do webhook/agendamento externo.
 - [x] Parte 1: contraste central do Button verificado nos dois temas; sem correções avulsas em Conexões.
 - [x] Parte 1: cache de acesso 5 min, autorização única e último acesso em segundo plano no máximo por hora.
 - [x] Parte 1: cache cifrado persistente de integrações por usuário (5 min), atualização explícita e skeletons.
