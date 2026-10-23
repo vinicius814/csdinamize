@@ -1,4 +1,7 @@
 # Munim — cadastro, administração e confiança
+- [ ] Parte 3: áreas, itens, ligações, conversas e migração sem apagar originais.
+- [ ] Parte 3: captura natural, Home pessoal, mapa, projetos, tópicos e memória editável.
+- [ ] Parte 3: autonomia, Haiku, embeddings relevantes, uso e testes.
 - [x] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback; configurações existentes preservadas.
 - [x] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão implementados.
 - [x] Parte 2: webhook registrado em munim.wojtec.com.br; proteções 401 e testes verificados.
