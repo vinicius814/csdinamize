@@ -1,22 +1,34 @@
 import { z } from "zod";
 import { splitResposta, type Resposta } from "./telegram-rules";
 
+/** Make omits empty fields and may send numbers as strings: absent, null and "" all normalize. */
+const toNull = (v: unknown) => (typeof v === "string" && v.trim() === "" ? null : v ?? null);
+const toNumber = (v: unknown) => (v === "" || v == null ? null : v);
+const text = (max: number) => z.preprocess(toNull, z.string().max(max).nullable());
+const int = () => z.preprocess(toNumber, z.coerce.number().int().nullable());
+const id = () => z.preprocess(v => (v === "" || v == null ? Number.NaN : v), z.coerce.number().int().nonnegative());
+
 export const ingestSchema = z.object({
-  update_id: z.number().int().nonnegative(),
-  chat_id: z.number().int(),
-  username: z.string().max(64).nullable(),
+  update_id: id(),
+  chat_id: id(),
+  username: text(64),
   evento: z.enum(["mensagem", "botao"]),
   tipo: z.enum(["texto", "comando", "voz", "audio", "video", "foto", "documento"]),
-  texto: z.string().max(60000),
-  legenda: z.string().max(4096).nullable(),
-  arquivo: z.object({ file_id: z.string().max(512), mime: z.string().max(255).nullable(), nome: z.string().max(512).nullable(), tamanho: z.number().nullable() }).nullable(),
-  extracao_erro: z.string().max(2000).nullable(),
-  callback_data: z.string().max(128).nullable(),
-  callback_id: z.string().max(128).nullable(),
-  message_id: z.number().int().nullable(),
+  texto: z.preprocess(v => (v == null || v === "" ? "" : v), z.string().max(60000)),
+  legenda: text(4096),
+  arquivo: z.preprocess(toNull, z.object({ file_id: text(512), mime: text(255), nome: text(512), tamanho: int() }).nullable()),
+  extracao_erro: text(2000),
+  callback_data: text(128),
+  callback_id: text(128),
+  message_id: int(),
 });
 export type Ingest = z.infer<typeof ingestSchema>;
 export type IngestReply = { respostas: Resposta[]; callback: { texto: string; limpar_botoes: boolean } | null };
+/** Log line for a rejected body: field paths and codes only, never the message content. */
+export function ingestErrorLog(error: unknown): string {
+  if (error instanceof z.ZodError) return error.issues.map(i => `${i.path.join(".") || "(raiz)"}:${i.code}`).join(" ");
+  return error instanceof Error ? error.name : "corpo inválido";
+}
 
 export const MSG = {
   linked: "Telegram conectado ao Munim. Pode escrever ou enviar áudio, foto, vídeo ou documento.",
