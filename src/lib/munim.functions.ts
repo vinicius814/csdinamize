@@ -346,6 +346,22 @@ export const conversarComMunim = createServerFn({ method: "POST" })
     return { conteudo: c };
   })
   .handler(async ({ data, context }) => {
+    return conversarCore(data, context, "app");
+  });
+
+async function pipedrive(path:string,body:unknown){const I=await import("./integracoes.server");return I.gw("pipedrive",path,{method:"POST",body});}
+
+export const decidirAcao = createServerFn({ method: "POST" })
+  .middleware([comCredenciais])
+  .inputValidator((i: { acao_id: string; decisao: "aprovada" | "recusada" }) => {
+    if (!i?.acao_id || !["aprovada", "recusada"].includes(i.decisao)) throw new Error("Pedido inválido");
+    return i;
+  })
+  .handler(async ({ data, context }) => {
+    return decidirCore(data, context);
+  });
+
+export async function conversarCore(data: {conteudo:string}, context: {supabase:any;userId:string;role:string}, canal: "app" | "telegram") {
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const I = await import("./integracoes.server");
@@ -356,7 +372,7 @@ export const conversarComMunim = createServerFn({ method: "POST" })
     const [{ data: perfil }, { data: mem }, { data: hist }, memDrive] = await Promise.all([
       supabase.from("profiles").select("nome, pipedrive_user_id").eq("id", userId).maybeSingle(),
       supabase.from("memoria").select("conteudo_md").eq("user_id", userId).maybeSingle(),
-      supabase.from("mensagens").select("autor, conteudo").neq("autor", "sistema").order("created_at", { ascending: false }).limit(20),
+      supabase.from("mensagens").select("autor, conteudo").eq("user_id", userId).neq("autor", "sistema").order("created_at", { ascending: false }).limit(20),
       I.memoriaDrive().catch((e: any) => (console.error("memoria drive", e?.message), "")),
     ]);
 
@@ -419,28 +435,21 @@ export const conversarComMunim = createServerFn({ method: "POST" })
 
     if (!resposta) resposta = "Pronto.";
     const {error:replyError}=await supabaseAdmin.from("mensagens").insert({
-      user_id: userId, autor: "munim", canal: "app", conteudo: resposta, meta: acaoId ? { acao_id: acaoId } : {},
+      user_id: userId, autor: "munim", canal: canal, conteudo: resposta, meta: acaoId ? { acao_id: acaoId } : {},
     });
     if(replyError)throw new Error("Não consegui salvar a resposta.");
     const custo = (entrada * 3 + saida * 15) / 1_000_000;
     await recordAuxiliary(() => supabaseAdmin.from("uso").insert({ user_id: userId, funcao: "chat", modelo: MODELO, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo }), "chat_usage");
-    return { ok: true };
-  });
+    return { ok: true, resposta, acaoId };
+}
 
-async function pipedrive(path:string,body:unknown){const I=await import("./integracoes.server");return I.gw("pipedrive",path,{method:"POST",body});}
-
-export const decidirAcao = createServerFn({ method: "POST" })
-  .middleware([comCredenciais])
-  .inputValidator((i: { acao_id: string; decisao: "aprovada" | "recusada" }) => {
-    if (!i?.acao_id || !["aprovada", "recusada"].includes(i.decisao)) throw new Error("Pedido inválido");
-    return i;
-  })
-  .handler(async ({ data, context }) => {
+export async function decidirCore(data:{acao_id:string;decisao:"aprovada"|"recusada"}, context:{supabase:any;userId:string}) {
     const { supabase } = context;
     const { data: acao, error } = await supabase
       .from("acoes")
       .update({ status: data.decisao, decidido_em: new Date().toISOString() })
       .eq("id", data.acao_id)
+      .eq("user_id", context.userId)
       .eq("status", "pendente")
       .select("*")
       .single();
@@ -473,4 +482,4 @@ export const decidirAcao = createServerFn({ method: "POST" })
     }
     await supabaseAdmin.from("acoes").update({ status, resultado }).eq("id", acao.id);
     return { status, resultado };
-  });
+}

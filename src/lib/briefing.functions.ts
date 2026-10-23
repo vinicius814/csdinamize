@@ -48,6 +48,10 @@ export const gerarRotina = createServerFn({ method: "POST" })
     return { tipo: i.tipo };
   })
   .handler(async ({ data, context }) => {
+    return gerarRotinaCore(data, context);
+  });
+
+export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:any;userId:string}) {
     const { supabase, userId } = context;
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("Cérebro sem chave configurada.");
@@ -63,13 +67,13 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const [agenda, emails, pend, notas, riscos, ideias, decididas, agAmanha, memoria] = await Promise.all([
       tipo !== "semana" ? agendaHoje().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "manha" ? emailsImportantes().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
-      supabase.from("acoes").select("resumo").eq("status", "pendente").limit(10),
-      supabase.from("notas").select("titulo, lembrete_em").not("lembrete_em", "is", null).gte("lembrete_em", new Date().toISOString()).order("lembrete_em").limit(5),
+      supabase.from("acoes").select("resumo").eq("user_id",userId).eq("status", "pendente").limit(10),
+      supabase.from("notas").select("titulo, lembrete_em").eq("user_id",userId).not("lembrete_em", "is", null).gte("lembrete_em", new Date().toISOString()).order("lembrete_em").limit(5),
       tipo !== "fechamento" ? I.sinaisDeRisco(pdId).catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" || tipo === "manha"
-        ? supabase.from("notas").select("titulo, subcategoria, tags, resumo").in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(30)
+        ? supabase.from("notas").select("titulo, subcategoria, tags, resumo").eq("user_id",userId).in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(30)
         : null,
-      tipo !== "manha" ? supabase.from("acoes").select("resumo, status").neq("status", "pendente").gte("decidido_em", desde).limit(20) : null,
+      tipo !== "manha" ? supabase.from("acoes").select("resumo, status").eq("user_id",userId).neq("status", "pendente").gte("decidido_em", desde).limit(20) : null,
       tipo === "fechamento" ? I.eventos(`${amanha}T00:00:00-03:00`, `${amanha}T23:59:59-03:00`).catch(e => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" ? I.memoriaDrive().then((m) => m.slice(0, 4000)).catch(() => "") : "",
     ]);
@@ -113,5 +117,5 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("briefings").insert({ user_id: userId, tipo: TIPO_BANCO[tipo], conteudo_md: md });
     if (error) throw new Error("Não consegui salvar.");
     await recordAuxiliary(() => supabaseAdmin.from("uso").insert({user_id:userId,funcao:`rotina_${tipo}`,modelo:MODELO,tokens_entrada:entrada,tokens_saida:saida,custo_usd:(entrada*3+saida*15)/1000000}), "routine_usage");
-    return { ok: true };
-  });
+    return { ok: true, md };
+}
