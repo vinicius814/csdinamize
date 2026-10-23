@@ -152,7 +152,7 @@ function promptSistema(p: { nome: string | null }, memoria: string, agora: strin
 Personalidade: confiante, calmo, preciso, levemente espirituoso, sempre a um passo à frente. Português do Brasil, respostas curtas em Markdown leve. Chame-o pelo nome de vez em quando.
 Agora: ${agora} (America/Sao_Paulo).
 
-Você tem acesso ao vivo a: Pipedrive (carteira e negócios), Gmail (ler e buscar), Google Agenda, e o Segundo Cérebro no Google Drive (notas .md, ideias e projetos).
+Você usa apenas as fontes que o usuário conectou. Itens pessoais relevantes e resumo do tópico estão no contexto.
 
 Você não é um organizador de agenda. Você é conselheiro estratégico, incubador de ideias e radar de riscos.
 
@@ -161,8 +161,8 @@ Como agir:
 - Direcione. Quando houver decisão no ar, dê sua recomendação clara ("Eu faria X, porque…") com 1 alternativa e o custo de não agir.
 - Pergunte para entender melhor. Se faltar contexto que mude a resposta, faça no máximo 2 perguntas certeiras (objetivo, prazo, quem decide, métrica, restrição). Não pergunte o que dá para descobrir nas ferramentas.
 - Avalie riscos. Em todo plano ou decisão, cite os riscos relevantes (cliente, prazo, sobrecarga, reputação, financeiro) com nível baixo/médio/alto e como mitigar. Para uma visão geral, use radar_riscos.
-- Ideias soltas: SEMPRE guarde com capturar_ideia, já melhoradas — dê um ângulo mais forte, um diferencial e um teste barato em 1 semana. Avalie potencial, impacto e esforço com honestidade; diga quando a ideia é fraca.
-- Projetos: quando uma ideia ganha corpo ou ele descreve uma iniciativa, use estruturar_projeto. Quando ele voltar ao assunto, use listar_ideias_projetos e atualizar_projeto em vez de criar duplicado.
+- Capturas são classificadas e guardadas no Munim conforme autonomia; confirme só o resultado informado. Sugira próximo passo concreto para ideias.
+- Projetos: faça até cinco perguntas para compreender objetivo, prazo, recursos e primeiro passo. Não execute ações externas.
 - Grandes ideias: ao priorizar, use listar_ideias_projetos e aponte as 1 a 3 com maior potencial e por que merecem foco agora. Conecte ideias parecidas.
 - Proteja o tempo dele: priorize por impacto, diga o que pode esperar e o que pode ser delegado.
 - Nunca invente dados. Ferramenta com {erro} significa FALHA, não resultado vazio. Explique quais dados não conseguiu acessar e ofereça [Conectar](/conexoes). Não conclua "tudo em dia" a partir de falha ou lista vazia; delimite fonte, filtro e período.
@@ -341,24 +341,32 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
 
 async function pipedrive(path:string,body:unknown){const I=await import("./integracoes.server");return I.gw("pipedrive",path,{method:"POST",body});}
 
-export async function conversarCore(data: {conteudo:string}, context: {supabase:any;userId:string;role:string}, canal: "app" | "telegram") {
+export async function conversarCore(data: {conteudo:string;conversa_id?:string}, context: {supabase:any;userId:string;role:string}, canal: "app" | "telegram") {
     const { supabase, userId } = context;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const I = await import("./integracoes.server");
     const apiKey = process.env["LOVABLE_API_KEY"];
     const C=await import("./credenciais.server");
     const hasPipedrive=!!(await C.pipedriveAtual());
-    const tools=FERRAMENTAS.filter(t=>csToolAvailable(t.name,hasPipedrive)).map(t=>t.name==="propor_acao"&&!hasPipedrive?{...t,description:"Prepara rascunho de Gmail ou evento de Agenda para aprovação.",input_schema:{...t.input_schema,properties:{...t.input_schema.properties,tipo:{type:"string",enum:["rascunho_gmail","evento_agenda"]}}}}:t);
+    const disabledCaptures=["salvar_nota","capturar_ideia","estruturar_projeto","atualizar_projeto"];
+    const tools=FERRAMENTAS.filter(t=>csToolAvailable(t.name,hasPipedrive)&&!disabledCaptures.includes(t.name)).map(t=>t.name==="propor_acao"&&!hasPipedrive?{...t,description:"Prepara rascunho de Gmail ou evento de Agenda para aprovação.",input_schema:{...t.input_schema,properties:{...t.input_schema.properties,tipo:{type:"string",enum:["rascunho_gmail","evento_agenda"]}}}}:t);
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
     const {checkBudget}=await import("./budget.server");await checkBudget(userId);
 
-    const [{ data: perfil }, { data: mem }, { data: hist }, memDrive] = await Promise.all([
-      supabase.from("profiles").select("nome, pipedrive_user_id").eq("id", userId).maybeSingle(),
-      supabase.from("memoria").select("conteudo_md").eq("user_id", userId).maybeSingle(),
-      supabase.from("mensagens").select("autor, conteudo").eq("user_id", userId).neq("autor", "sistema").order("created_at", { ascending: false }).limit(20),
-      I.memoriaDrive().catch((e: any) => (console.error("memoria drive", e?.message), "")),
+    let topicId=data.conversa_id;
+    if(topicId){const t=await supabase.from("conversas").select("id").eq("id",topicId).eq("user_id",userId).single();if(t.error)throw new Error("Conversa inválida.");}
+    else {const t=await supabase.from("conversas").select("id").eq("user_id",userId).eq("arquivada",false).order("atualizado_em",{ascending:false}).limit(1).maybeSingle();topicId=t.data?.id;if(!topicId){const c=await supabaseAdmin.from("conversas").insert({user_id:userId,titulo:canal==="telegram"?"Telegram":"Nova conversa"}).select("id").single();if(c.error)throw c.error;topicId=c.data.id;}}
+    const [{data:perfil},{data:pref},{data:hist},{data:topic}] = await Promise.all([
+      supabase.from("profiles").select("nome,pipedrive_user_id").eq("id",userId).maybeSingle(),
+      supabase.from("preferencias_munim").select("memoria_compacta,autonomia,ai_pausada,ai_erro").eq("user_id",userId).maybeSingle(),
+      supabase.from("mensagens").select("autor,conteudo").eq("user_id",userId).eq("conversa_id",topicId).neq("autor","sistema").order("created_at",{ascending:false}).limit(12),
+      supabase.from("conversas").select("titulo,resumo").eq("id",topicId).eq("user_id",userId).single()
     ]);
-
+    if(pref?.ai_pausada)throw new Error(pref.ai_erro??"IA pausada.");
+    const P=await import("./personal-ai.server");
+    const relevant=await P.relevantItems(userId,data.conteudo);
+    const {captureCore}=await import("./personal.server");
+    const captured=await captureCore(userId,data.conteudo,canal==="telegram"?"telegram":"chat");
     const msgs: any[] = [];
     for (const m of (hist ?? []).reverse()) {
       const role = m.autor === "munim" ? "assistant" : "user";
@@ -378,15 +386,19 @@ export async function conversarCore(data: {conteudo:string}, context: {supabase:
     });
 
     const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "full", timeStyle: "short" });
-    const memoria = [memDrive, mem?.conteudo_md].filter(Boolean).join("\n\n");
-    const system = promptSistema({ nome: perfil?.nome ?? null }, memoria, agora)+`\nPapel verificado: ${context.role}.`+(hasPipedrive?"":"\nO módulo CS não está ativo. Não mencione carteira, cobertura, pipeline ou clientes como parte da experiência pessoal. Não ofereça Pipedrive sem pedido explícito.");
+    const memoria = pref?.memoria_compacta??"";
+    const system = promptSistema({ nome: perfil?.nome ?? null }, memoria, agora)+`
+Resumo do tópico: ${topic?.resumo??""}.
+Itens relevantes: ${JSON.stringify(relevant)}.
+Captura desta mensagem: ${JSON.stringify(captured)}.
+Não salve novamente o item capturado. Autonomia: ${JSON.stringify(pref?.autonomia)}.`+`\nPapel verificado: ${context.role}.`+(hasPipedrive?"":"\nO módulo CS não está ativo. Não mencione carteira, cobertura, pipeline ou clientes como parte da experiência pessoal. Não ofereça Pipedrive sem pedido explícito.");
     const ctx: Ctx = { supabase, userId, hasPipedrive, pipedriveUserId: perfil?.pipedrive_user_id ? Number(perfil.pipedrive_user_id) : null };
     let entrada = 0, saida = 0, resposta = "";
     let acaoId: string | undefined;
 
     try {
       for (let i = 0; i < 8; i++) {
-        const stream = client.messages.stream({ model: MODELO, max_tokens: 4000, system, tools: tools as any, messages: msgs });
+        const stream = client.messages.stream({ model: MODELO, max_tokens: 4000, system:[{type:"text",text:system,cache_control:{type:"ephemeral"}}], tools: tools as any, messages: msgs });
         const final = await stream.finalMessage();
         entrada += final.usage.input_tokens;
         saida += final.usage.output_tokens;
@@ -418,12 +430,14 @@ export async function conversarCore(data: {conteudo:string}, context: {supabase:
 
     if (!resposta) resposta = "Pronto.";
     const {error:replyError}=await supabaseAdmin.from("mensagens").insert({
-      user_id: userId, autor: "munim", canal: canal, conteudo: resposta, meta: acaoId ? { acao_id: acaoId } : {},
+      user_id: userId, conversa_id:topicId, autor: "munim", canal: canal, conteudo: resposta, meta: { ...(acaoId?{acao_id:acaoId}:{}),...(captured?{captura:captured}:{}) },
     });
     if(replyError)throw new Error("Não consegui salvar a resposta.");
     const custo = (entrada * 3 + saida * 15) / 1_000_000;
     await recordAuxiliary(() => supabaseAdmin.from("uso").insert({ user_id: userId, funcao: "chat", modelo: MODELO, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo }), "chat_usage");
-    return { ok: true, resposta, acaoId };
+    const {runBackground}=await import("./background.server");
+    runBackground((async()=>{const summary=await P.lightTask(userId,"resumo_topico",`Resuma este tópico em até 1000 caracteres. Resumo: ${topic?.resumo??""}. Último usuário: ${data.conteudo}. Resposta: ${resposta}`);let title=topic?.titulo;if(title==="Nova conversa")title=(await P.lightTask(userId,"titulo_topico",`Dê um título de até 60 caracteres para: ${data.conteudo}`)).slice(0,60);await supabaseAdmin.from("conversas").update({resumo:summary.slice(0,1000),...(title?{titulo:title}:{}),atualizado_em:new Date().toISOString()}).eq("id",topicId).eq("user_id",userId);await P.refreshMemory(userId);})());
+    return { ok: true, resposta, acaoId, captura:captured,conversa_id:topicId };
 }
 
 export async function decidirCore(data:{acao_id:string;decisao:"aprovada"|"recusada"}, context:{supabase:any;userId:string}) {
