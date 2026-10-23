@@ -20,6 +20,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-button-disabled: var(--button-disabled);
+  --color-button-disabled-foreground: var(--button-disabled-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -60,6 +62,8 @@
   --popover-foreground: oklch(0.936 0.012 264.5);
   --primary: oklch(0.688 0.169 251.4);
   --primary-foreground: oklch(0.162 0.014 258.4);
+  --button-disabled: oklch(0.35 0.04 258);
+  --button-disabled-foreground: oklch(0.936 0.012 264.5);
   --secondary: oklch(0.244 0.033 263.7);
   --secondary-foreground: oklch(0.936 0.012 264.5);
   --muted: oklch(0.244 0.033 263.7);
@@ -99,8 +103,10 @@
   --card-foreground: oklch(0.200 0.028 262.3);
   --popover: oklch(1.000 0.000 89.9);
   --popover-foreground: oklch(0.200 0.028 262.3);
-  --primary: oklch(0.595 0.170 253.4);
+  --primary: oklch(0.545 0.170 253.4);
   --primary-foreground: oklch(1.000 0.000 89.9);
+  --button-disabled: oklch(0.91 0.02 258);
+  --button-disabled-foreground: oklch(0.35 0.04 258);
   --secondary: oklch(0.948 0.010 261.8);
   --secondary-foreground: oklch(0.200 0.028 262.3);
   --muted: oklch(0.948 0.010 261.8);
@@ -147,6 +153,13 @@
 @utility glass {
   background: var(--glass);
   backdrop-filter: blur(16px) saturate(140%);
+}
+
+@utility button-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  &:hover:not(:disabled) { background-color: color-mix(in oklab, var(--primary) 90%, var(--background)); }
+  &:disabled, &[aria-disabled="true"] { background-color: var(--button-disabled); color: var(--button-disabled-foreground); opacity: 1; }
 }
 
 @utility card-munim {
