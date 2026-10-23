@@ -67,7 +67,7 @@ export async function handleTelegram(update:any) {
         if(update.callback_query){
           const match=/^(aprovada|recusada):([0-9a-f-]{36})$/.exec(update.callback_query.data??"");if(!match)throw new Error("Aprovação inválida.");
           const actionId=match[2];if(!actionId)throw new Error("Aprovação inválida.");
-          const {decidirCore}=await import("./munim.functions");
+          const {decidirCore}=await import("./munim-core.server");
           const result=await decidirCore({acao_id:actionId,decisao:match[1] as "aprovada"|"recusada"},{supabase:db,userId});
           await telegram("answerCallbackQuery",{callback_query_id:update.callback_query.id,text:result.status==="executada"?"Ação executada.":result.status==="recusada"?"Ação recusada.":"Não consegui executar."});
           await telegram("editMessageReplyMarkup",{chat_id:chat,message_id:message.message_id,reply_markup:{inline_keyboard:[]}});return;
@@ -76,7 +76,7 @@ export async function handleTelegram(update:any) {
         if(!content || content.startsWith("/")){await sendText(chat,"Escreva uma mensagem ou envie um áudio para o Munim.");return;}
         if(content.length>8000)throw new Error("Mensagem muito longa. Envie em partes.");
         const insert=await db.from("mensagens").insert({user_id:userId,autor:"usuario",canal:"telegram",conteudo:content});if(insert.error)throw insert.error;
-        const {conversarCore}=await import("./munim.functions");const result=await conversarCore({conteudo:content},{supabase:db,userId,role},"telegram");
+        const {conversarCore}=await import("./munim-core.server");const result=await conversarCore({conteudo:content},{supabase:db,userId,role},"telegram");
         await sendText(chat,result.resposta);
         const pending=await db.from("acoes").select("id,resumo").eq("user_id",userId).eq("status","pendente").order("created_at",{ascending:false}).limit(10);if(pending.error)throw pending.error;
         for(const action of pending.data??[])await sendText(chat,action.resumo??"Ação aguardando sua decisão.",{inline_keyboard:[[{text:"Aprovar",callback_data:`aprovada:${action.id}`},{text:"Recusar",callback_data:`recusada:${action.id}`}]]});
@@ -98,7 +98,7 @@ export async function deliverBriefings() {
       let role;try{role=(await activeUser(p.id)).role;}catch{continue;}
       const claim=await db.from("telegram_deliveries").insert({user_id:p.id,local_date:due.date});if(claim.error){if(claim.error.code==="23505")continue;throw claim.error;}
       try{
-        const result=await rodarComo({userId:p.id,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{const {gerarRotinaCore}=await import("./briefing.functions");return gerarRotinaCore({tipo:"manha"},{supabase:db,userId:p.id});});
+        const result=await rodarComo({userId:p.id,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{const {gerarRotinaCore}=await import("./briefing-core.server");return gerarRotinaCore({tipo:"manha"},{supabase:db,userId:p.id});});
         await sendText(p.telegram_chat_id,result.md);await db.from("telegram_deliveries").update({status:"sent"}).eq("user_id",p.id).eq("local_date",due.date);delivered++;
       }catch{await db.from("telegram_deliveries").update({status:"failed"}).eq("user_id",p.id).eq("local_date",due.date);}
     }if((profiles.data?.length??0)<500)break;
