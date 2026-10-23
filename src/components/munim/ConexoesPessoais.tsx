@@ -61,7 +61,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
   const [token, setToken] = useState("");
   const [dominio, setDominio] = useState("");
 
-  const atualizar = () => qc.invalidateQueries({ queryKey: ["conexoes"] });
+  const atualizar = () => qc.invalidateQueries({ predicate: q => ["conexoes", "carteira-viva", "cliente-det", "notas-drive", "nota", "onboarding-options"].includes(String(q.queryKey[0])) });
 
   const conectar = async (s: ServicoGoogle, nome: string, reconectar: boolean) => {
     const popup = window.open("", "munim-google", "width=560,height=720");
@@ -120,11 +120,11 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
               <p className="text-xs text-muted-foreground">{sv.papel}</p>
                <p className="break-words text-xs text-foreground">{st?.detalhe ?? "…"}</p>
                <div className="mt-auto flex flex-wrap gap-2 text-sm">
-                 <Button disabled={ocupado !== null} onClick={() => conectar(sv.id, sv.nome, proprio)} className="max-w-full disabled:bg-secondary disabled:text-secondary-foreground disabled:opacity-100">
+                 <Button disabled={ocupado !== null} onClick={() => conectar(sv.id, sv.nome, proprio)} className="max-w-full">
                   {ocupado === sv.id ? "Abrindo…" : proprio ? "Reconectar" : "Conectar minha conta"}
                 </Button>
                 {proprio && (
-                   <Button variant="outline" disabled={ocupado !== null} onClick={() => desconectar(sv.id, sv.nome)} className="disabled:opacity-100">
+                   <Button variant="outline" disabled={ocupado !== null} onClick={() => desconectar(sv.id, sv.nome)}>
                     Desconectar
                   </Button>
                 )}
@@ -154,7 +154,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
             <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <input value={dominio} onChange={(e) => setDominio(e.target.value)} placeholder="suaempresa" className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" aria-label="Domínio do Pipedrive" />
               <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Token de API" type="password" autoComplete="off" className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" aria-label="Token de API do Pipedrive" />
-               <Button onClick={conectarPd} disabled={!token || !dominio || ocupado !== null} className="disabled:bg-secondary disabled:text-secondary-foreground disabled:opacity-100">
+               <Button onClick={conectarPd} disabled={!token || !dominio || ocupado !== null}>
                 {ocupado === "pd" ? "Validando…" : "Conectar"}
               </Button>
          {pipedrive?.ok && <PipedriveConfig />}

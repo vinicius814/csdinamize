@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Nucleo, type EstadoNucleo } from "@/components/munim/Nucleo";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type Busca = { q?: string | undefined; ouvir?: boolean | undefined };
 
@@ -63,6 +66,17 @@ function Conversa() {
   const { session } = useAuth();
   const userId = session?.user.id;
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const qc = useQueryClient();
+  const history = useQuery({ queryKey: ["conversation-history", userId], enabled: !!userId,
+    queryFn: async () => {
+      if (!userId) throw new Error("Sessão ausente.");
+      const { data, error } = await supabase.from("mensagens").select("id, autor, canal, conteudo, created_at")
+        .eq("user_id", userId).order("created_at", { ascending: true }).limit(500);
+      if (error) throw error;
+      return data;
+    },
+  });
+  useEffect(() => { if (history.data) setMsgs(history.data); }, [history.data]);
   const [texto, setTexto] = useState(q ?? "");
   const [estado, setEstado] = useState<EstadoNucleo>("repouso");
   const [erroVoz, setErroVoz] = useState<string | null>(null);
@@ -77,12 +91,6 @@ function Conversa() {
 
   useEffect(() => {
     if (!userId) return;
-    supabase
-      .from("mensagens")
-      .select("id, autor, canal, conteudo, created_at")
-      .order("created_at", { ascending: true })
-      .limit(500)
-      .then(({ data }) => data && setMsgs(data));
     const canal = supabase
       .channel(`mensagens-${userId}`)
       .on(
@@ -93,13 +101,14 @@ function Conversa() {
           setMsgs((atual) =>
             atual.some((x) => x.id === m.id) ? atual : [...atual, { ...m, animar: m.autor === "munim" }],
           );
+          qc.setQueryData<Msg[]>(["conversation-history", userId], current => current?.some(x => x.id === m.id) ? current : [...(current ?? []), m]);
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(canal);
     };
-  }, [userId]);
+  }, [userId, qc]);
 
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -185,7 +194,9 @@ function Conversa() {
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-6">
-        {msgs.length === 0 && (
+        {history.isPending && <><Skeleton className="h-16 w-2/3" /><Skeleton className="ml-auto h-12 w-1/2" /></>}
+        {history.error && <p role="alert" className="text-sm text-warning">Não consegui carregar o histórico. <Button variant="link" onClick={() => history.refetch()}>Tentar de novo</Button></p>}
+        {!history.isPending && !history.error && msgs.length === 0 && (
           <div className="flex flex-col items-center py-16 text-center">
             <Nucleo tamanho={120} estado={estado} />
             <p className="mt-6 font-display text-xl text-foreground">Em que posso ajudar?</p>
@@ -261,14 +272,15 @@ function Conversa() {
           >
             {estado === "ouvindo" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
           </button>
-          <button
+          <Button
             type="submit"
             disabled={!texto.trim()}
             aria-label="Enviar"
-            className="grid h-10 w-10 place-items-center rounded-lg bg-primary text-primary-foreground transition-opacity duration-150 disabled:opacity-40"
+            size="icon"
+            className="h-10 w-10"
           >
             <ArrowUp className="h-5 w-5" />
-          </button>
+          </Button>
         </form>
       </div>
     </div>

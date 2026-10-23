@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, Moon, Send, Sun } from "lucide-react";
 import { toast } from "sonner";
@@ -50,9 +50,10 @@ function Configuracoes() {
   const { session, perfil, role, sair } = useAuth();
   const uid = session?.user.id;
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const openTelegram = useServerFn(telegramLink);
 
-  const { data: p } = useQuery({
+  const { data: p, isPending, error } = useQuery({
     queryKey: ["perfil-config", uid],
     enabled: !!uid,
     queryFn: async () => {
@@ -83,18 +84,19 @@ function Configuracoes() {
   return (
     <Pagina>
       <Cabecalho titulo="Configurações" frase="Sua conta, rotina e aparência." />
+      {error && <p role="alert" className="mb-4 text-warning">{error.message}</p>}
       <div className="grid gap-4">
         <Bloco icon={<span>◎</span>} titulo="Sua conta">
           <p className="text-sm">{perfil?.nome}</p><p className="mt-1 break-all text-sm text-muted-foreground">{session?.user.email}</p><p className="mt-1 text-xs text-muted-foreground">{role === "superadmin" ? "Superadmin · uso pessoal" : role === "admin" ? "Admin · uso pessoal" : "Conta pessoal"}</p>
-          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Carteira e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();window.location.assign("/auth");}}>Sair</Button></div>
+          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Carteira e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
         </Bloco>
 
         <Bloco icon={<Send className="h-5 w-5" />} titulo="Telegram">
-          {p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <Button onClick={async()=>{const popup=window.open("","munim-telegram");try{const r=await openTelegram();if(!r.url){popup?.close();toast.info("Bot ainda não configurado. O responsável precisa salvar o token do BotFather.");return;}if(popup)popup.location.href=r.url;}catch(e){popup?.close();toast.error(e instanceof Error?e.message:"Não consegui abrir o bot.");}}}>Ativar Telegram</Button>}
+          {isPending ? <Skeleton className="h-9 w-40" /> : p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <Button onClick={async()=>{const popup=window.open("","munim-telegram");try{const r=await openTelegram();if(!r.url){popup?.close();toast.info("Bot ainda não configurado. O responsável precisa salvar o token do BotFather.");return;}if(popup)popup.location.href=r.url;}catch(e){popup?.close();toast.error(e instanceof Error?e.message:"Não consegui abrir o bot.");}}}>Ativar Telegram</Button>}
         </Bloco>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">
-          <div className="flex flex-col gap-4">
+          {isPending ? <Skeleton className="h-32 w-full" /> : <div className="flex flex-col gap-4">
             <label className="flex flex-wrap items-center justify-between gap-4 text-sm"><span>Fuso horário</span><select value={p?.fuso ?? "America/Sao_Paulo"} onChange={e=>salvar({fuso:e.target.value})} className="max-w-full rounded-lg border border-border bg-card px-3 py-2">{["America/Sao_Paulo","America/Manaus","America/Recife","America/Rio_Branco","Europe/Lisbon","UTC"].map(t=><option key={t}>{t}</option>)}</select></label>
             <label className="flex items-center justify-between gap-4 text-sm">
               <span className="text-foreground">Horário do briefing da manhã</span>
@@ -115,7 +117,7 @@ function Configuracoes() {
               <span className="text-foreground">Receber alertas durante o dia</span>
               <Switch checked={p?.alertas_ativos ?? true} onCheckedChange={(v) => salvar({ alertas_ativos: v })} aria-label="Receber alertas durante o dia" />
             </label>
-          </div>
+          </div>}
         </Bloco>
 
         <Bloco icon={tema === "claro" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />} titulo="Aparência">

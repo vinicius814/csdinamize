@@ -9,6 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { lerNota, listarNotas } from "@/lib/cerebro.functions";
+import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
+import { PageSkeleton } from "@/components/munim/PageSkeleton";
 
 export const Route = createFileRoute("/_authenticated/notas")({
   head: () => ({
@@ -36,7 +38,7 @@ function Notas() {
 
   const { data, isLoading, error } = useQuery({ queryKey: ["notas-drive", session?.user.id, termo], queryFn: () => listar({ data: { texto: termo } }) });
   const { data: nota, isLoading: lendo, error:noteError } = useQuery({
-    queryKey: ["nota", sel?.id],
+    queryKey: ["nota", session?.user.id, sel?.id],
     enabled: !!sel,
     queryFn: () => {if(!sel)throw new Error("Nota não selecionada.");return ler({data:{id:sel.id}});},
   });
@@ -45,6 +47,7 @@ function Notas() {
   return (
     <Pagina>
       <Cabecalho titulo="Notas" frase="Seu Segundo Cérebro, direto do Google Drive." />
+      <div className="mb-4 flex justify-end"><RefreshIntegrations /></div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -57,7 +60,7 @@ function Notas() {
       </form>
       {(data?.erro||error) && <div role="alert" className="mb-4 text-sm text-warning"><p>{data?.erro??error?.message}</p><Button variant="outline" className="mt-2" asChild><Link to="/conexoes">Conectar Drive</Link></Button></div>}
       {data?.erro||error ? null : isLoading ? (
-        <p className="text-sm text-muted-foreground">Abrindo seu Segundo Cérebro…</p>
+        <PageSkeleton />
       ) : notas.length === 0 ? (
         <EstadoVazio icon={StickyNote} titulo={termo ? "Nada encontrado" : "Nenhuma nota ainda"} texto="Peça ao Munim para anotar algo e ele guarda na pasta 01 Notas." />
       ) : (

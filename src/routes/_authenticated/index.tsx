@@ -14,6 +14,8 @@ import { Pagina } from "@/components/munim/PaginaVazia";
 import { useAuth } from "@/lib/auth";
 import { useCarteira, useLembretesHoje, usePendentes, useRotinas, useRadarIdeias, DIAS_SEM_CONTATO, type Rotina } from "@/lib/dados";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -73,14 +75,14 @@ function AnelProgresso({ pct }: { pct: number }) {
 }
 
 function Inicio() {
-  const { perfil } = useAuth();
+  const { perfil, session } = useAuth();
   const pend = usePendentes();
   const lemb = useLembretesHoje();
   const rotinas = useRotinas();
   const ideias = useRadarIdeias();
   const cart = useCarteira();
   const statusFn=useServerFn(statusConexoes);
-  const connections=useQuery({queryKey:["conexoes"],queryFn:()=>statusFn()});
+  const connections=useQuery({queryKey:["conexoes",session?.user.id],queryFn:()=>statusFn()});
   const connectionAlerts=connections.data ? Object.entries({Pipedrive:connections.data.pipedrive,Gmail:connections.data.servicos.google_mail,Agenda:connections.data.servicos.google_calendar,Drive:connections.data.servicos.google_drive}).filter(([,value])=>!value.ok).map(([name,value])=>({name,detail:value.detalhe})) : [];
   const briefingAlert=rotinas.data?.manha?.conteudo_md.match(/\*\*Pede aten[çc][ãa]o\*\*([\s\S]*?)(?=\*\*|$)/i)?.[1]?.trim();
   const [aberto, setAberto] = useState(false);
@@ -140,12 +142,13 @@ function Inicio() {
         </div>
       </div>
 
+      <div className="mb-4 flex justify-end"><RefreshIntegrations /></div>
       <div className="grid gap-4 md:grid-cols-3">
         <Cartao titulo="Pede sua atenção" icon={Bell}>
           {connectionAlerts.map(a=><div key={a.name} className="mb-3 text-sm"><p className="text-warning">{a.name} desconectado ou indisponível</p><p className="text-xs text-muted-foreground">{a.detail}</p><Button variant="link" size="sm" asChild><Link to="/conexoes">Conectar</Link></Button></div>)}
           {cart.isError && <p className="mb-3 text-sm text-warning">{cart.error.message}</p>}
           {briefingAlert && <div className="prose-munim mb-3 text-sm"><ReactMarkdown>{briefingAlert}</ReactMarkdown></div>}
-          {nPend + nLemb === 0 ? (
+          {pend.isPending || lemb.isPending ? <Skeleton className="h-24 w-full" /> : nPend + nLemb === 0 ? (
             <Vazio texto={connectionAlerts.length || cart.isError ? "Revise os acessos acima para confirmar suas pendências." : "Nenhuma aprovação ou lembrete encontrado para hoje."} />
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
@@ -188,7 +191,7 @@ function Inicio() {
               </button>
             ))}
           </div>
-          {!atual ? (
+          {rotinas.isPending ? <Skeleton className="h-40 w-full" /> : !atual ? (
             <Vazio
               texto={gerando === aba ? "Cruzando agenda, e-mails, carteira e ideias…" : DESCRICAO[aba]}
               acao={gerando !== aba && <button onClick={() => gerar(aba)} className="text-sm text-primary hover:underline">Montar agora</button>}
@@ -214,7 +217,7 @@ function Inicio() {
         </Cartao>
 
         <Cartao titulo="Carteira" icon={Briefcase}>
-          {cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
+          {cart.isPending ? <Skeleton className="h-28 w-full" /> : cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
             <Vazio texto="Ainda não há clientes na sua carteira." acao={<Link to="/carteira" className="text-sm text-primary hover:underline">Ver carteira</Link>} />
           ) : (
             <div className="flex items-center gap-4">
@@ -233,7 +236,7 @@ function Inicio() {
         </Cartao>
 
         <Cartao titulo="Grandes ideias" icon={Lightbulb} className="md:col-span-2">
-          {!ideias.data?.length ? (
+          {ideias.isPending ? <Skeleton className="h-28 w-full" /> : !ideias.data?.length ? (
             <Vazio
               texto="Solte uma ideia na Conversa, mesmo crua. Eu melhoro, avalio o potencial e guardo aqui."
               acao={<Link to="/conversa" className="text-sm text-primary hover:underline">Contar uma ideia</Link>}

@@ -478,6 +478,33 @@ export type Database = {
           },
         ]
       }
+      integration_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          expires_at: string
+          response_ciphertext: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          response_ciphertext: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          response_ciphertext?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       memoria: {
         Row: {
           atualizado_em: string
@@ -819,11 +846,21 @@ export type Database = {
         Returns: boolean
       }
       link_telegram: { Args: { chat: number; code: string }; Returns: string }
+      meu_acesso: {
+        Args: never
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          status: string
+          terms_accepted_at: string
+        }[]
+      }
       meu_papel: {
         Args: never
         Returns: Database["public"]["Enums"]["papel_usuario"]
       }
       meu_pipedrive_id: { Args: never; Returns: number }
+      registrar_acesso_auxiliar: { Args: { uid: string }; Returns: undefined }
+      registrar_meu_acesso: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "superadmin" | "admin" | "user"

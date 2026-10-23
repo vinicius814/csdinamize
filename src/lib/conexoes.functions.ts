@@ -34,6 +34,8 @@ function validarServico(i: { servico: string }): { servico: ServicoGoogle } {
 export const statusConexoes = createServerFn({ method: "POST" })
   .middleware([comCredenciais])
   .handler(async ({ context }) => {
+    const { cachedIntegration } = await import("./integration-cache.server");
+    return cachedIntegration(context.userId, "connection-status", async () => {
     const C = await import("./credenciais.server");
     const { admin, superadmin } = C.contexto();
     const lk = process.env["LOVABLE_API_KEY"];
@@ -100,6 +102,7 @@ export const statusConexoes = createServerFn({ method: "POST" })
       servicos,
       pipedriveDominio: pd?.dominio ?? null,
     };
+    }, result => result.pipedrive.ok && result.google.ok);
   });
 
 export const iniciarGoogle = createServerFn({ method: "POST" })

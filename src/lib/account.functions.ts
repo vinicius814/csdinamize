@@ -2,19 +2,21 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { TERMS_VERSION, type Role, type AccountStatus } from "./access";
 import { recordAuxiliary } from "./auxiliary-record";
+import { shouldRecordAccess } from "./cache-rules";
 
 export const accountState = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const [access, roles, config] = await Promise.all([
-    context.supabase.from("account_access").select("status,terms_accepted_at").eq("user_id", context.userId).single(),
+    context.supabase.from("account_access").select("status,terms_accepted_at,last_access_at").eq("user_id", context.userId).single(),
     context.supabase.from("user_roles").select("role").eq("user_id", context.userId).single(),
     // Config is protected until acceptance; missing config means first onboarding.
     context.supabase.from("config_usuario").select("onboarding_concluido").eq("user_id", context.userId).maybeSingle(),
   ]);
   if (access.error || roles.error) throw new Error("Não consegui verificar os dados da sua conta.");
-  await recordAuxiliary(async () => {
+  const { runBackground } = await import("./background.server");
+  if (shouldRecordAccess(access.data.last_access_at)) runBackground(recordAuxiliary(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    return supabaseAdmin.from("account_access").update({ last_access_at: new Date().toISOString() }).eq("user_id", context.userId);
-  }, "last_access");
+    return supabaseAdmin.rpc("registrar_acesso_auxiliar", { uid: context.userId });
+  }, "last_access"));
   return { status: access.data.status as AccountStatus, accepted: !!access.data.terms_accepted_at, role: roles.data.role as Role, onboarded: config.data?.onboarding_concluido ?? false };
 });
 export const acceptTerms = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((input: { accepted: boolean }) => {

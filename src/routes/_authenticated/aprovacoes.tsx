@@ -7,6 +7,7 @@ import { CartaoAcao, type Acao } from "@/components/munim/CartaoAcao";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { PageSkeleton } from "@/components/munim/PageSkeleton";
 
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
   head: () => ({
@@ -63,7 +64,7 @@ function Aprovacoes() {
           </button>
         ))}
       </div>
-      {isLoading ? null : lista.length === 0 ? (
+      {isLoading ? <PageSkeleton /> : lista.length === 0 ? (
         aba === "pendentes" ? (
           <EstadoVazio icon={CheckCircle2} titulo="Nada esperando por você" texto="Quando o Munim preparar algo, aparece aqui para você aprovar com um toque." />
         ) : (
