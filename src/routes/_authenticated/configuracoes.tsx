@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useTema } from "@/lib/tema";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
-import { telegramLink } from "@/lib/telegram.functions";
+import {TelegramConnection} from "@/components/munim/TelegramConnection";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -51,7 +51,7 @@ function Configuracoes() {
   const uid = session?.user.id;
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const openTelegram = useServerFn(telegramLink);
+
 
   const { data: p, isPending, error } = useQuery({
     queryKey: ["perfil-config", uid],
@@ -88,12 +88,10 @@ function Configuracoes() {
       <div className="grid gap-4">
         <Bloco icon={<span>◎</span>} titulo="Sua conta">
           <p className="text-sm">{perfil?.nome}</p><p className="mt-1 break-all text-sm text-muted-foreground">{session?.user.email}</p><p className="mt-1 text-xs text-muted-foreground">{role === "superadmin" ? "Superadmin · uso pessoal" : role === "admin" ? "Admin · uso pessoal" : "Conta pessoal"}</p>
-          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Carteira e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
+          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Conexões e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
         </Bloco>
 
-        <Bloco icon={<Send className="h-5 w-5" />} titulo="Telegram">
-          {isPending ? <Skeleton className="h-9 w-40" /> : p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <Button onClick={async()=>{const popup=window.open("","munim-telegram");try{const r=await openTelegram();if(!r.url){popup?.close();toast.info("Bot ainda não configurado. O responsável precisa salvar o token do BotFather.");return;}if(popup)popup.location.href=r.url;}catch(e){popup?.close();toast.error(e instanceof Error?e.message:"Não consegui abrir o bot.");}}}>Ativar Telegram</Button>}
-        </Bloco>
+        <TelegramConnection/>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">
           {isPending ? <Skeleton className="h-32 w-full" /> : <div className="flex flex-col gap-4">
