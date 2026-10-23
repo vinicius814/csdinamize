@@ -57,11 +57,11 @@ export async function handleTelegram(update:any) {
   try {
     if(/^\/start(?:@\w+)?\s+/.test(message.text??"")){
       const code=message.text.trim().split(/\s+/)[1];
-      const result=await db.rpc("link_telegram",{code,chat});if(result.error)throw new Error(result.error.message);
+      const result=await db.rpc("link_telegram_user",{code,chat,handle:sender.username??null});if(result.error)throw new Error(result.error.message);
       await sendText(chat,"Telegram conectado ao Munim. Pode escrever ou enviar um áudio.");
     } else {
       const profile=await db.from("profiles").select("id").eq("telegram_chat_id",chat).maybeSingle();if(profile.error)throw profile.error;
-      if(!profile.data){await sendText(chat,"Abra Conexões no Munim e toque em Ativar Telegram para vincular sua conta.");return;}
+      if(!profile.data){await sendText(chat,"Abra https://munim.wojtec.com.br/conexoes e gere seu código no cartão Telegram para conectar sua conta.");await db.from("telegram_updates").update({status:"done"}).eq("update_id",update.update_id);return;}
       const userId=profile.data.id;const {role}=await activeUser(userId);
       await rodarComo({userId,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{
         if(update.callback_query){

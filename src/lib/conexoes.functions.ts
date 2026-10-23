@@ -7,6 +7,11 @@ export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean };
 export type ServicoGoogle = "google_mail" | "google_calendar" | "google_drive";
 
 const GW = "https://connector-gateway.lovable.dev";
+export const connectionPresence = createServerFn({method:"POST"}).middleware([comCredenciais]).handler(async ({context}) => {
+  const C = await import("./credenciais.server");
+  const [pd,mail,calendar,drive] = await Promise.all([C.pipedriveAtual(), C.chaveGoogleAtual("google_mail"), C.chaveGoogleAtual("google_calendar"), C.chaveGoogleAtual("google_drive")]);
+  return { pipedrive: !!pd, gmail: !!mail, agenda: !!calendar, drive: !!drive };
+});
 
 const ESCOPOS: Record<ServicoGoogle, string[]> = {
   google_mail: ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"],
