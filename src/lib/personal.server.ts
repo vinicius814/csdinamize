@@ -11,6 +11,6 @@ export async function captureCore(userId:string,text:string,origem:"manual"|"cha
  if(!explicit&&mode!=="anotar")return {suggestion:true,...value,conteudo:text};
  const {capturar,...fields}=value;const area=areas.data?.some(a=>a.id===fields.area_id)?fields.area_id:null;
  const save=await db.from("itens").insert({...fields,area_id:area,user_id:userId,conteudo:text,origem}).select().single();if(save.error)throw save.error;
- runBackground(async()=>{await indexItem(userId,save.data);const matches=await relevantItems(userId,`${save.data.titulo}\n${text}`);const near=matches.filter(m=>m.id!==save.data.id&&m.similaridade>0.75).slice(0,3);for(const m of near){const [a,b]=[save.data.id,m.id].sort();if(a&&b)await db.from("ligacoes").upsert({user_id:userId,item_a:a,item_b:b,motivo:`Ideias relacionadas: ${save.data.titulo} e ${m.titulo}`,origem:"sugerida"},{onConflict:"item_a,item_b",ignoreDuplicates:true});}});
+ runBackground((async()=>{await indexItem(userId,save.data);const matches=await relevantItems(userId,`${save.data.titulo}\n${text}`);const near=matches.filter(m=>m.id!==save.data.id&&m.similaridade>0.75).slice(0,3);for(const m of near){const [a,b]=[save.data.id,m.id].sort();if(a&&b)await db.from("ligacoes").upsert({user_id:userId,item_a:a,item_b:b,motivo:`Ideias relacionadas: ${save.data.titulo} e ${m.titulo}`,origem:"sugerida"},{onConflict:"item_a,item_b",ignoreDuplicates:true});}})());
  return {suggestion:false,...save.data};
 }
