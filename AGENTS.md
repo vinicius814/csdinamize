@@ -32,3 +32,6 @@
 - Scheduled Telegram delivery requires an external authenticated scheduler callback; daily delivery claims prevent duplicate sends, and failed/ambiguous deliveries require inspection rather than automatic replay.
 - Telegram reminder and end-of-day delivery reuse the scheduler callback with per-user persistent notification claims, preventing side-effect replay on repeated scheduler calls.
 - Assistant and routine engines live in server-only core modules behind thin authenticated wrappers so web, Telegram and scheduled flows share behavior without exposing provider logic to browser bundles.
+
+- Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
+- Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
