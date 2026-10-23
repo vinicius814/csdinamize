@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth";
 import { navVisivel } from "./nav";
 import {useConnectionPresence} from "@/lib/connection-presence";
+import {QuickCapture} from "./QuickCapture";
 
 export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAberta: (v: boolean) => void }) {
   const navigate = useNavigate();
@@ -30,6 +31,7 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
 
   return (
     <CommandDialog open={aberta} onOpenChange={(v) => (v ? setAberta(true) : fechar())}>
+      <div className="px-4"><QuickCapture/></div>
       <CommandInput placeholder="Pergunte ou peça algo ao Munim…" value={texto} onValueChange={setTexto} />
       <CommandList>
         <CommandEmpty>
