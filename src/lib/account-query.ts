@@ -6,5 +6,6 @@ export const accountQueryOptions = (userId: string) => queryOptions({
   queryKey: ["account-state", userId],
   queryFn: () => accountState(),
   staleTime: ACCESS_STALE_MS,
+  revalidateIfStale: true,
   retry: false,
 });
