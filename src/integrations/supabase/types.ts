@@ -1280,6 +1280,10 @@ export type Database = {
           quantidade: number
         }[]
       }
+      estruturar_projeto_pessoal: {
+        Args: { etapas: Json; item: string; respostas: string[] }
+        Returns: undefined
+      }
       has_role: {
         Args: { role: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
