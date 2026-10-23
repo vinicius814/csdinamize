@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { comCredenciais } from "@/lib/credenciais.middleware";
 
 const GW = "https://connector-gateway.lovable.dev";
 const MODELO = "anthropic/claude-sonnet-5";
@@ -49,7 +49,7 @@ async function emailsImportantes() {
 }
 
 export const statusGoogle = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .handler(async () => {
     const [cal, mail] = await Promise.all([
       google("google_calendar", "GOOGLE_CALENDAR_API_KEY", "/calendar/v3/users/me/calendarList?maxResults=1").then(() => true).catch(() => false),
@@ -70,7 +70,7 @@ const INSTRUCOES: Record<TipoRotina, string> = {
 };
 
 export const gerarRotina = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([comCredenciais])
   .inputValidator((i: { tipo: TipoRotina }) => {
     if (!i || !(i.tipo in INSTRUCOES)) throw new Error("Rotina inválida");
     return { tipo: i.tipo };
