@@ -57,11 +57,11 @@ export async function handleTelegram(update:any) {
   try {
     if(/^\/start(?:@\w+)?\s+/.test(message.text??"")){
       const code=message.text.trim().split(/\s+/)[1];
-      const result=await db.rpc("link_telegram",{code,chat});if(result.error)throw new Error(result.error.message);
+      const result=await db.rpc("link_telegram_user",{code,chat,handle:sender.username??null});if(result.error)throw new Error(result.error.message);
       await sendText(chat,"Telegram conectado ao Munim. Pode escrever ou enviar um áudio.");
     } else {
       const profile=await db.from("profiles").select("id").eq("telegram_chat_id",chat).maybeSingle();if(profile.error)throw profile.error;
-      if(!profile.data){await sendText(chat,"Abra Conexões no Munim e toque em Ativar Telegram para vincular sua conta.");return;}
+      if(!profile.data){await sendText(chat,"Abra https://munim.wojtec.com.br/conexoes e gere seu código no cartão Telegram para conectar sua conta.");await db.from("telegram_updates").update({status:"done"}).eq("update_id",update.update_id);return;}
       const userId=profile.data.id;const {role}=await activeUser(userId);
       await rodarComo({userId,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{
         if(update.callback_query){
@@ -103,5 +103,17 @@ export async function deliverBriefings() {
         await sendText(p.telegram_chat_id,result.md);await db.from("telegram_deliveries").update({status:"sent"}).eq("user_id",p.id).eq("local_date",due.date);delivered++;
       }catch{await db.from("telegram_deliveries").update({status:"failed"}).eq("user_id",p.id).eq("local_date",due.date);}
     }if((profiles.data?.length??0)<500)break;
-  }return {delivered};
+  }const notifications=await deliverNotifications();return {delivered,...notifications};
+}
+async function deliverNotifications(){
+ const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");let notifications=0;
+ async function once(userId:string,key:string,send:()=>Promise<void>){const claim=await db.from("telegram_notifications").insert({user_id:userId,notification_key:key});if(claim.error){if(claim.error.code==="23505")return;throw claim.error;}try{await send();const done=await db.from("telegram_notifications").update({status:"sent"}).eq("user_id",userId).eq("notification_key",key);if(done.error)throw done.error;notifications++;}catch{await db.from("telegram_notifications").update({status:"failed"}).eq("user_id",userId).eq("notification_key",key);}}
+ for(let start=0;;start+=500){const profiles=await db.from("profiles").select("id,telegram_chat_id,fuso").eq("alertas_ativos",true).not("telegram_chat_id","is",null).order("id").range(start,start+499);if(profiles.error)throw profiles.error;
+ for(const p of profiles.data??[]){if(!p.telegram_chat_id)continue;const chat=p.telegram_chat_id;let role;try{role=(await activeUser(p.id)).role;}catch{continue;}
+ const due=briefingDue(new Date(),p.fuso,"18:00");
+ if(due.due)await once(p.id,`resumo:${due.date}`,async()=>{const result=await rodarComo({userId:p.id,admin:role==="admin"||role==="superadmin"},async()=>{const {gerarRotinaCore}=await import("./briefing-core.server");return gerarRotinaCore({tipo:"fechamento"},{supabase:db,userId:p.id});});await sendText(chat,result.md);});
+ for(let offset=0;;offset+=500){const notes=await db.from("notas").select("id,titulo,lembrete_em").eq("user_id",p.id).not("lembrete_em","is",null).lte("lembrete_em",new Date().toISOString()).order("id").range(offset,offset+499);if(notes.error)throw notes.error;
+ for(const note of notes.data??[]){if(!note.lembrete_em)continue;const date=new Intl.DateTimeFormat("en-CA",{timeZone:p.fuso,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(note.lembrete_em));if(date!==due.date)continue;await once(p.id,`lembrete:${note.id}:${note.lembrete_em}`,()=>sendText(chat,`Lembrete: ${note.titulo??"Compromisso"}`));}if((notes.data?.length??0)<500)break;}
+ }if((profiles.data?.length??0)<500)break;
+ }return {notifications};
 }

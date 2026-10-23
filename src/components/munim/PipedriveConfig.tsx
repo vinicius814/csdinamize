@@ -24,7 +24,7 @@ export function PipedriveConfig() {
     {(data?.erro || error) ? <p role="alert" className="break-words text-sm text-warning">{data?.erro ?? error?.message}</p> : !data ? <p className="text-sm text-muted-foreground">Consultando pipelines e campos…</p> : <div className="grid gap-3 sm:grid-cols-2">
       <label className="min-w-0 text-sm">Pipeline<select aria-label="Pipeline" value={pipeline} onChange={e=>setPipeline(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-card p-2"><option value="">Escolha o pipeline</option>{data.pipelines.map((p:{id:number;name:string})=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
       <label className="min-w-0 text-sm">Último contato<select aria-label="Campo de data" value={field} onChange={e=>setField(e.target.value)} className="mt-1 w-full rounded-md border border-border bg-card p-2"><option value="">Escolha o campo de data</option>{data.fields.map((f:{key:string;name:string})=><option key={f.key} value={f.key}>{f.name}</option>)}</select></label>
-      <Button disabled={!pipeline || !field || busy} onClick={saveConfig} className="justify-self-start disabled:bg-secondary disabled:text-secondary-foreground disabled:opacity-100">{busy ? "Salvando…" : "Salvar carteira"}</Button>
+      <Button disabled={!pipeline || !field || busy} onClick={saveConfig} className="justify-self-start">{busy ? "Salvando…" : "Salvar carteira"}</Button>
     </div>}
   </div>;
 }

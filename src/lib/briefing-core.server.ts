@@ -35,6 +35,7 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("Cérebro sem chave configurada.");
     const I = await import("./integracoes.server");
+    const C=await import("./credenciais.server");const hasPipedrive=!!(await C.pipedriveAtual());
     const tipo = data.tipo;
     const {checkBudget}=await import("./budget.server");await checkBudget(userId);
 
@@ -49,7 +50,7 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
       tipo === "manha" ? emailsImportantes().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       supabase.from("acoes").select("resumo").eq("user_id",userId).eq("status", "pendente").limit(10),
       supabase.from("notas").select("titulo, lembrete_em").eq("user_id",userId).not("lembrete_em", "is", null).gte("lembrete_em", new Date().toISOString()).order("lembrete_em").limit(5),
-      tipo !== "fechamento" ? I.sinaisDeRisco(pdId).catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
+      hasPipedrive && tipo !== "fechamento" ? I.sinaisDeRisco(pdId).catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" || tipo === "manha"
         ? supabase.from("notas").select("titulo, subcategoria, tags, resumo").eq("user_id",userId).in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(30)
         : null,
@@ -81,7 +82,7 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
         .stream({
           model: MODELO,
           max_tokens: 1800,
-          system: `Você é o Munim, conselheiro executivo pessoal de ${perfil?.nome ?? "seu usuário"}, inspirado no J.A.R.V.I.S.: confiante, calmo, preciso, próximo. Português do Brasil, Markdown leve. Seja direto, recomende, não apenas descreva. Não invente nada fora dos dados; se uma fonte estiver indisponível, diga claramente qual falhou e ofereça [Conectar](/conexoes). Nunca conclua tudo em dia a partir de erro ou lista vazia. Use apenas números exatos retornados. Não use saudação Bom dia/Boa tarde/Boa noite: o texto pode ser exibido em outro horário.\n\n${INSTRUCOES[tipo]}`,
+          system: `Você é o Munim, conselheiro executivo pessoal de ${perfil?.nome ?? "seu usuário"}, inspirado no J.A.R.V.I.S.: confiante, calmo, preciso, próximo. Português do Brasil, Markdown leve. Seja direto, recomende, não apenas descreva. Não invente nada fora dos dados; se uma fonte estiver indisponível, diga claramente qual falhou e ofereça [Conectar](/conexoes). Nunca conclua tudo em dia a partir de erro ou lista vazia. Use apenas números exatos retornados. Não use saudação Bom dia/Boa tarde/Boa noite: o texto pode ser exibido em outro horário.\n\n${INSTRUCOES[tipo]}${hasPipedrive?"":"\nCS não está ativo: omita carteira, clientes, cobertura e pipeline; substitua essas seções por compromissos, ideias e prioridades pessoais."}`,
           messages: [{ role: "user", content: `Dados:\n${contexto}` }],
         })
         .finalMessage();

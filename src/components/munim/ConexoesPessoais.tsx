@@ -61,7 +61,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
   const [token, setToken] = useState("");
   const [dominio, setDominio] = useState("");
 
-  const atualizar = () => qc.invalidateQueries({ predicate: q => ["conexoes", "carteira-viva", "cliente-det", "notas-drive", "nota", "onboarding-options"].includes(String(q.queryKey[0])) });
+  const atualizar = () => qc.invalidateQueries({ predicate: q => ["connection-presence", "conexoes", "carteira-viva", "cliente-det", "notas-drive", "nota", "onboarding-options"].includes(String(q.queryKey[0])) });
 
   const conectar = async (s: ServicoGoogle, nome: string, reconectar: boolean) => {
     const popup = window.open("", "munim-google", "width=560,height=720");
@@ -75,9 +75,9 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
       if (code) await concluir({ data: { servico: s, code } });
       toast.success(reconectar ? `${nome} reconectado.` : `${nome} conectado.`);
       atualizar();
-    } catch {
+    } catch(e) {
       popup.close();
-      toast.error(`Não consegui conectar o ${nome}.`);
+      toast.error(e instanceof Error?e.message:`Não consegui conectar o ${nome}.`);
     } finally {
       setOcupado(null);
     }
@@ -104,7 +104,6 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
     <section className="mb-6 flex flex-col gap-5">
       <div>
         <h2 className="font-display text-lg text-foreground">Suas contas</h2>
-        <p className="text-sm text-muted-foreground">Cada pessoa conecta as próprias contas. Ninguém vê os dados de outra.</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -118,7 +117,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
                 <span className="font-medium text-foreground">{sv.nome}</span>
               </div>
               <p className="text-xs text-muted-foreground">{sv.papel}</p>
-               <p className="break-words text-xs text-foreground">{st?.detalhe ?? "…"}</p>
+               <p className="text-xs font-medium">{!st?"Verificando…":st.ok?"Conectado":proprio?"Com erro":"Não conectado"}</p><p className="break-words text-xs text-foreground">{st?.detalhe ?? "…"}</p>
                <div className="mt-auto flex flex-wrap gap-2 text-sm">
                  <Button disabled={ocupado !== null} onClick={() => conectar(sv.id, sv.nome, proprio)} className="max-w-full">
                   {ocupado === sv.id ? "Abrindo…" : proprio ? "Reconectar" : "Conectar minha conta"}
@@ -139,6 +138,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
           <span className={`h-2.5 w-2.5 rounded-full ${pipedrive?.ok && pipedrive.proprio ? "bg-success" : "bg-warning"}`} />
           <span className="font-medium text-foreground">Pipedrive</span>
         </div>
+        <p className="mt-2 text-sm">{pipedrive?.ok?"Conectado":pipedrive?.proprio?"Com erro":"Não conectado"}</p>
         {pipedrive?.proprio ? (
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
             <span className="text-foreground">{pipedrive.detalhe} {pipedriveDominio ? `· ${pipedriveDominio}.pipedrive.com` : ""}</span>
@@ -157,11 +157,10 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
                <Button onClick={conectarPd} disabled={!token || !dominio || ocupado !== null}>
                 {ocupado === "pd" ? "Validando…" : "Conectar"}
               </Button>
-         {pipedrive?.ok && <PipedriveConfig />}
        </div>
-            {pipedrive?.ok && <p className="text-xs text-muted-foreground">Por enquanto você usa a conexão provisória do projeto.</p>}
           </div>
         )}
+        {pipedrive?.proprio && <PipedriveConfig />}
       </div>
     </section>
   );

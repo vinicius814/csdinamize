@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { canUsePipedriveFallback, missingPipedriveSettings, profileChangesAllowed } from "@/lib/connection-rules";
+import { canUsePipedriveFallback, csToolAvailable, missingPipedriveSettings, profileChangesAllowed } from "@/lib/connection-rules";
+import {navVisivel} from "@/components/munim/nav";
 describe("Banco Munim V2", () => {
-  it("reserva o Pipedrive provisório ao superadmin", () => {
-    expect(canUsePipedriveFallback("superadmin")).toBe(true);
+  it("não oferece Pipedrive provisório a nenhum papel", () => {
+    expect(canUsePipedriveFallback("superadmin")).toBe(false);
     expect(canUsePipedriveFallback("admin")).toBe(false);
     expect(canUsePipedriveFallback("user")).toBe(false);
   });
+  it("CS exige Pipedrive próprio", () => { for(const name of ["carteira","buscar_cliente","atividades_pipedrive","radar_riscos"]) { expect(csToolAvailable(name,false)).toBe(false);expect(csToolAvailable(name,true)).toBe(true); } expect(csToolAvailable("agenda",false)).toBe(true); });
+  it("oculta o módulo CS no menu sem Pipedrive",()=>{expect(navVisivel("superadmin",false).some(i=>i.to==="/carteira")).toBe(false);expect(navVisivel("user",true).some(i=>i.to==="/carteira")).toBe(true);});
   it("enumera cada configuração obrigatória ausente", () => {
     expect(missingPipedriveSettings({ owner: null, pipeline: null, field: null })).toEqual(["responsável do Pipedrive", "pipeline", "campo de data do último contato"]);
     expect(missingPipedriveSettings({ owner: 1, pipeline: 15, field: "data" })).toEqual([]);

@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
+import {useConnectionPresence} from "@/lib/connection-presence";
 
 export const Route = createFileRoute("/_authenticated/carteira")({
   head: () => ({
@@ -39,6 +40,7 @@ const COR = { verde: "text-success", amarelo: "text-warning", vermelho: "text-de
 const fmt = (d: string | null) => (d ? new Date(d.length === 10 ? d + "T00:00:00" : d).toLocaleDateString("pt-BR") : "—");
 
 function Carteira() {
+  const presence=useConnectionPresence();
   const {session}=useAuth();
   const buscarCarteira = useServerFn(carteiraAoVivo);
   const buscarDetalhe = useServerFn(detalheCliente);
@@ -46,7 +48,7 @@ function Carteira() {
   const [faixa, setFaixa] = useState("");
   const [sel, setSel] = useState<number | null>(null);
 
-  const { data: res, isLoading, error } = useQuery({ queryKey: ["carteira-viva",session?.user.id], queryFn: () => buscarCarteira(), staleTime: 5 * 60_000 });
+  const { data: res, isLoading, error } = useQuery({ queryKey: ["carteira-viva",session?.user.id], queryFn: () => buscarCarteira(), enabled:presence.data?.pipedrive===true, staleTime: 5 * 60_000 });
   const data = res?.clientes ?? [];
   const cliente = data.find((c) => c.deal_id === sel);
   const { data: det, error:detailError } = useQuery({
@@ -68,6 +70,7 @@ function Carteira() {
   const pendentes = data.reduce((s, c) => s + c.atividades_pendentes, 0);
 
   return (
+    presence.isPending?<Pagina><PageSkeleton/></Pagina>:!presence.data?.pipedrive?<Pagina><Cabecalho titulo="Módulo opcional" frase="Conecte o Pipedrive para acessar este módulo."/><Button asChild><Link to="/conexoes">Conexões</Link></Button></Pagina>:
     <Pagina>
       <Cabecalho titulo="Carteira" frase="Ao vivo do seu Pipedrive: quem está bem cuidado e quem pede atenção." />
       <div className="mb-4 flex justify-end"><RefreshIntegrations /></div>

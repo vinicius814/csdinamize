@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { usePendentes } from "@/lib/dados";
 import { navVisivel } from "./nav";
+import { useConnectionPresence } from "@/lib/connection-presence";
 import { MunimLogo, RavenMark } from "./RavenMark";
 import { PaletaComandos } from "./PaletaComandos";
 
@@ -68,12 +69,13 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
 }
 
 function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: () => void }) {
+  const connections = useConnectionPresence();
   const { role } = useAuth();
   const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
-      {navVisivel(role ?? undefined).map((i) => {
+      {navVisivel(role ?? undefined,connections.data?.pipedrive).map((i) => {
         const ativo = i.to === "/" ? path === "/" : path.startsWith(i.to);
         return (
           <Link

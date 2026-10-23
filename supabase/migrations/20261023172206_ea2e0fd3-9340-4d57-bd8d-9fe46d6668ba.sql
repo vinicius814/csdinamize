@@ -1,0 +1,23 @@
+CREATE TABLE public.solicitacoes_conexao (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES public.profiles(id), ferramenta text NOT NULL, descricao text NOT NULL, status text NOT NULL DEFAULT 'pendente', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+GRANT SELECT, INSERT ON public.solicitacoes_conexao TO authenticated;
+GRANT ALL ON public.solicitacoes_conexao TO service_role;
+ALTER TABLE public.solicitacoes_conexao ENABLE ROW LEVEL SECURITY;
+CREATE POLICY solicitacoes_own_read ON public.solicitacoes_conexao FOR SELECT TO authenticated USING(user_id=auth.uid() AND public.account_active());
+CREATE POLICY solicitacoes_own_create ON public.solicitacoes_conexao FOR INSERT TO authenticated WITH CHECK(user_id=auth.uid() AND status='pendente' AND public.account_active());
+CREATE FUNCTION public.validar_solicitacao_conexao() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN IF length(trim(NEW.ferramenta)) NOT BETWEEN 1 AND 100 OR length(trim(NEW.descricao)) NOT BETWEEN 1 AND 2000 THEN RAISE EXCEPTION 'Preencha ferramenta e descrição dentro dos limites.'; END IF; NEW.updated_at=now(); RETURN NEW; END $$;
+CREATE TRIGGER solicitacoes_validar BEFORE INSERT OR UPDATE ON public.solicitacoes_conexao FOR EACH ROW EXECUTE FUNCTION public.validar_solicitacao_conexao();
+ALTER TABLE public.profiles ADD COLUMN telegram_codigo_expira_em timestamptz, ADD COLUMN telegram_username text;
+CREATE FUNCTION public.link_telegram_user(code text, chat bigint, handle text) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE uid uuid; BEGIN
+PERFORM pg_advisory_xact_lock(chat);
+SELECT p.id INTO uid FROM public.profiles p JOIN public.account_access a ON a.user_id=p.id WHERE p.telegram_codigo=code AND p.telegram_codigo_expira_em>now() AND a.status='ativo' AND a.terms_accepted_at IS NOT NULL FOR UPDATE OF p;
+IF uid IS NULL THEN RAISE EXCEPTION 'Código inválido ou expirado. Gere outro no Munim.'; END IF;
+IF EXISTS(SELECT 1 FROM public.profiles WHERE telegram_chat_id=chat AND id<>uid) THEN RAISE EXCEPTION 'Telegram já vinculado a outra conta.'; END IF;
+UPDATE public.profiles SET telegram_chat_id=chat,telegram_username=left(handle,64),telegram_codigo=encode(gen_random_bytes(24),'hex'),telegram_codigo_expira_em=NULL WHERE id=uid; RETURN uid; END $$;
+REVOKE ALL ON FUNCTION public.link_telegram_user(text,bigint,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.link_telegram_user(text,bigint,text) TO service_role;
+CREATE OR REPLACE FUNCTION public.link_telegram(code text, chat bigint) RETURNS uuid LANGUAGE sql SECURITY INVOKER SET search_path=public AS $$ SELECT public.link_telegram_user(code,chat,NULL) $$;
+REVOKE ALL ON FUNCTION public.link_telegram(text,bigint) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.link_telegram(text,bigint) TO service_role;
+CREATE FUNCTION public.connection_request_counts() RETURNS TABLE(ferramenta text, quantidade bigint) LANGUAGE sql SECURITY INVOKER SET search_path=public AS $$ SELECT lower(trim(s.ferramenta)),count(*) FROM public.solicitacoes_conexao s GROUP BY lower(trim(s.ferramenta)) ORDER BY count(*) DESC $$;
+REVOKE ALL ON FUNCTION public.connection_request_counts() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.connection_request_counts() TO service_role;

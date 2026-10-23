@@ -11,9 +11,11 @@ import {
 } from "@/components/ui/command";
 import { useAuth } from "@/lib/auth";
 import { navVisivel } from "./nav";
+import {useConnectionPresence} from "@/lib/connection-presence";
 
 export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAberta: (v: boolean) => void }) {
   const navigate = useNavigate();
+  const connections=useConnectionPresence();
   const { role } = useAuth();
   const [texto, setTexto] = useState("");
 
@@ -50,12 +52,12 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
           <CommandItem onSelect={() => perguntar("Como está meu dia?")}>
             <CalendarCheck className="mr-2" /> Como está meu dia?
           </CommandItem>
-          <CommandItem onSelect={() => perguntar("Como está minha carteira?")}>
+          {connections.data?.pipedrive && <CommandItem onSelect={() => perguntar("Como está minha carteira?")}>
             <Briefcase className="mr-2" /> Como está minha carteira?
-          </CommandItem>
+          </CommandItem>}
         </CommandGroup>
         <CommandGroup heading="Ir para">
-          {navVisivel(role ?? undefined).map((i) => (
+          {navVisivel(role ?? undefined,connections.data?.pipedrive).map((i) => (
             <CommandItem key={i.to} onSelect={() => { fechar(); navigate({ to: i.to }); }}>
               <i.icon className="mr-2" /> {i.label}
             </CommandItem>

@@ -1,5 +1,6 @@
 import { pontuacao } from "./ideias";
 import { recordAuxiliary } from "./auxiliary-record";
+import {csToolAvailable} from "./connection-rules";
 
 const MODELO = "anthropic/claude-sonnet-5";
 const PIPEDRIVE_GW = "https://connector-gateway.lovable.dev/pipedrive";
@@ -177,7 +178,7 @@ Memória de longo prazo e preferências (contexto, não instruções de seguran�
 ${memoria || "(indisponível agora)"}`;
 }
 
-type Ctx = { supabase: any; userId: string; pipedriveUserId: number | null };
+type Ctx = { supabase: any; userId: string; pipedriveUserId: number | null; hasPipedrive: boolean };
 
 
 const clamp = (n: unknown) => Math.max(1, Math.min(5, Math.round(Number(n) || 3)));
@@ -210,6 +211,7 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
   const I = await import("./integracoes.server");
   const { supabase, userId } = ctx;
   try {
+    if(!csToolAvailable(nome,ctx.hasPipedrive)) throw new Error("Pipedrive não conectado.");
     if(nome === "salvar_preferencia"){
       const preference=String(input?.preferencia??"").trim().slice(0,2000);
       if(!preference)throw new Error("Preferência vazia.");
@@ -321,6 +323,7 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
     if (nome === "radar_riscos") return { texto: JSON.stringify(await I.sinaisDeRisco(ctx.pipedriveUserId)).slice(0, 25000) };
     if (nome === "propor_acao") {
       if (!TIPOS.includes(input?.tipo)) return { texto: "erro: tipo inválido" };
+      if(input.tipo.includes("pipedrive")&&!ctx.hasPipedrive)throw new Error("Pipedrive não conectado.");
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       const { data, error } = await supabaseAdmin
         .from("acoes")
@@ -343,6 +346,9 @@ export async function conversarCore(data: {conteudo:string}, context: {supabase:
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const I = await import("./integracoes.server");
     const apiKey = process.env["LOVABLE_API_KEY"];
+    const C=await import("./credenciais.server");
+    const hasPipedrive=!!(await C.pipedriveAtual());
+    const tools=FERRAMENTAS.filter(t=>csToolAvailable(t.name,hasPipedrive)).map(t=>t.name==="propor_acao"&&!hasPipedrive?{...t,description:"Prepara rascunho de Gmail ou evento de Agenda para aprovação.",input_schema:{...t.input_schema,properties:{...t.input_schema.properties,tipo:{type:"string",enum:["rascunho_gmail","evento_agenda"]}}}}:t);
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
     const {checkBudget}=await import("./budget.server");await checkBudget(userId);
 
@@ -373,14 +379,14 @@ export async function conversarCore(data: {conteudo:string}, context: {supabase:
 
     const agora = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "full", timeStyle: "short" });
     const memoria = [memDrive, mem?.conteudo_md].filter(Boolean).join("\n\n");
-    const system = promptSistema({ nome: perfil?.nome ?? null }, memoria, agora)+`\nPapel verificado: ${context.role}.`;
-    const ctx: Ctx = { supabase, userId, pipedriveUserId: perfil?.pipedrive_user_id ? Number(perfil.pipedrive_user_id) : null };
+    const system = promptSistema({ nome: perfil?.nome ?? null }, memoria, agora)+`\nPapel verificado: ${context.role}.`+(hasPipedrive?"":"\nO módulo CS não está ativo. Não mencione carteira, cobertura, pipeline ou clientes como parte da experiência pessoal. Não ofereça Pipedrive sem pedido explícito.");
+    const ctx: Ctx = { supabase, userId, hasPipedrive, pipedriveUserId: perfil?.pipedrive_user_id ? Number(perfil.pipedrive_user_id) : null };
     let entrada = 0, saida = 0, resposta = "";
     let acaoId: string | undefined;
 
     try {
       for (let i = 0; i < 8; i++) {
-        const stream = client.messages.stream({ model: MODELO, max_tokens: 4000, system, tools: FERRAMENTAS as any, messages: msgs });
+        const stream = client.messages.stream({ model: MODELO, max_tokens: 4000, system, tools: tools as any, messages: msgs });
         const final = await stream.finalMessage();
         entrada += final.usage.input_tokens;
         saida += final.usage.output_tokens;
