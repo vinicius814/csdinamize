@@ -15,33 +15,9 @@ function limitesHojeSP() {
   return { ini: `${d}T00:00:00-03:00`, fim: `${d}T23:59:59-03:00` };
 }
 
-async function agendaHoje() {
-  const { ini, fim } = limitesHojeSP();
-  const q = new URLSearchParams({ timeMin: ini, timeMax: fim, singleEvents: "true", orderBy: "startTime", maxResults: "20" });
-  const j = await google("google_calendar", "GOOGLE_CALENDAR_API_KEY", `/calendar/v3/calendars/primary/events?${q}`);
-  return (j.items ?? []).map((e: any) => ({
-    titulo: e.summary ?? "(sem título)",
-    inicio: e.start?.dateTime
-      ? new Date(e.start.dateTime).toLocaleTimeString("pt-BR", { timeZone: FUSO, hour: "2-digit", minute: "2-digit" })
-      : "dia todo",
-    convidados: (e.attendees ?? []).length,
-  }));
-}
+async function agendaHoje(){const I=await import("./integracoes.server");const {ini,fim}=limitesHojeSP();return I.eventos(ini,fim);}
 
-async function emailsImportantes() {
-  const q = new URLSearchParams({ q: "is:unread in:inbox newer_than:2d -category:promotions -category:social", maxResults: "8" });
-  const lista = await google("google_mail", "GOOGLE_MAIL_API_KEY", `/gmail/v1/users/me/messages?${q}`);
-  const ids: string[] = (lista.messages ?? []).map((m: any) => m.id);
-  const det = await Promise.all(
-    ids.map((id) =>
-      google("google_mail", "GOOGLE_MAIL_API_KEY", `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`).catch(e => ({erro:e.message,acao:"/conexoes"})),
-    ),
-  );
-  return det.filter(Boolean).map((m: any) => {
-    const h = (n: string) => m.payload?.headers?.find((x: any) => x.name === n)?.value ?? "";
-    return { de: h("From").replace(/<.*>/, "").trim(), assunto: h("Subject"), trecho: (m.snippet ?? "").slice(0, 140) };
-  });
-}
+async function emailsImportantes(){const I=await import("./integracoes.server");return I.buscarEmails("is:unread in:inbox newer_than:2d -category:promotions -category:social",8);}
 
 export const statusGoogle = createServerFn({ method: "POST" })
   .middleware([comCredenciais])

@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/carteira")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Carteira — Munim" },
       { name: "description", content: "Seus clientes ao vivo do Pipedrive, o último contato com cada um e quem está pedindo atenção." },
       { property: "og:title", content: "Carteira — Munim" },

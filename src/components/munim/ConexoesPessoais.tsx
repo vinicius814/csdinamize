@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -83,10 +84,9 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
 
   const desconectar = async (s: ServicoGoogle, nome: string) => {
     setOcupado(s);
-    await desligar({ data: { servico: s } }).catch(() => null);
-    toast.success(`${nome} desconectado.`);
-    setOcupado(null);
-    atualizar();
+    try {await desligar({ data: { servico: s } });toast.success(`${nome} desconectado.`);atualizar();}
+    catch(e){toast.error(e instanceof Error?e.message:"Não consegui desconectar.");}
+    finally{setOcupado(null);}
   };
 
   const conectarPd = async () => {
@@ -119,13 +119,13 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
               <p className="text-xs text-muted-foreground">{sv.papel}</p>
               <p className="text-xs text-foreground">{st?.detalhe ?? "…"}</p>
               <div className="mt-auto flex gap-3 text-sm">
-                <button disabled={ocupado === sv.id} onClick={() => conectar(sv.id, sv.nome, proprio)} className="text-primary hover:underline disabled:opacity-50">
+                <Button disabled={ocupado === sv.id} onClick={() => conectar(sv.id, sv.nome, proprio)} className="text-primary hover:underline disabled:opacity-50">
                   {ocupado === sv.id ? "Abrindo…" : proprio ? "Reconectar" : "Conectar minha conta"}
-                </button>
+                </Button>
                 {proprio && (
-                  <button disabled={ocupado === sv.id} onClick={() => desconectar(sv.id, sv.nome)} className="text-muted-foreground hover:text-foreground">
+                  <Button disabled={ocupado === sv.id} onClick={() => desconectar(sv.id, sv.nome)} className="text-muted-foreground hover:text-foreground">
                     Desconectar
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -141,9 +141,9 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
         {pipedrive?.proprio ? (
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
             <span className="text-foreground">{pipedrive.detalhe} {pipedriveDominio ? `· ${pipedriveDominio}.pipedrive.com` : ""}</span>
-            <button onClick={async () => { await desligarPd(); toast.success("Pipedrive desconectado."); atualizar(); }} className="text-muted-foreground hover:text-foreground">
+            <Button onClick={async () => { await desligarPd(); toast.success("Pipedrive desconectado."); atualizar(); }} className="text-muted-foreground hover:text-foreground">
               Desconectar
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="mt-3 flex flex-col gap-3">
@@ -153,9 +153,9 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
             <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <input value={dominio} onChange={(e) => setDominio(e.target.value)} placeholder="suaempresa" className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" aria-label="Domínio do Pipedrive" />
               <input value={token} onChange={(e) => setToken(e.target.value)} placeholder="Token de API" type="password" autoComplete="off" className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground" aria-label="Token de API do Pipedrive" />
-              <button onClick={conectarPd} disabled={!token || !dominio || ocupado === "pd"} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
+              <Button onClick={conectarPd} disabled={!token || !dominio || ocupado === "pd"} className="rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
                 {ocupado === "pd" ? "Validando…" : "Conectar"}
-              </button>
+              </Button>
             </div>
             {pipedrive?.ok && <p className="text-xs text-muted-foreground">Por enquanto você usa a conexão provisória do projeto.</p>}
           </div>

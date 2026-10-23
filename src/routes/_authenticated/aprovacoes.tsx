@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/aprovacoes")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Aprovações — Munim" },
       { name: "description", content: "As ações que o Munim preparou para você aprovar: atividades, notas, rascunhos e eventos." },
       { property: "og:title", content: "Aprovações — Munim" },

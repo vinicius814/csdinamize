@@ -94,8 +94,8 @@ export async function carteiraPipedrive(pipedriveUserId?: number | null): Promis
   const out:ClienteVivo[]=[];let start=0;
   for(let page=0;page<200;page++){
     const j=await gw("pipedrive",`/deals?${new URLSearchParams({status:"open",limit:"500",start:String(start),user_id:String(owner)})}`);
-    if(j?.success===false||!Array.isArray(j?.data))throw new Error("Resposta inválida do Pipedrive; cobertura indisponível.");
-    for(const d of j.data){
+    if(j?.success!==true || (j.data!==null && !Array.isArray(j.data)))throw new Error("Resposta inválida do Pipedrive; cobertura indisponível.");
+    for(const d of j.data??[]){
       if(Number(d.pipeline_id)!==settings.pipeline||Number(d.user_id?.id??d.user_id)!==owner)continue;
       const uc:string|null=d[settings.field]||null;
       out.push({deal_id:d.id,titulo:d.title,organizacao:d.org_name??null,etapa_id:d.stage_id,ultimo_contato:uc,dias_sem_contato:uc?Math.floor((Date.now()-new Date(uc+"T12:00:00Z").getTime())/86400000):null,proxima_atividade:d.next_activity_date??null,atividades_pendentes:d.undone_activities_count??0,valor:d.value??0});
@@ -113,8 +113,8 @@ export async function atividadesPipedrive(periodo:"hoje"|"amanha"|"semana",respo
  const {periodDates}=await import("./reliability");const dates=periodDates(periodo,settings.timezone);const items:any[]=[];let start=0;
  for(let page=0;page<200;page++){
   const j=await gw("pipedrive",`/activities?${new URLSearchParams({user_id:String(owner),start_date:dates.start,end_date:dates.end,limit:"500",start:String(start)})}`);
-  if(j?.success===false||!Array.isArray(j?.data))throw new Error("Não consegui consultar atividades.");
-  items.push(...j.data.filter((a:any)=>Number(a.user_id)===owner&&a.due_date>=dates.start&&a.due_date<=dates.end).map((a:any)=>({id:a.id,assunto:a.subject,data:a.due_date,hora:a.due_time,feita:a.done,deal_id:a.deal_id})));
+  if(j?.success!==true || (j.data!==null && !Array.isArray(j.data)))throw new Error("Não consegui consultar atividades.");
+  items.push(...(j.data??[]).filter((a:any)=>Number(a.user_id)===owner&&a.due_date>=dates.start&&a.due_date<=dates.end).map((a:any)=>({id:a.id,assunto:a.subject,data:a.due_date,hora:a.due_time,feita:a.done,deal_id:a.deal_id})));
   const p=j.additional_data?.pagination;if(!p?.more_items_in_collection)return {responsavel:owner,periodo,...dates,total:items.length,atividades:items};
   if(!Number.isFinite(p.next_start)||p.next_start<=start)throw new Error("Atividades incompletas.");start=p.next_start;
  }throw new Error("Atividades incompletas; limite de paginação.");
@@ -192,17 +192,16 @@ export async function criarRascunho(para: string, assunto: string, corpo: string
 
 /* ---------------- Agenda ---------------- */
 
-export async function eventos(inicioISO: string, fimISO: string) {
-  const q = new URLSearchParams({ timeMin: inicioISO, timeMax: fimISO, singleEvents: "true", orderBy: "startTime", maxResults: "50" });
-  const j = await gw("google_calendar", `/calendar/v3/calendars/primary/events?${q}`);
-  return (j?.items ?? []).map((e: any) => ({
-    titulo: e.summary ?? "(sem título)",
-    inicio: e.start?.dateTime ?? e.start?.date,
-    fim: e.end?.dateTime ?? e.end?.date,
-    dia_todo: !e.start?.dateTime,
-    local: e.location ?? null,
-    convidados: (e.attendees ?? []).map((a: any) => a.email).slice(0, 10),
-  }));
+export async function eventos(inicioISO:string,fimISO:string){
+ const q=new URLSearchParams({timeMin:inicioISO,timeMax:fimISO,singleEvents:"true",orderBy:"startTime",maxResults:"250"});
+ const items:any[]=[];
+ for(let page=0;page<100;page++){
+  const j=await gw("google_calendar",`/calendar/v3/calendars/primary/events?${q}`);
+  if(j?.items && !Array.isArray(j.items))throw new Error("Resposta inválida da Agenda.");
+  items.push(...(j.items??[]));
+  if(!j.nextPageToken)return items.map((e:any)=>({titulo:e.summary??"(sem título)",inicio:e.start?.dateTime??e.start?.date,fim:e.end?.dateTime??e.end?.date,dia_todo:!e.start?.dateTime,local:e.location??null,convidados:(e.attendees??[]).map((a:any)=>a.email).slice(0,10)}));
+  q.set("pageToken",j.nextPageToken);
+ }throw new Error("Agenda incompleta; não confirme disponibilidade.");
 }
 
 export async function criarEvento(p: { titulo: string; inicio: string; fim: string; convidados?: string[]; descricao?: string }) {

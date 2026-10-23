@@ -142,7 +142,7 @@ export const desconectarGoogle = createServerFn({ method: "POST" })
     const A = await import("@/integrations/lovable/appUserConnector");
     const C = await import("./credenciais.server");
     const chave = await C.chaveGoogle(context.userId, data.servico);
-    if (chave) await A.disconnectAppUser({ gatewayBaseUrl: GW, connectionAPIKey: chave, connectorId: data.servico }).catch((e) => console.error(e));
+    if (chave) await A.disconnectAppUser({ gatewayBaseUrl: GW, connectionAPIKey: chave, connectorId: data.servico });
     await C.apagarChaveGoogle(context.userId, data.servico);
     return { ok: true };
   });

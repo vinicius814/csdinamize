@@ -11,6 +11,8 @@ import { lerNota, listarNotas } from "@/lib/cerebro.functions";
 export const Route = createFileRoute("/_authenticated/notas")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Notas — Munim" },
       { name: "description", content: "Seu Segundo Cérebro ao vivo: as notas em Markdown do seu Google Drive." },
       { property: "og:title", content: "Notas — Munim" },

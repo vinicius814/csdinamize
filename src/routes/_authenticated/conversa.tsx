@@ -18,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/conversa")({
   }),
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Conversa — Munim" },
       { name: "description", content: "Converse com o Munim por texto ou voz." },
       { property: "og:title", content: "Conversa — Munim" },

@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Início — Munim" },
       { name: "description", content: "Seu dia, o que pede atenção e sua carteira, num só lugar." },
       { property: "og:title", content: "Início — Munim" },
