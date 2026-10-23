@@ -7,12 +7,13 @@ import {
   Settings,
   Plug,
   Shield,
+  Network,FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/access";
 
 export type ItemNav = {
-  to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/conexoes" | "/configuracoes" | "/admin";
+  to: "/" | "/conversa" | "/mapa" | "/projetos" | "/aprovacoes" | "/notas" | "/carteira" | "/conexoes" | "/configuracoes" | "/admin";
   label: string;
   icon: LucideIcon;
   papeis?: Role[];
@@ -22,7 +23,8 @@ export const NAV: ItemNav[] = [
   { to: "/", label: "Início", icon: Home },
   { to: "/conversa", label: "Conversa", icon: MessageCircle },
   { to: "/aprovacoes", label: "Aprovações", icon: CheckCircle2 },
-  { to: "/notas", label: "Notas", icon: StickyNote },
+  { to: "/mapa", label: "Mapa", icon: Network },
+  { to: "/projetos", label: "Projetos", icon: FolderKanban },
   { to: "/carteira", label: "Carteira", icon: Briefcase },
   { to: "/conexoes", label: "Conexões", icon: Plug },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
