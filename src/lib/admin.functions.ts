@@ -22,7 +22,7 @@ export const adminOverview = createServerFn({ method: "POST" }).middleware([requ
   const [profiles, access, roles, configs, pipes, bots, google, settings] = await Promise.all([
     all("profiles", "id,nome,email,created_at,telegram_chat_id"), all("account_access", "user_id,status,last_access_at"),
     all("user_roles", "user_id,role"), all("config_usuario", "user_id,onboarding_concluido,limite_custo_usd"),
-    all("conexoes_pipedrive", "user_id"), all("telegram_bots", "user_id,status,chat_id"), all("app_user_connections", "user_id,connector_id"),
+    all("conexoes_pipedrive", "user_id"), all("telegram_bots" as any, "user_id,status,chat_id"), all("app_user_connections", "user_id,connector_id"),
     db.from("admin_settings").select("manual_approval").eq("id", true).single(),
   ]);
   if (settings.error) throw settings.error;
