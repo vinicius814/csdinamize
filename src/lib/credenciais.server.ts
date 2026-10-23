@@ -66,7 +66,8 @@ export async function salvarChaveGoogle(userId: string, conector: ConectorGoogle
 
 export async function apagarChaveGoogle(userId: string, conector: ConectorGoogle) {
   const sb = await admin();
-  await sb.from("app_user_connections").delete().eq("user_id", userId).eq("connector_id", conector);
+  const { error } = await sb.from("app_user_connections").delete().eq("user_id", userId).eq("connector_id", conector);
+  if (error) throw error;
 }
 
 /* ---------- Pipedrive (token próprio por usuário) ---------- */
@@ -101,7 +102,8 @@ export async function salvarPipedrive(userId: string, p: PipedriveUsuario) {
 
 export async function apagarPipedrive(userId: string) {
   const sb = await admin();
-  await sb.from("conexoes_pipedrive").delete().eq("user_id", userId);
+  const { error } = await sb.from("conexoes_pipedrive").delete().eq("user_id", userId);
+  if (error) throw error;
 }
 
 /** Normaliza "empresa", "empresa.pipedrive.com" ou URL completa para "empresa". */

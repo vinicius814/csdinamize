@@ -27,7 +27,6 @@ export class SemConexao extends Error {
  */
 async function destino(conector: Conector, path: string): Promise<{ url: string; headers: Record<string, string> }> {
   const C = await import("./credenciais.server");
-  const ctx = C.contexto();
   const lk = process.env["LOVABLE_API_KEY"];
   if (conector === "pipedrive") {
     const pd = await C.pipedriveAtual();
@@ -39,8 +38,6 @@ async function destino(conector: Conector, path: string): Promise<{ url: string;
     const chave = await C.chaveGoogleAtual(conector);
     if (chave && lk) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": chave } };
   }
-  const ck = process.env[CHAVES[conector]];
-  if ((conector === "pipedrive" ? ctx.superadmin : ctx.admin) && lk && ck) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck } };
   throw new SemConexao(conector);
 }
 
@@ -69,7 +66,7 @@ export async function gw(conector: Conector, path: string, init: { method?: stri
   }
   };
   // Includes connection identity in the hash, never tokens or private URLs in keys.
-  const identity = JSON.stringify([conector, path, d.url, d.headers]);
+  const identity = JSON.stringify([conector, path]);
   const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity));
   const key = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, "0")).join("");
   if ((init.method ?? "GET") === "GET") return cachedIntegration(userId, key, load);
@@ -97,12 +94,12 @@ export type ClienteVivo = {
 
 export async function userSettings() {
   const C = await import("./credenciais.server");
-  const {userId,superadmin}=C.contexto();
-  const legacy = superadmin && !(await C.pipedriveAtual());
+  const {userId}=C.contexto();
+  if (!(await C.pipedriveAtual())) throw new SemConexao("pipedrive");
   const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");
   const [config,profile]=await Promise.all([db.from("config_usuario").select("pipeline_id,campo_ultimo_contato,dias_alerta").eq("user_id",userId).maybeSingle(),db.from("profiles").select("pipedrive_user_id,fuso").eq("id",userId).single()]);
   if(config.error||profile.error)throw new Error("Não consegui carregar suas configurações.");
-  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(legacy?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(legacy?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
+  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??null,field:config.data?.campo_ultimo_contato??null,days:config.data?.dias_alerta??60};
 }
 export async function carteiraPipedrive(pipedriveUserId?: number | null): Promise<ClienteVivo[]> {
   const settings=await userSettings();

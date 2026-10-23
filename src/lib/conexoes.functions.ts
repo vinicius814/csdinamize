@@ -37,7 +37,6 @@ export const statusConexoes = createServerFn({ method: "POST" })
     const { cachedIntegration } = await import("./integration-cache.server");
     return cachedIntegration(context.userId, "connection-status", async () => {
     const C = await import("./credenciais.server");
-    const { admin, superadmin } = C.contexto();
     const lk = process.env["LOVABLE_API_KEY"];
 
     const ia: StatusConexao = lk ? { ok: true, detalhe: "Cérebro online e pronto para pensar." } : { ok: false, detalhe: "Cérebro sem chave configurada." };
@@ -45,16 +44,14 @@ export const statusConexoes = createServerFn({ method: "POST" })
     // Pipedrive
     let pipedrive: StatusConexao = { ok: false, detalhe: "Pipedrive não conectado." };
     const pd = await C.pipedriveAtual();
-    const pk = process.env["PIPEDRIVE_API_KEY"];
     try {
       let r: Response | null = null;
       if (pd) r = await fetch(`https://${pd.dominio}.pipedrive.com/api/v1/users/me?api_token=${encodeURIComponent(pd.token)}`);
-      else if (superadmin && lk && pk) r = await fetch(`${GW}/pipedrive/users/me`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": pk } });
       if (r) {
         if (r.ok) {
           const j = (await r.json()) as { data?: { name?: string; company_name?: string } };
-          pipedrive = { ok: true, proprio: !!pd, detalhe: `${j.data?.name ?? "Você"}${j.data?.company_name ? ` · ${j.data.company_name}` : ""}${pd ? "" : " (conexão provisória do projeto)"}.` };
-        } else pipedrive = { ok: false, proprio: !!pd, detalhe: `O Pipedrive recusou o acesso (${r.status}). Confira o token.` };
+          pipedrive = { ok: true, proprio: true, detalhe: `${j.data?.name ?? "Você"}${j.data?.company_name ? ` · ${j.data.company_name}` : ""}.` };
+        } else pipedrive = { ok: false, proprio: !!pd, detalhe: `HTTP ${r.status}: ${providerError(await r.text())}` };
       }
     } catch {
       pipedrive = { ok: false, detalhe: "Não consegui falar com o Pipedrive agora." };
@@ -67,15 +64,14 @@ export const statusConexoes = createServerFn({ method: "POST" })
         let chave: string | null;
         try { chave = await C.chaveGoogleAtual(s); }
         catch (e) { servicos[s] = {ok: false, proprio: true, detalhe: `Falha ao carregar conexão: ${e instanceof Error ? e.message : "erro desconhecido"}`}; return; }
-        const proj = process.env[{ google_mail: "GOOGLE_MAIL_API_KEY", google_calendar: "GOOGLE_CALENDAR_API_KEY", google_drive: "GOOGLE_DRIVE_API_KEY" }[s]];
-        const usar = chave ?? (admin ? proj : undefined);
+        const usar = chave;
         if (!usar || !lk) {
           servicos[s] = { ok: false, detalhe: "Não conectado." };
           return;
         }
         try {
           const r = await fetch(`${GW}/${s}${PROVA[s]}`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": usar } });
-          if (r.ok) servicos[s] = { ok: true, proprio: !!chave, detalhe: chave ? "Conectado com a sua conta." : "Conexão provisória do projeto." };
+          if (r.ok) servicos[s] = { ok: true, proprio: true, detalhe: "Conectado com a sua conta." };
           else {
             const message = providerError(await r.text());
             console.error(`${s} HTTP ${r.status}: ${message}`);
