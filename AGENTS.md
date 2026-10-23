@@ -21,4 +21,5 @@
 - Integration credentials are per user: server fns use the comCredenciais middleware (src/lib/credenciais.middleware.ts), which runs the handler in an AsyncLocalStorage context so integracoes.server.ts resolves the signed-in user's own Google/Pipedrive keys (encrypted in app_user_connections / conexoes_pipedrive); the shared project connection is a transition fallback for admins only.
 
 - Administrative functions use requireAdmin and metadata-only projections; mutations and audit_log inserts are atomic in a service-role-only SQL function to preserve privacy and accountability.
+- Optional last-access and usage writes use recordAuxiliary so telemetry failure cannot reject a successful operation; authorization reads, budget enforcement, primary content writes and atomic administrative audit remain fail-closed.
 - Pipedrive reads resolve per-user pipeline, contact field and owner, paginate completely, and fail closed on incomplete results; coverage is calculated in reliability.ts before any sample is sent to AI.

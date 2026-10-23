@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { TERMS_VERSION, type Role, type AccountStatus } from "./access";
+import { recordAuxiliary } from "./auxiliary-record";
 
 export const accountState = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const [access, roles, config] = await Promise.all([
@@ -10,9 +11,10 @@ export const accountState = createServerFn({ method: "POST" }).middleware([requi
     context.supabase.from("config_usuario").select("onboarding_concluido").eq("user_id", context.userId).maybeSingle(),
   ]);
   if (access.error || roles.error) throw new Error("Não consegui verificar os dados da sua conta.");
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { error } = await supabaseAdmin.from("account_access").update({ last_access_at: new Date().toISOString() }).eq("user_id", context.userId);
-  if (error) throw error;
+  await recordAuxiliary(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    return supabaseAdmin.from("account_access").update({ last_access_at: new Date().toISOString() }).eq("user_id", context.userId);
+  }, "last_access");
   return { status: access.data.status as AccountStatus, accepted: !!access.data.terms_accepted_at, role: roles.data.role as Role, onboarded: config.data?.onboarding_concluido ?? false };
 });
 export const acceptTerms = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((input: { accepted: boolean }) => {
