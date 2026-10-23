@@ -630,6 +630,8 @@ export type Database = {
           pipedrive_user_id: number | null
           telegram_chat_id: number | null
           telegram_codigo: string
+          telegram_codigo_expira_em: string | null
+          telegram_username: string | null
         }
         Insert: {
           alertas_ativos?: boolean
@@ -644,6 +646,8 @@ export type Database = {
           pipedrive_user_id?: number | null
           telegram_chat_id?: number | null
           telegram_codigo?: string
+          telegram_codigo_expira_em?: string | null
+          telegram_username?: string | null
         }
         Update: {
           alertas_ativos?: boolean
@@ -658,6 +662,8 @@ export type Database = {
           pipedrive_user_id?: number | null
           telegram_chat_id?: number | null
           telegram_codigo?: string
+          telegram_codigo_expira_em?: string | null
+          telegram_username?: string | null
         }
         Relationships: []
       }
@@ -705,6 +711,44 @@ export type Database = {
           },
           {
             foreignKeyName: "registros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacoes_conexao: {
+        Row: {
+          created_at: string
+          descricao: string
+          ferramenta: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          ferramenta: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          ferramenta?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_conexao_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -841,11 +885,22 @@ export type Database = {
         Args: { actor: string; operation: string; target: string; value: Json }
         Returns: undefined
       }
+      connection_request_counts: {
+        Args: never
+        Returns: {
+          ferramenta: string
+          quantidade: number
+        }[]
+      }
       has_role: {
         Args: { role: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
       }
       link_telegram: { Args: { chat: number; code: string }; Returns: string }
+      link_telegram_user: {
+        Args: { chat: number; code: string; handle: string }
+        Returns: string
+      }
       meu_acesso: {
         Args: never
         Returns: {
