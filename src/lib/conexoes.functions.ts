@@ -40,7 +40,7 @@ export const statusConexoes = createServerFn({ method: "POST" })
   .middleware([comCredenciais])
   .handler(async ({ context }) => {
     const { cachedIntegration } = await import("./integration-cache.server");
-    return cachedIntegration(context.userId, "connection-status", async () => {
+    return cachedIntegration(context.userId, "personal-connection-status-v2", async () => {
     const C = await import("./credenciais.server");
     const lk = process.env["LOVABLE_API_KEY"];
 
@@ -58,8 +58,8 @@ export const statusConexoes = createServerFn({ method: "POST" })
           pipedrive = { ok: true, proprio: true, detalhe: `${j.data?.name ?? "Você"}${j.data?.company_name ? ` · ${j.data.company_name}` : ""}.` };
         } else pipedrive = { ok: false, proprio: !!pd, detalhe: `HTTP ${r.status}: ${providerError(await r.text())}` };
       }
-    } catch {
-      pipedrive = { ok: false, detalhe: "Não consegui falar com o Pipedrive agora." };
+    } catch(e) {
+      pipedrive = { ok: false, proprio:!!pd, detalhe: `Falha de rede: ${e instanceof Error?e.message:"Sem resposta do Pipedrive"}` };
     }
 
     // Google, serviço a serviço
@@ -71,7 +71,7 @@ export const statusConexoes = createServerFn({ method: "POST" })
         catch (e) { servicos[s] = {ok: false, proprio: true, detalhe: `Falha ao carregar conexão: ${e instanceof Error ? e.message : "erro desconhecido"}`}; return; }
         const usar = chave;
         if (!usar || !lk) {
-          servicos[s] = { ok: false, detalhe: "Não conectado." };
+          servicos[s] = { ok: false, proprio:!!chave, detalhe: chave ? "Cérebro sem chave de acesso configurada." : "Não conectado." };
           return;
         }
         try {

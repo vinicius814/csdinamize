@@ -1,7 +1,9 @@
 # Munim — cadastro, administração e confiança
-- [ ] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback.
-- [ ] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão.
-- [ ] Parte 2: testes e verificação do webhook/agendamento externo.
+- [x] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback; configurações existentes preservadas.
+- [x] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão implementados.
+- [x] Parte 2: webhook registrado em munim.wojtec.com.br; proteções 401 e testes verificados.
+- [ ] Parte 2: publicar alterações e testar vínculo/texto/áudio/aprovação real — requer publicação e usuário no Telegram; Supabase externo sem sessão de navegador.
+- [ ] Parte 2: entrega automática de lembretes, briefing e resumo — exige agendador externo chamando o endereço protegido já implementado.
 - [x] Parte 1: contraste central do Button verificado nos dois temas; sem correções avulsas em Conexões.
 - [x] Parte 1: cache de acesso 5 min, autorização única e último acesso em segundo plano no máximo por hora.
 - [x] Parte 1: cache cifrado persistente de integrações por usuário (5 min), atualização explícita e skeletons.
@@ -13,7 +15,7 @@
 - [ ] Banco V2: validar sucesso Google — bloqueado até ativação de Gmail, Calendar e Drive no Google Cloud.
 - [x] Banco V2: seleção de pipeline/campo de data em Conexões, mensagens de configuração ausente e contraste dos botões.
 - [x] Banco V2: Telegram implementado com código de vínculo único, isolamento, áudio, aprovações e callback de briefing; bot omuninbot validado e transcrição real passou.
-- [ ] Banco V2: registrar webhook e testar conversa real — endereço público novo ainda retorna 404; exige publicação e vínculo da conta no Telegram.
+- [ ] Banco V2: testar conversa real — webhook registrado e alcançável; exige vínculo da conta no Telegram.
 - [ ] Banco V2: automatizar horário dos briefings — exige agendador externo autenticado; callback implementado, não há serviço de agenda disponível.
 - [x] Banco V2: 29 testes passaram; páginas privadas redirecionam para login sem erros; chamadas Telegram sem autenticação rejeitadas (401).
 - [ ] Banco V2: contraste e fluxo completo autenticado — Supabase externo sem sessão de navegador disponível.
@@ -28,5 +30,5 @@
 - [x] Início, configurações e navegação móvel.
 - [x] Testes de regras e validação pública desktop/celular (20 testes).
 - [ ] Validar fluxos autenticados e isolamento com duas contas — bloqueado: Supabase externo sem sessão de teste disponível.
-- [ ] Vinculação real ao Telegram no onboarding — bloqueado: bot oficial e webhook ainda não configurados.
+- [ ] Vinculação real ao Telegram no onboarding — bot e webhook configurados; falta publicação e teste autenticado.
 - [ ] Revisão definitiva dos Termos e da Privacidade — depende da revisão do responsável.
