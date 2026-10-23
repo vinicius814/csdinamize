@@ -1,6 +1,7 @@
 import {describe,it,expect} from "vitest";
-import {DEFAULT_DAILY_LIMIT,MAX_PROJECT_QUESTIONS,compactMemory,relevantLimit,todayItems,allowedToSpeak} from "@/lib/personal-rules";
+import {DEFAULT_DAILY_LIMIT,MAX_PROJECT_QUESTIONS,compactMemory,relevantLimit,todayItems,allowedToSpeak,suggestionLimit} from "@/lib/personal-rules";
 describe("Munim pessoal",()=>{
+ it("Home nunca excede três sugestões e permite desligar",()=>{expect(suggestionLimit(20)).toBe(3);expect(suggestionLimit(0)).toBe(0);});
  it("limita perguntas e sugestões padrão a três",()=>expect(DEFAULT_DAILY_LIMIT).toBe(3));
  it("estrutura projetos com até cinco perguntas",()=>expect(MAX_PROJECT_QUESTIONS).toBe(5));
  it("limita memória compacta a 2000 caracteres",()=>expect(compactMemory("a".repeat(2200)).length).toBe(2000));
