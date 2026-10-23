@@ -18,7 +18,7 @@ import { navVisivel } from "./nav";
 import { MunimLogo, RavenMark } from "./RavenMark";
 import { PaletaComandos } from "./PaletaComandos";
 
-const PAPEL: Record<string, string> = { cs: "CS", gestor: "Gestor", admin: "Admin" };
+const PAPEL: Record<string, string> = { user: "Pessoal", admin: "Admin", superadmin: "Superadmin" };
 
 function Contador({ n }: { n: number }) {
   if (!n) return null;
@@ -30,7 +30,7 @@ function Contador({ n }: { n: number }) {
 }
 
 function MenuUsuario({ compacto }: { compacto?: boolean }) {
-  const { perfil, session, sair } = useAuth();
+  const { perfil, role, session, sair } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const nome = perfil?.nome ?? session?.user.email ?? "";
@@ -52,7 +52,7 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
         {!compacto && (
           <span className="min-w-0">
             <span className="block truncate text-sm text-foreground">{nome}</span>
-            {perfil && <span className="block text-xs text-muted-foreground">{PAPEL[perfil.papel]}</span>}
+            {perfil && <span className="block text-xs text-muted-foreground">{PAPEL[role ?? "user"]}</span>}
           </span>
         )}
       </DropdownMenuTrigger>
@@ -68,12 +68,12 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
 }
 
 function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: () => void }) {
-  const { perfil } = useAuth();
+  const { role } = useAuth();
   const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
-      {navVisivel(perfil?.papel).map((i) => {
+      {navVisivel(role ?? undefined).map((i) => {
         const ativo = i.to === "/" ? path === "/" : path.startsWith(i.to);
         return (
           <Link
@@ -158,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <main className="min-w-0 flex-1 pb-24 md:pb-0">{children}</main>
+      <main className="min-w-0 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
 
       {/* barra inferior (celular) */}
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-border px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden">

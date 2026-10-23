@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { accountState } from "./account.functions";
+import type { Role } from "./access";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -12,6 +14,7 @@ type AuthState = {
   session: Session | null;
   perfil: Perfil | null;
   carregando: boolean;
+  role: Role | null;
   sair: () => Promise<void>;
 };
 
@@ -36,6 +39,7 @@ export async function carregarPerfil(userId: string): Promise<Perfil | null> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<Role | null>(null);
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [carregando, setCarregando] = useState(true);
 
@@ -45,13 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       if (!s) {
         setPerfil(null);
+        setRole(null);
         setCarregando(false);
         return;
       }
       setCarregando(true);
-      const p = await carregarPerfil(s.user.id);
+      const [p, access] = await Promise.all([carregarPerfil(s.user.id), accountState().catch(() => null)]);
       if (ativo) {
         setPerfil(p);
+        setRole(access?.role ?? null);
         setCarregando(false);
       }
     };
@@ -72,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, perfil, carregando, sair }}>
+    <AuthContext.Provider value={{ session, perfil, role, carregando, sair }}>
       {children}
     </AuthContext.Provider>
   );

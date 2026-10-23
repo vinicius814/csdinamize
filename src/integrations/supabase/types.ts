@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_access: {
+        Row: {
+          created_at: string
+          last_access_at: string | null
+          status: string
+          terms_accepted_at: string | null
+          terms_version: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_access_at?: string | null
+          status?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_access_at?: string | null
+          status?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       acoes: {
         Row: {
           created_at: string
@@ -61,6 +99,27 @@ export type Database = {
           },
         ]
       }
+      admin_settings: {
+        Row: {
+          created_at: string
+          id: boolean
+          manual_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: boolean
+          manual_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: boolean
+          manual_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_user_connections: {
         Row: {
           connection_key_ciphertext: string
@@ -95,6 +154,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          details: Json
+          id: string
+          target_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          target_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       briefings: {
         Row: {
@@ -587,6 +676,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       uso: {
         Row: {
           created_at: string
@@ -642,6 +752,15 @@ export type Database = {
       }
     }
     Functions: {
+      account_active: { Args: never; Returns: boolean }
+      admin_mutation: {
+        Args: { actor: string; operation: string; target: string; value: Json }
+        Returns: undefined
+      }
+      has_role: {
+        Args: { role: Database["public"]["Enums"]["app_role"]; uid: string }
+        Returns: boolean
+      }
       meu_papel: {
         Args: never
         Returns: Database["public"]["Enums"]["papel_usuario"]
@@ -649,6 +768,7 @@ export type Database = {
       meu_pipedrive_id: { Args: never; Returns: number }
     }
     Enums: {
+      app_role: "superadmin" | "admin" | "user"
       autor_msg: "usuario" | "munim" | "sistema"
       canal_msg: "app" | "telegram"
       nivel_risco: "baixo" | "medio" | "alto"
@@ -787,6 +907,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["superadmin", "admin", "user"],
       autor_msg: ["usuario", "munim", "sistema"],
       canal_msg: ["app", "telegram"],
       nivel_risco: ["baixo", "medio", "alto"],

@@ -10,7 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AguardandoRouteImport } from './routes/aguardando'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
@@ -25,9 +29,29 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AguardandoRoute = AguardandoRouteImport.update({
+  id: '/aguardando',
+  path: '/aguardando',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -79,7 +103,11 @@ const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
@@ -90,7 +118,11 @@ export interface FileRoutesByFullPath {
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
 }
 export interface FileRoutesByTo {
+  '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
@@ -104,7 +136,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
@@ -119,7 +155,11 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/aguardando'
     | '/auth'
+    | '/privacidade'
+    | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/aprovacoes'
     | '/carteira'
@@ -130,7 +170,11 @@ export interface FileRouteTypes {
     | '/api/oauth/google/return'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/aguardando'
     | '/auth'
+    | '/privacidade'
+    | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/aprovacoes'
     | '/carteira'
@@ -143,7 +187,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/aguardando'
     | '/auth'
+    | '/privacidade'
+    | '/reset-password'
+    | '/termos'
     | '/_authenticated/admin'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/carteira'
@@ -157,7 +205,11 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AguardandoRoute: typeof AguardandoRoute
   AuthRoute: typeof AuthRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  TermosRoute: typeof TermosRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
 }
 
@@ -170,11 +222,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/aguardando': {
+      id: '/aguardando'
+      path: '/aguardando'
+      fullPath: '/aguardando'
+      preLoaderRoute: typeof AguardandoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -270,7 +350,11 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AguardandoRoute: AguardandoRoute,
   AuthRoute: AuthRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  TermosRoute: TermosRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
 }
 export const routeTree = rootRouteImport
