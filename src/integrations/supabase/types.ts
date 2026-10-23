@@ -161,6 +161,44 @@ export type Database = {
           },
         ]
       }
+      areas: {
+        Row: {
+          atualizado_em: string
+          cor: string
+          created_at: string
+          icone: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          cor?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nome: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          cor?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "areas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -401,6 +439,57 @@ export type Database = {
           },
         ]
       }
+      conversas: {
+        Row: {
+          area_id: string | null
+          arquivada: boolean
+          atualizado_em: string
+          created_at: string
+          fixada: boolean
+          id: string
+          resumo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          area_id?: string | null
+          arquivada?: boolean
+          atualizado_em?: string
+          created_at?: string
+          fixada?: boolean
+          id?: string
+          resumo?: string
+          titulo?: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string | null
+          arquivada?: boolean
+          atualizado_em?: string
+          created_at?: string
+          fixada?: boolean
+          id?: string
+          resumo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversas_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       convites: {
         Row: {
           codigo: string
@@ -505,6 +594,197 @@ export type Database = {
         }
         Relationships: []
       }
+      item_embeddings: {
+        Row: {
+          chunk_index: number
+          conteudo: string
+          created_at: string
+          embedding: string
+          id: string
+          item_id: string
+          model: string
+          user_id: string
+        }
+        Insert: {
+          chunk_index: number
+          conteudo: string
+          created_at?: string
+          embedding: string
+          id?: string
+          item_id: string
+          model?: string
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          conteudo?: string
+          created_at?: string
+          embedding?: string
+          id?: string
+          item_id?: string
+          model?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_embeddings_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_embeddings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itens: {
+        Row: {
+          area_id: string | null
+          atualizado_em: string
+          conteudo: string
+          created_at: string
+          data_alvo: string | null
+          embedding: string | null
+          id: string
+          legacy_data: Json | null
+          legacy_nota_id: string | null
+          origem: string
+          pessoa: string | null
+          potencial: number
+          prioridade: number
+          projeto_id: string | null
+          proximo_passo: string | null
+          status: string
+          tipo: string
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          area_id?: string | null
+          atualizado_em?: string
+          conteudo?: string
+          created_at?: string
+          data_alvo?: string | null
+          embedding?: string | null
+          id?: string
+          legacy_data?: Json | null
+          legacy_nota_id?: string | null
+          origem?: string
+          pessoa?: string | null
+          potencial?: number
+          prioridade?: number
+          projeto_id?: string | null
+          proximo_passo?: string | null
+          status?: string
+          tipo?: string
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          area_id?: string | null
+          atualizado_em?: string
+          conteudo?: string
+          created_at?: string
+          data_alvo?: string | null
+          embedding?: string | null
+          id?: string
+          legacy_data?: Json | null
+          legacy_nota_id?: string | null
+          origem?: string
+          pessoa?: string | null
+          potencial?: number
+          prioridade?: number
+          projeto_id?: string | null
+          proximo_passo?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ligacoes: {
+        Row: {
+          atualizado_em: string
+          created_at: string
+          id: string
+          item_a: string
+          item_b: string
+          motivo: string
+          origem: string
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          created_at?: string
+          id?: string
+          item_a: string
+          item_b: string
+          motivo: string
+          origem?: string
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          created_at?: string
+          id?: string
+          item_a?: string
+          item_b?: string
+          motivo?: string
+          origem?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ligacoes_item_a_fkey"
+            columns: ["item_a"]
+            isOneToOne: false
+            referencedRelation: "itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_item_b_fkey"
+            columns: ["item_b"]
+            isOneToOne: false
+            referencedRelation: "itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ligacoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memoria: {
         Row: {
           atualizado_em: string
@@ -536,6 +816,7 @@ export type Database = {
           autor: Database["public"]["Enums"]["autor_msg"]
           canal: Database["public"]["Enums"]["canal_msg"]
           conteudo: string
+          conversa_id: string | null
           created_at: string
           id: number
           meta: Json
@@ -545,6 +826,7 @@ export type Database = {
           autor: Database["public"]["Enums"]["autor_msg"]
           canal: Database["public"]["Enums"]["canal_msg"]
           conteudo: string
+          conversa_id?: string | null
           created_at?: string
           id?: number
           meta?: Json
@@ -554,12 +836,20 @@ export type Database = {
           autor?: Database["public"]["Enums"]["autor_msg"]
           canal?: Database["public"]["Enums"]["canal_msg"]
           conteudo?: string
+          conversa_id?: string | null
           created_at?: string
           id?: number
           meta?: Json
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "conversas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "mensagens_user_id_fkey"
             columns: ["user_id"]
@@ -611,6 +901,62 @@ export type Database = {
             foreignKeyName: "notas_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preferencias_munim: {
+        Row: {
+          ai_erro: string | null
+          ai_pausada: boolean
+          atualizado_em: string
+          autonomia: Json
+          created_at: string
+          memoria_atualizada_em: string | null
+          memoria_compacta: string
+          pergunta_respondida_em: string | null
+          perguntas_dia: number
+          sugestoes_dia: number
+          telegram_fim: string
+          telegram_inicio: string
+          user_id: string
+        }
+        Insert: {
+          ai_erro?: string | null
+          ai_pausada?: boolean
+          atualizado_em?: string
+          autonomia?: Json
+          created_at?: string
+          memoria_atualizada_em?: string | null
+          memoria_compacta?: string
+          pergunta_respondida_em?: string | null
+          perguntas_dia?: number
+          sugestoes_dia?: number
+          telegram_fim?: string
+          telegram_inicio?: string
+          user_id: string
+        }
+        Update: {
+          ai_erro?: string | null
+          ai_pausada?: boolean
+          atualizado_em?: string
+          autonomia?: Json
+          created_at?: string
+          memoria_atualizada_em?: string | null
+          memoria_compacta?: string
+          pergunta_respondida_em?: string | null
+          perguntas_dia?: number
+          sugestoes_dia?: number
+          telegram_fim?: string
+          telegram_inicio?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preferencias_munim_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -916,6 +1262,16 @@ export type Database = {
       admin_mutation: {
         Args: { actor: string; operation: string; target: string; value: Json }
         Returns: undefined
+      }
+      buscar_itens_semanticos: {
+        Args: { limite?: number; query_embedding: string; uid: string }
+        Returns: {
+          conteudo: string
+          id: string
+          similaridade: number
+          tipo: string
+          titulo: string
+        }[]
       }
       connection_request_counts: {
         Args: never
