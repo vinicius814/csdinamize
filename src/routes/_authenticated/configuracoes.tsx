@@ -1,3 +1,4 @@
+import {AutonomySettings} from "@/components/munim/AutonomySettings";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,9 +89,11 @@ function Configuracoes() {
       <div className="grid gap-4">
         <Bloco icon={<span>◎</span>} titulo="Sua conta">
           <p className="text-sm">{perfil?.nome}</p><p className="mt-1 break-all text-sm text-muted-foreground">{session?.user.email}</p><p className="mt-1 text-xs text-muted-foreground">{role === "superadmin" ? "Superadmin · uso pessoal" : role === "admin" ? "Admin · uso pessoal" : "Conta pessoal"}</p>
-          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Conexões e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
+          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Seu Munim</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
         </Bloco>
 
+        <Button variant="outline" className="justify-self-start" asChild><Link to="/memoria">O que o Munim sabe sobre você</Link></Button>
+        <AutonomySettings/>
         <TelegramConnection/>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">
