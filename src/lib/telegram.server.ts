@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import {allowedToSpeak} from "./personal-rules";
 import { createParser } from "eventsource-parser";
 import { rodarComo } from "./credenciais.server";
 import { providerError } from "./provider-error";
@@ -110,10 +111,10 @@ async function deliverNotifications(){
  async function once(userId:string,key:string,send:()=>Promise<void>){const claim=await db.from("telegram_notifications").insert({user_id:userId,notification_key:key});if(claim.error){if(claim.error.code==="23505")return;throw claim.error;}try{await send();const done=await db.from("telegram_notifications").update({status:"sent"}).eq("user_id",userId).eq("notification_key",key);if(done.error)throw done.error;notifications++;}catch{await db.from("telegram_notifications").update({status:"failed"}).eq("user_id",userId).eq("notification_key",key);}}
  for(let start=0;;start+=500){const profiles=await db.from("profiles").select("id,telegram_chat_id,fuso").eq("alertas_ativos",true).not("telegram_chat_id","is",null).order("id").range(start,start+499);if(profiles.error)throw profiles.error;
  for(const p of profiles.data??[]){if(!p.telegram_chat_id)continue;const chat=p.telegram_chat_id;let role;try{role=(await activeUser(p.id)).role;}catch{continue;}
- const due=briefingDue(new Date(),p.fuso,"18:00");
+ const pref=await db.from("preferencias_munim").select("telegram_inicio,telegram_fim,ai_pausada").eq("user_id",p.id).maybeSingle();if(pref.error||pref.data?.ai_pausada)continue;const localTime=new Intl.DateTimeFormat("en-GB",{timeZone:p.fuso,hour:"2-digit",minute:"2-digit"}).format(new Date());if(!allowedToSpeak(localTime,pref.data?.telegram_inicio.slice(0,5)??"08:00",pref.data?.telegram_fim.slice(0,5)??"20:00"))continue;const due=briefingDue(new Date(),p.fuso,"18:00");
  if(due.due)await once(p.id,`resumo:${due.date}`,async()=>{const result=await rodarComo({userId:p.id,admin:role==="admin"||role==="superadmin"},async()=>{const {gerarRotinaCore}=await import("./briefing-core.server");return gerarRotinaCore({tipo:"fechamento"},{supabase:db,userId:p.id});});await sendText(chat,result.md);});
- for(let offset=0;;offset+=500){const notes=await db.from("notas").select("id,titulo,lembrete_em").eq("user_id",p.id).not("lembrete_em","is",null).lte("lembrete_em",new Date().toISOString()).order("id").range(offset,offset+499);if(notes.error)throw notes.error;
- for(const note of notes.data??[]){if(!note.lembrete_em)continue;const date=new Intl.DateTimeFormat("en-CA",{timeZone:p.fuso,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(note.lembrete_em));if(date!==due.date)continue;await once(p.id,`lembrete:${note.id}:${note.lembrete_em}`,()=>sendText(chat,`Lembrete: ${note.titulo??"Compromisso"}`));}if((notes.data?.length??0)<500)break;}
+ for(let offset=0;;offset+=500){const notes=await db.from("itens").select("id,titulo,data_alvo,tipo,status").eq("user_id",p.id).not("data_alvo","is",null).neq("status","concluído").neq("status","arquivado").lte("data_alvo",new Date(Date.now()+86400000).toISOString()).order("id").range(offset,offset+499);if(notes.error)throw notes.error;
+ for(const note of notes.data??[]){if(!note.data_alvo)continue;if(note.tipo!=="promessa"&&Date.parse(note.data_alvo)>Date.now())continue;const date=new Intl.DateTimeFormat("en-CA",{timeZone:p.fuso,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(note.data_alvo));if(note.tipo!=="promessa"&&date!==due.date)continue;await once(p.id,`lembrete:${note.id}:${note.data_alvo}`,()=>sendText(chat,`Lembrete: ${note.titulo??"Compromisso"}`));}if((notes.data?.length??0)<500)break;}
  }if((profiles.data?.length??0)<500)break;
  }return {notifications};
 }
