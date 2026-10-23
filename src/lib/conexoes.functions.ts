@@ -93,13 +93,13 @@ export const statusConexoes = createServerFn({ method: "POST" })
     };
 
     const { data: p } = await context.supabase.from("profiles").select("telegram_chat_id").eq("id", context.userId).single();
-    const botConfigured = !!process.env["TELEGRAM_BOT_TOKEN"];
+    const botConfigured = !!process.env["MUNIM_INGEST_SECRET"] && !!process.env["MAKE_TELEGRAM_SEND_URL"] && !!process.env["TELEGRAM_BOT_USERNAME"];
 
     return {
       ia,
       pipedrive,
       google,
-      telegram: { ok: botConfigured && !!p?.telegram_chat_id, detalhe: !botConfigured ? "Bot ainda não configurado. O responsável precisa salvar o token do BotFather." : p?.telegram_chat_id ? "Canal móvel ativo." : "Abra o bot para vincular sua conta." } as StatusConexao,
+      telegram: { ok: botConfigured && !!p?.telegram_chat_id, detalhe: !botConfigured ? "Telegram ainda não configurado." : p?.telegram_chat_id ? "Canal móvel ativo." : "Abra o bot para vincular sua conta." } as StatusConexao,
       servicos,
       pipedriveDominio: pd?.dominio ?? null,
     };

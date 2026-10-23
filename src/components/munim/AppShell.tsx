@@ -182,13 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {i.label}
           </Link>
         ))}
-        <button
-          onClick={() => navigate({ to: "/conversa", search: { ouvir: true } })}
-          className="-mt-6 grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-glow"
-          aria-label="Falar com o Munim"
-        >
-          <Mic className="h-6 w-6" />
-        </button>
+        <TelegramMic />
         <Link
           to="/aprovacoes"
           className={cn(
@@ -220,5 +214,24 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <PaletaComandos aberta={paleta} setAberta={setPaleta} />
     </div>
+  );
+}
+
+function TelegramMic() {
+  const { session } = useAuth();
+  const read = useServerFn(telegramStatus);
+  const q = useQuery({ queryKey: ["telegram-status", session?.user.id], queryFn: () => read(), staleTime: 300_000, enabled: !!session });
+  const bot = q.data?.bot;
+  return (
+    <a
+      href={bot ? `https://t.me/${bot}` : "/conexoes"}
+      target={bot ? "_blank" : undefined}
+      rel="noreferrer"
+      className="-mt-6 flex w-20 flex-col items-center gap-1 text-center text-[10px] leading-tight text-muted-foreground"
+      aria-label="Áudio e arquivos pelo Telegram"
+    >
+      <span className="grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-glow"><Mic className="h-6 w-6" /></span>
+      Áudio e arquivos pelo Telegram
+    </a>
   );
 }
