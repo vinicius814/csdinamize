@@ -16,7 +16,9 @@
 - Shared Supabase reads for the home screen live as React Query hooks in src/lib/dados.ts so sidebar counters and pages share one cache.
 - Theme is a .light class on <html> (dark is :root default), set pre-paint by SCRIPT_TEMA in __root to avoid flashes.
 - Connected-service calls go through integracoes.server.ts; successful GET responses use encrypted durable per-user integration_cache with a five-minute TTL. Writes, connection changes and preferences invalidate it; explicit refresh bypasses old data. Never cache credentials, failures, approvals or external writes.
-- Ideas and projects are notas rows with subcategoria "ideia"/"projeto" and tags "potencial:/impacto:/esforco:/status:" (also mirrored as .md in Drive); scoring lives in src/lib/ideias.ts, so structured ideas never come from unverified memory mentions.
+- Personal records live in itens, organized by areas and ligacoes; migrated notes retain legacy_data and originals remain untouched, so no historical content is lost.
+- Conversations own message topics and compact summaries; chat and Telegram share captureCore and retrieve user-scoped semantic context, never another topic's unscoped history.
+- Personal AI helpers stream native Messages for classification and summaries; embeddings use the full default dimension with chunk records and owner-scoped search.
 - Routines (manhã, riscos, fechamento, semana) reuse the briefings table's existing tipo enum (manha, alerta, rodada, leitura_cs) via gerarRotina; they auto-run on the first Início visit of each period since no scheduler can be added to the database.
 - Integration credentials are per user via comCredenciais and AsyncLocalStorage; no project credentials are substituted for missing personal connections, so optional modules cannot access shared accounts.
 - Connection presence has its own user-keyed query, shared by navigation and optional CS surfaces; assistant tools are filtered and rechecked on the server.

@@ -87,7 +87,7 @@ function Conversa() {
       return data;
     },
   });
-  useEffect(() => { if (history.data) setMsgs(history.data); }, [history.data]);
+  useEffect(() => { setMsgs(history.data??[]);setCapture(null); }, [history.data,topicId]);
   const [texto, setTexto] = useState(q ?? "");
   const [estado, setEstado] = useState<EstadoNucleo>("repouso");
   const [erroVoz, setErroVoz] = useState<string | null>(null);
@@ -103,7 +103,7 @@ function Conversa() {
   useEffect(() => {
     if (!userId) return;
     const canal = supabase
-      .channel(`mensagens-${userId}`)
+      .channel(`mensagens-${userId}-${topicId??"none"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "mensagens", filter: `user_id=eq.${userId}` },
@@ -188,8 +188,8 @@ function Conversa() {
         .limit(1);
       const m = novas?.[0];
       if (m) setMsgs((a) => (a.some((x) => x.id === m.id) ? a : [...a, { ...m, animar: true }]));
-    } catch {
-      setErroVoz("Não consegui pensar agora. Tente de novo em instantes.");
+    } catch(e) {
+      setErroVoz(e instanceof Error?e.message:"Não consegui pensar agora. Tente de novo em instantes.");
     } finally {
       setEstado("repouso");
     }
