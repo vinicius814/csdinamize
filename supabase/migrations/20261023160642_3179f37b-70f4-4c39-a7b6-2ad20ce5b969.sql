@@ -1,0 +1,4 @@
+CREATE OR REPLACE FUNCTION public.gerenciar_perfil() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ BEGIN IF auth.role() IN ('authenticated','anon') AND (to_jsonb(NEW) - ARRAY['nome','fuso','horario_briefing','alertas_ativos']) IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['nome','fuso','horario_briefing','alertas_ativos']) THEN RAISE EXCEPTION 'Campos protegidos: só nome, fuso, horario_briefing e alertas_ativos podem ser alterados pelo usuário'; END IF; RETURN NEW; END $$;
+REVOKE EXECUTE ON FUNCTION public.ao_criar_usuario(), public.gerenciar_perfil(), public.proteger_acao_usuario() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.meu_papel(), public.meu_pipedrive_id() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.meu_papel(), public.meu_pipedrive_id() TO authenticated;
