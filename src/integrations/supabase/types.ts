@@ -859,6 +859,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["papel_usuario"]
       }
       meu_pipedrive_id: { Args: never; Returns: number }
+      registrar_acesso_auxiliar: { Args: { uid: string }; Returns: undefined }
       registrar_meu_acesso: { Args: never; Returns: undefined }
     }
     Enums: {
