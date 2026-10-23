@@ -1,5 +1,5 @@
 import {describe,it,expect,vi,afterEach} from "vitest";
-vi.mock("@/lib/telegram.server",()=>({equalSecret:(a:string,b:string)=>a===b,ingestDeps:async()=>({})}));
+vi.mock("@/lib/telegram.server",()=>({equalSecret:(a:string,b:string)=>a===b,ingestDeps:async()=>({claim:async()=>true,record:vi.fn(async()=>{}),finish:vi.fn(async()=>{}),link:vi.fn(async()=>{}),findUser:async()=>"u1",activeRole:async()=>"user",button:vi.fn(async()=>"ok"),converse:vi.fn(async()=>({resposta:"Olá",captura:null,pendentes:[]}))})}));
 import {Route} from "@/routes/api/public/telegram/ingest";
 const post=(Route.options as any).server.handlers.POST;
 afterEach(()=>{delete process.env["MUNIM_INGEST_SECRET"];});
