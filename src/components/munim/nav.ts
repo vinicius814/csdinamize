@@ -9,13 +9,13 @@ import {
   Shield,
   type LucideIcon,
 } from "lucide-react";
-import type { Perfil } from "@/lib/auth";
+import type { Role } from "@/lib/access";
 
 export type ItemNav = {
   to: "/" | "/conversa" | "/aprovacoes" | "/notas" | "/carteira" | "/conexoes" | "/configuracoes" | "/admin";
   label: string;
   icon: LucideIcon;
-  papeis?: Perfil["papel"][];
+  papeis?: Role[];
 };
 
 export const NAV: ItemNav[] = [
@@ -26,9 +26,9 @@ export const NAV: ItemNav[] = [
   { to: "/carteira", label: "Carteira", icon: Briefcase },
   { to: "/conexoes", label: "Conexões", icon: Plug },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
-  { to: "/admin", label: "Admin", icon: Shield, papeis: ["admin"] },
+  { to: "/admin", label: "Admin", icon: Shield, papeis: ["admin", "superadmin"] },
 ];
 
-export function navVisivel(papel: Perfil["papel"] | undefined) {
+export function navVisivel(papel: Role | undefined) {
   return NAV.filter((i) => !i.papeis || (papel && i.papeis.includes(papel)));
 }
