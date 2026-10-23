@@ -29,6 +29,6 @@ export const NAV: ItemNav[] = [
   { to: "/admin", label: "Admin", icon: Shield, papeis: ["admin", "superadmin"] },
 ];
 
-export function navVisivel(papel: Role | undefined) {
-  return NAV.filter((i) => !i.papeis || (papel && i.papeis.includes(papel)));
+export function navVisivel(papel: Role | undefined, pipedrive = false) {
+  return NAV.filter((i) => (i.to !== "/carteira" || pipedrive) && (!i.papeis || (papel && i.papeis.includes(papel))));
 }
