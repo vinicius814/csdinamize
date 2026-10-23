@@ -1,8 +1,9 @@
 # Munim — cadastro, administração e confiança
-- [ ] Parte 1: corrigir contraste na origem, nos dois temas.
-- [ ] Parte 1: cache de acesso, autorização única e último acesso não bloqueante no máximo por hora.
-- [ ] Parte 1: cache persistente de integrações por usuário (5 min), atualização explícita e skeletons.
-- [ ] Parte 1: testes e medição de navegação antes/depois; sessão autenticada externa indisponível.
+- [x] Parte 1: contraste central do Button verificado nos dois temas; sem correções avulsas em Conexões.
+- [x] Parte 1: cache de acesso 5 min, autorização única e último acesso em segundo plano no máximo por hora.
+- [x] Parte 1: cache cifrado persistente de integrações por usuário (5 min), atualização explícita e skeletons.
+- [x] Parte 1: 34 testes passaram; nove caminhos sem sessão voltam ao login sem erro; variantes de botão verificadas no navegador.
+- [ ] Parte 1: comparação real de troca entre telas e todas as telas nos dois temas — bloqueada por Supabase externo sem sessão autenticada; tempos sem login não comprovam melhora autenticada.
 - [x] Banco V2: perfil restrito, permissões de funções verificadas e fallback Pipedrive só superadmin.
 - [ ] Banco V2: proteção contra senhas vazadas — desativada no Supabase externo; requer ativação pelo proprietário no Auth.
 - [x] Banco V2: erros reais Google; causa diagnosticada como SERVICE_DISABLED nas três APIs do projeto 739898835576.

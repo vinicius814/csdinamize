@@ -102,7 +102,7 @@ export const statusConexoes = createServerFn({ method: "POST" })
       servicos,
       pipedriveDominio: pd?.dominio ?? null,
     };
-    });
+    }, result => result.pipedrive.ok && result.google.ok);
   });
 
 export const iniciarGoogle = createServerFn({ method: "POST" })

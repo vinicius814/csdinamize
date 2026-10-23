@@ -75,7 +75,9 @@ export async function gw(conector: Conector, path: string, init: { method?: stri
   if ((init.method ?? "GET") === "GET") return cachedIntegration(userId, key, load);
   const result = await load();
   // Writes are never cached/replayed; subsequent reads cannot use pre-write data.
-  await invalidateIntegrationCache(userId);
+  // A cache cleanup failure must not report a successful external write as failed
+  // (which could invite an unsafe replay). Expiration still bounds stale data.
+  try { await invalidateIntegrationCache(userId); } catch { console.warn("Falha ao invalidar cache após ação externa."); }
   return result;
 }
 
