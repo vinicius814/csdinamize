@@ -10,7 +10,7 @@ export const carteiraAoVivo = createServerFn({ method: "POST" })
       const clientes = await I.carteiraPipedrive(perf?.pipedrive_user_id ? Number(perf.pipedrive_user_id) : null);
       return { clientes, erro: null as string | null };
     } catch (e: any) {
-      return { clientes: [], erro: "Não consegui falar com o Pipedrive agora." };
+      return { clientes: [], erro: e?.message ?? "Não consegui falar com o Pipedrive agora." };
     }
   });
 
@@ -19,7 +19,7 @@ export const detalheCliente = createServerFn({ method: "POST" })
   .inputValidator((i: { titulo: string }) => ({ titulo: String(i?.titulo ?? "").slice(0, 120) }))
   .handler(async ({ data }) => {
     const I = await import("./integracoes.server");
-    const r = await I.buscarDealPipedrive(data.titulo).catch(() => []);
+    const r = await I.buscarDealPipedrive(data.titulo);
     return r[0] ?? null;
   });
 
@@ -45,3 +45,8 @@ export const lerNota = createServerFn({ method: "POST" })
     const I = await import("./integracoes.server");
     return { conteudo: await I.lerArquivoDrive(data.id) };
   });
+
+export const coberturaAoVivo=createServerFn({method:"POST"}).middleware([comCredenciais]).handler(async()=>{
+ const I=await import("./integracoes.server");const {coverage}=await import("./reliability");
+ const settings=await I.userSettings();return coverage(await I.carteiraPipedrive(),settings.days);
+});

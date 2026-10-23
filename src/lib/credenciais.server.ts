@@ -103,6 +103,6 @@ export async function apagarPipedrive(userId: string) {
 
 /** Normaliza "empresa", "empresa.pipedrive.com" ou URL completa para "empresa". */
 export function normalizarDominio(entrada: string): string | null {
-  const s = entrada.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0]!.replace(/\.pipedrive\.com$/, "");
-  return /^[a-z0-9][a-z0-9-]{0,62}$/.test(s) ? s : null;
+  const s = entrada.trim().toLowerCase().replace(/^https?:\/\//, "") .split("/")[0]?.replace(/\.pipedrive\.com$/, "");
+  return s && /^[a-z0-9][a-z0-9-]{0,62}$/.test(s) ? s : null;
 }

@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { plural, saudacao } from "@/lib/texto";
 import ReactMarkdown from "react-markdown";
 import { Bell, BookOpen, Briefcase, CheckCircle2, ChevronDown, Lightbulb, MessageSquare, RefreshCw } from "lucide-react";
+import { statusConexoes } from "@/lib/conexoes.functions";
+import { Button } from "@/components/ui/button";
 import { gerarRotina } from "@/lib/briefing.functions";
 import { Nucleo } from "@/components/munim/Nucleo";
 import { Pagina } from "@/components/munim/PaginaVazia";
@@ -16,6 +18,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Início — Munim" },
       { name: "description", content: "Seu dia, o que pede atenção e sua carteira, num só lugar." },
       { property: "og:title", content: "Início — Munim" },
@@ -75,6 +79,10 @@ function Inicio() {
   const rotinas = useRotinas();
   const ideias = useRadarIdeias();
   const cart = useCarteira();
+  const statusFn=useServerFn(statusConexoes);
+  const connections=useQuery({queryKey:["conexoes"],queryFn:()=>statusFn()});
+  const connectionAlerts=connections.data ? Object.entries({Pipedrive:connections.data.pipedrive,Gmail:connections.data.servicos.google_mail,Agenda:connections.data.servicos.google_calendar,Drive:connections.data.servicos.google_drive}).filter(([,value])=>!value.ok).map(([name,value])=>({name,detail:value.detalhe})) : [];
+  const briefingAlert=rotinas.data?.manha?.conteudo_md.match(/\*\*Pede aten[çc][ãa]o\*\*([\s\S]*?)(?=\*\*|$)/i)?.[1]?.trim();
   const [aberto, setAberto] = useState(false);
   const [aba, setAba] = useState<Rotina>(() => (new Date().getHours() >= 17 ? "fechamento" : "manha"));
   const [gerando, setGerando] = useState<Rotina | null>(null);
@@ -113,10 +121,10 @@ function Inicio() {
   const nSem = cart.data?.semContato ?? 0;
   const carregou = pend.isSuccess && lemb.isSuccess && cart.isSuccess;
 
-  const resumo = !carregou
+  const resumo = cart.isError || connections.isError || connectionAlerts.length ? "Algumas fontes precisam de atenção. Não consegui confirmar todos os dados do seu dia." : !carregou
     ? "Organizando seu dia…"
     : nPend + nLemb + nSem === 0
-      ? "Tudo em ordem por aqui. Aproveite o dia."
+      ? "Nenhuma pendência encontrada nas fontes consultadas. Confira seu briefing."
       : `Você tem ${plural(nPend, "aprovação pendente", "aprovações pendentes")}, ${plural(nLemb, "lembrete", "lembretes")} para hoje e ${plural(nSem, "cliente", "clientes")} sem contato há mais de ${DIAS_SEM_CONTATO} dias.`;
 
   return (
@@ -134,8 +142,11 @@ function Inicio() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Cartao titulo="Pede sua atenção" icon={Bell}>
+          {connectionAlerts.map(a=><div key={a.name} className="mb-3 text-sm"><p className="text-warning">{a.name} desconectado ou indisponível</p><p className="text-xs text-muted-foreground">{a.detail}</p><Button variant="link" size="sm" asChild><Link to="/conexoes">Conectar</Link></Button></div>)}
+          {cart.isError && <p className="mb-3 text-sm text-warning">{cart.error.message}</p>}
+          {briefingAlert && <div className="prose-munim mb-3 text-sm"><ReactMarkdown>{briefingAlert}</ReactMarkdown></div>}
           {nPend + nLemb === 0 ? (
-            <Vazio texto="Nada urgente agora. Quando algo precisar de você, aparece aqui." />
+            <Vazio texto={connectionAlerts.length || cart.isError ? "Revise os acessos acima para confirmar suas pendências." : "Nenhuma aprovação ou lembrete encontrado para hoje."} />
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
               {pend.data?.slice(0, 4).map((a) => (
@@ -191,7 +202,7 @@ function Inicio() {
                 </button>
               </div>
               <div className={cn("prose-munim relative overflow-hidden text-sm", !aberto && "max-h-64")}>
-                <ReactMarkdown>{atual.conteudo_md}</ReactMarkdown>
+                <ReactMarkdown>{atual.conteudo_md.replace(/^(Bom dia|Boa tarde|Boa noite)([^\n]*)(\n|$)/i,"Resumo do seu dia$3")}</ReactMarkdown>
                 {!aberto && <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-card to-transparent" />}
               </div>
               <button onClick={() => setAberto((v) => !v)} className="mt-2 flex items-center gap-1 text-sm text-primary">
@@ -203,7 +214,7 @@ function Inicio() {
         </Cartao>
 
         <Cartao titulo="Carteira" icon={Briefcase}>
-          {!cart.data || cart.data.pct === null ? (
+          {cart.isError ? <Vazio texto={cart.error.message} acao={<Button variant="outline" asChild><Link to="/conexoes">Conectar</Link></Button>}/> : !cart.data || cart.data.pct === null ? (
             <Vazio texto="Ainda não há clientes na sua carteira." acao={<Link to="/carteira" className="text-sm text-primary hover:underline">Ver carteira</Link>} />
           ) : (
             <div className="flex items-center gap-4">
@@ -212,7 +223,7 @@ function Inicio() {
                 <span className="absolute font-display text-2xl font-semibold text-foreground">{cart.data.pct}%</span>
               </div>
               <div className="text-sm">
-                <p className="text-foreground">Cobertura de {DIAS_SEM_CONTATO} dias</p>
+                <p className="text-foreground">Cobertura de {cart.data.dias} dias</p>
                 <p className="mt-1 text-muted-foreground">
                   {cart.data.total - cart.data.semContato} de {cart.data.total} clientes com contato recente.
                 </p>

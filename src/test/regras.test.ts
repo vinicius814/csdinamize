@@ -11,14 +11,14 @@ describe("carteira", () => {
 });
 
 describe("navegação por papel", () => {
-  const labels = (p?: "cs" | "gestor" | "admin") => navVisivel(p).map((i) => i.label);
+  const labels = (p?: "user" | "superadmin" | "admin") => navVisivel(p).map((i) => i.label);
   it("CS não vê Equipe nem Admin", () => {
-    expect(labels("cs")).not.toContain("Equipe");
-    expect(labels("cs")).not.toContain("Admin");
+    expect(labels("user")).not.toContain("Equipe");
+    expect(labels("user")).not.toContain("Admin");
   });
   it("ninguém vê Equipe (Munim é pessoal)", () => {
     expect(labels("admin")).not.toContain("Equipe");
-    expect(labels("gestor")).not.toContain("Equipe");
+    expect(labels("superadmin")).not.toContain("Equipe");
   });
   it("admin vê Admin", () => {
     expect(labels("admin")).toContain("Admin");

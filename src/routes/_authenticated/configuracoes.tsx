@@ -10,11 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { useTema } from "@/lib/tema";
 import { useServerFn } from "@tanstack/react-start";
-import { statusConexoes } from "@/lib/conexoes.functions";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Configurações — Munim" },
       { name: "description", content: "Ajuste o Munim do seu jeito: Google, Telegram, rotina e aparência." },
       { property: "og:title", content: "Configurações — Munim" },
@@ -45,19 +47,19 @@ function Bloco({ icon, titulo, children }: { icon: ReactNode; titulo: string; ch
 
 function Configuracoes() {
   const { tema, setTema } = useTema();
-  const { session } = useAuth();
+  const { session, perfil, role, sair } = useAuth();
   const uid = session?.user.id;
   const qc = useQueryClient();
-  const buscarStatus = useServerFn(statusConexoes);
-  const { data: st } = useQuery({ queryKey: ["conexoes"], queryFn: () => buscarStatus() });
+
   const { data: p } = useQuery({
     queryKey: ["perfil-config", uid],
     enabled: !!uid,
     queryFn: async () => {
+      if(!uid)throw new Error("Sessão ausente.");
       const { data, error } = await supabase
         .from("profiles")
-        .select("google_conectado, telegram_chat_id, telegram_codigo, horario_briefing, alertas_ativos")
-        .eq("id", uid!)
+        .select("telegram_chat_id, telegram_codigo, horario_briefing, alertas_ativos, fuso")
+        .eq("id", uid)
         .single();
       if (error) throw error;
       return data;
@@ -68,8 +70,9 @@ function Configuracoes() {
     if (p?.horario_briefing) setHorario(p.horario_briefing.slice(0, 5));
   }, [p?.horario_briefing]);
 
-  const salvar = async (campos: { horario_briefing?: string; alertas_ativos?: boolean; telegram_chat_id?: null }) => {
-    const { error } = await supabase.from("profiles").update(campos).eq("id", uid!);
+  const salvar = async (campos: { horario_briefing?: string; alertas_ativos?: boolean; telegram_chat_id?: null; fuso?: string }) => {
+    if(!uid)return;
+    const { error } = await supabase.from("profiles").update(campos).eq("id", uid);
     if (error) toast.error("Não consegui salvar agora.");
     else toast.success("Salvo.");
     qc.invalidateQueries({ queryKey: ["perfil-config"] });
@@ -79,49 +82,20 @@ function Configuracoes() {
 
   return (
     <Pagina>
-      <Cabecalho titulo="Configurações" frase="Conecte suas ferramentas e ajuste a rotina do Munim." />
+      <Cabecalho titulo="Configurações" frase="Sua conta, rotina e aparência." />
       <div className="grid gap-4">
-        {(["google", "pipedrive"] as const).map((k) => {
-          const s = st?.[k];
-          return (
-            <Bloco key={k} icon={<span className="font-display text-base font-semibold">{k === "google" ? "G" : "P"}</span>} titulo={k === "google" ? "Google Agenda e Gmail" : "Pipedrive"}>
-              <p className="text-sm text-muted-foreground">
-                {k === "google" ? "O Munim lê sua agenda e seus e-mails e só cria rascunhos e eventos depois da sua aprovação." : "Clientes, negócios e atividades. Nada é gravado sem sua aprovação."}
-              </p>
-              <div className="mt-3 flex items-center gap-2 text-sm">
-                <span className={`h-2.5 w-2.5 rounded-full ${!s ? "bg-muted-foreground" : s.ok ? "bg-success" : "bg-warning"}`} />
-                <span className={s?.ok ? "text-success" : "text-foreground"}>{s?.detalhe ?? "Verificando…"}</span>
-              </div>
-              <Link to="/conexoes" className="mt-3 inline-block text-sm text-primary hover:underline">Ver todas as conexões</Link>
-            </Bloco>
-          );
-        })}
+        <Bloco icon={<span>◎</span>} titulo="Sua conta">
+          <p className="text-sm">{perfil?.nome}</p><p className="mt-1 break-all text-sm text-muted-foreground">{session?.user.email}</p><p className="mt-1 text-xs text-muted-foreground">{role === "superadmin" ? "Superadmin · uso pessoal" : role === "admin" ? "Admin · uso pessoal" : "Conta pessoal"}</p>
+          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Carteira e rotina</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();window.location.assign("/auth");}}>Sair</Button></div>
+        </Bloco>
 
         <Bloco icon={<Send className="h-5 w-5" />} titulo="Telegram">
-          {p?.telegram_chat_id ? (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-success">Conectado</span>
-              <button onClick={() => salvar({ telegram_chat_id: null })} className="rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
-                Desconectar
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="rounded-lg bg-foreground p-2">
-                <QRCodeSVG value={linkTelegram} size={120} />
-              </div>
-              <div className="text-sm">
-                <p className="text-foreground">Abra e toque em Iniciar.</p>
-                <a href={linkTelegram} target="_blank" rel="noreferrer" className="mt-1 block break-all text-primary hover:underline">
-                  {linkTelegram}
-                </a>
-              </div>
-            </div>
-          )}
+          {p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <p className="text-sm text-muted-foreground">Vinculação automática ainda indisponível.</p>}
         </Bloco>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">
           <div className="flex flex-col gap-4">
+            <label className="flex flex-wrap items-center justify-between gap-4 text-sm"><span>Fuso horário</span><select value={p?.fuso ?? "America/Sao_Paulo"} onChange={e=>salvar({fuso:e.target.value})} className="max-w-full rounded-lg border border-border bg-card px-3 py-2">{["America/Sao_Paulo","America/Manaus","America/Recife","America/Rio_Branco","Europe/Lisbon","UTC"].map(t=><option key={t}>{t}</option>)}</select></label>
             <label className="flex items-center justify-between gap-4 text-sm">
               <span className="text-foreground">Horário do briefing da manhã</span>
               <select

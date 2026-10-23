@@ -6,11 +6,15 @@ import { Briefcase, Search } from "lucide-react";
 import { Cabecalho, EstadoVazio, Pagina } from "@/components/munim/PaginaVazia";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { carteiraAoVivo, detalheCliente } from "@/lib/cerebro.functions";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/carteira")({
   head: () => ({
     meta: [
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       { title: "Carteira — Munim" },
       { name: "description", content: "Seus clientes ao vivo do Pipedrive, o último contato com cada um e quem está pedindo atenção." },
       { property: "og:title", content: "Carteira — Munim" },
@@ -33,19 +37,20 @@ const COR = { verde: "text-success", amarelo: "text-warning", vermelho: "text-de
 const fmt = (d: string | null) => (d ? new Date(d.length === 10 ? d + "T00:00:00" : d).toLocaleDateString("pt-BR") : "—");
 
 function Carteira() {
+  const {session}=useAuth();
   const buscarCarteira = useServerFn(carteiraAoVivo);
   const buscarDetalhe = useServerFn(detalheCliente);
   const [busca, setBusca] = useState("");
   const [faixa, setFaixa] = useState("");
   const [sel, setSel] = useState<number | null>(null);
 
-  const { data: res, isLoading } = useQuery({ queryKey: ["carteira-viva"], queryFn: () => buscarCarteira(), staleTime: 5 * 60_000 });
+  const { data: res, isLoading, error } = useQuery({ queryKey: ["carteira-viva",session?.user.id], queryFn: () => buscarCarteira(), staleTime: 5 * 60_000 });
   const data = res?.clientes ?? [];
   const cliente = data.find((c) => c.deal_id === sel);
-  const { data: det } = useQuery({
+  const { data: det, error:detailError } = useQuery({
     queryKey: ["cliente-det", sel],
     enabled: !!cliente,
-    queryFn: () => buscarDetalhe({ data: { titulo: cliente!.titulo } }),
+    queryFn: () => {if(!cliente)throw new Error("Cliente não selecionado.");return buscarDetalhe({ data: { titulo: cliente.titulo } });},
   });
 
   const lista = data
@@ -63,8 +68,8 @@ function Carteira() {
   return (
     <Pagina>
       <Cabecalho titulo="Carteira" frase="Ao vivo do seu Pipedrive: quem está bem cuidado e quem pede atenção." />
-      {res?.erro && <p className="mb-4 text-sm text-warning">{res.erro}</p>}
-      {isLoading ? (
+      {(res?.erro||error) && <div role="alert" className="mb-4 text-sm text-warning"><p>{res?.erro??error?.message}</p><Button variant="outline" className="mt-2" asChild><Link to="/conexoes">Conectar</Link></Button></div>}
+      {res?.erro||error ? null : isLoading ? (
         <p className="text-sm text-muted-foreground">Consultando seu Pipedrive…</p>
       ) : total === 0 ? (
         <EstadoVazio icon={Briefcase} titulo="Nenhum cliente encontrado" texto="Não achei negócios abertos seus no funil de Customer Success." />
@@ -135,7 +140,7 @@ function Carteira() {
                 Perguntar ao Munim
               </Link>
               <h3 className="mt-6 mb-2 text-sm font-medium text-muted-foreground">Notas recentes no Pipedrive</h3>
-              {!det ? <p className="text-sm text-muted-foreground">Carregando…</p> : det.notas.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma nota.</p> : det.notas.map((n: any, i: number) => (
+              {detailError ? <p className="text-sm text-warning">Não consegui consultar as notas deste cliente.</p> : !det ? <p className="text-sm text-muted-foreground">Carregando…</p> : det.notas.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma nota.</p> : det.notas.map((n: any, i: number) => (
                 <div key={i} className="mb-2 rounded-lg border border-border p-3 text-sm">
                   <p className="text-xs text-muted-foreground">{fmt(n.data)}</p>
                   <p>{n.texto}</p>
