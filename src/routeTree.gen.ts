@@ -29,6 +29,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 import { Route as ApiPublicTelegramBriefingsRouteImport } from './routes/api/public/telegram/briefings'
+import { Route as ApiPublicTelegramIngestRouteImport } from './routes/api/public/telegram/ingest'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -132,6 +133,11 @@ const ApiPublicTelegramBriefingsRoute =
     path: '/api/public/telegram/briefings',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTelegramIngestRoute = ApiPublicTelegramIngestRouteImport.update({
+  id: '/api/public/telegram/ingest',
+  path: '/api/public/telegram/ingest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTelegramWebhookRoute =
   ApiPublicTelegramWebhookRouteImport.update({
     id: '/api/public/telegram/webhook',
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/projetos': typeof AuthenticatedProjetosRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/ingest': typeof ApiPublicTelegramIngestRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/ingest': typeof ApiPublicTelegramIngestRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
@@ -205,6 +213,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/ingest': typeof ApiPublicTelegramIngestRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
@@ -229,6 +238,7 @@ export interface FileRouteTypes {
     | '/projetos'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
+    | '/api/public/telegram/ingest'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -251,6 +261,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
+    | '/api/public/telegram/ingest'
     | '/api/public/telegram/webhook'
   id:
     | '__root__'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
+    | '/api/public/telegram/ingest'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -286,6 +298,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
   ApiPublicTelegramBriefingsRoute: typeof ApiPublicTelegramBriefingsRoute
+  ApiPublicTelegramIngestRoute: typeof ApiPublicTelegramIngestRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTelegramBriefingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/ingest': {
+      id: '/api/public/telegram/ingest'
+      path: '/api/public/telegram/ingest'
+      fullPath: '/api/public/telegram/ingest'
+      preLoaderRoute: typeof ApiPublicTelegramIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telegram/webhook': {
       id: '/api/public/telegram/webhook'
       path: '/api/public/telegram/webhook'
@@ -483,6 +503,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
   ApiPublicTelegramBriefingsRoute: ApiPublicTelegramBriefingsRoute,
+  ApiPublicTelegramIngestRoute: ApiPublicTelegramIngestRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
