@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { accountState } from "./account.functions";
+import { accountQueryOptions } from "./account-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "@tanstack/react-router";
 import type { Role } from "./access";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,42 +40,54 @@ export async function carregarPerfil(userId: string): Promise<Perfil | null> {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const qc = useQueryClient();
+  const router = useRouter();
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<Role | null>(null);
+  const access = useQuery({ ...accountQueryOptions(session?.user.id ?? "signed-out"), enabled: !!session });
+  const role: Role | null = access.data?.role ?? null;
   const [perfil, setPerfil] = useState<Perfil | null>(null);
   const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
     let ativo = true;
+    let identity: string | null = null;
+    let generation = 0;
     const aplicar = async (s: Session | null) => {
+      const current = ++generation;
+      if (identity !== (s?.user.id ?? null)) {
+        identity = s?.user.id ?? null;
+        await qc.cancelQueries();
+        qc.clear();
+      }
+      if (!ativo || current !== generation) return;
       setSession(s);
       if (!s) {
         setPerfil(null);
-        setRole(null);
         setCarregando(false);
         return;
       }
       setCarregando(true);
-      const [p, access] = await Promise.all([carregarPerfil(s.user.id), accountState().catch(() => null)]);
-      if (ativo) {
+      const p = await carregarPerfil(s.user.id);
+      if (ativo && current === generation) {
         setPerfil(p);
-        setRole(access?.role ?? null);
         setCarregando(false);
       }
     };
     supabase.auth.getSession().then(({ data }) => aplicar(data.session));
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
-        setTimeout(() => aplicar(s), 0);
+      if (event === "SIGNED_IN" && identity !== (s?.user.id ?? null) || event === "SIGNED_OUT") {
+        setTimeout(async () => { await aplicar(s); await router.invalidate(); }, 0);
       }
     });
     return () => {
       ativo = false;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [qc, router]);
 
   const sair = async () => {
+    await qc.cancelQueries();
+    qc.clear();
     await supabase.auth.signOut();
   };
 

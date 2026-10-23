@@ -8,6 +8,9 @@ import { ConexoesPessoais } from "@/components/munim/ConexoesPessoais";
 import { Button } from "@/components/ui/button";
 import { telegramLink } from "@/lib/telegram.functions";
 import { toast } from "sonner";
+import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
+import { useAuth } from "@/lib/auth";
+import { PageSkeleton } from "@/components/munim/PageSkeleton";
 
 export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
@@ -33,9 +36,10 @@ const ITENS: Item[] = [
 ];
 
 function Conexoes() {
+  const { session } = useAuth();
   const buscar = useServerFn(statusConexoes);
   const getTelegramLink = useServerFn(telegramLink);
-  const { data, isFetching, refetch } = useQuery({ queryKey: ["conexoes"], queryFn: () => buscar() });
+  const { data, error } = useQuery({ queryKey: ["conexoes", session?.user.id], queryFn: () => buscar() });
   const ativas = data ? ITENS.filter((it) => data[it.chave].ok).length : 0;
 
   return (
@@ -44,10 +48,10 @@ function Conexoes() {
       <ConexoesPessoais servicos={data?.servicos} pipedrive={data?.pipedrive} pipedriveDominio={data?.pipedriveDominio} />
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data ? `${ativas} de ${ITENS.length} sistemas online` : "Verificando sistemas…"}</p>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} /> Testar de novo
-        </Button>
+        <RefreshIntegrations />
       </div>
+      {error && <p role="alert" className="text-warning">{error.message}</p>}
+      {!data && !error && <PageSkeleton />}
       <div className="grid gap-4 sm:grid-cols-2">
         {ITENS.map((it) => {
           const s: StatusConexao | undefined = data?.[it.chave];

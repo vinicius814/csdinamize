@@ -9,6 +9,8 @@ import { carteiraAoVivo, detalheCliente } from "@/lib/cerebro.functions";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
+import { PageSkeleton } from "@/components/munim/PageSkeleton";
 
 export const Route = createFileRoute("/_authenticated/carteira")({
   head: () => ({
@@ -48,7 +50,7 @@ function Carteira() {
   const data = res?.clientes ?? [];
   const cliente = data.find((c) => c.deal_id === sel);
   const { data: det, error:detailError } = useQuery({
-    queryKey: ["cliente-det", sel],
+    queryKey: ["cliente-det", session?.user.id, sel],
     enabled: !!cliente,
     queryFn: () => {if(!cliente)throw new Error("Cliente não selecionado.");return buscarDetalhe({ data: { titulo: cliente.titulo } });},
   });
@@ -68,9 +70,10 @@ function Carteira() {
   return (
     <Pagina>
       <Cabecalho titulo="Carteira" frase="Ao vivo do seu Pipedrive: quem está bem cuidado e quem pede atenção." />
+      <div className="mb-4 flex justify-end"><RefreshIntegrations /></div>
       {(res?.erro||error) && <div role="alert" className="mb-4 text-sm text-warning"><p>{res?.erro??error?.message}</p><Button variant="outline" className="mt-2" asChild><Link to="/conexoes">Resolver configuração</Link></Button></div>}
       {res?.erro||error ? null : isLoading ? (
-        <p className="text-sm text-muted-foreground">Consultando seu Pipedrive…</p>
+        <PageSkeleton />
       ) : total === 0 ? (
         <EstadoVazio icon={Briefcase} titulo="Nenhum cliente encontrado" texto="Não achei negócios abertos seus no funil de Customer Success." />
       ) : (

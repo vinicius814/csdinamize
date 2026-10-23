@@ -12,10 +12,11 @@ export const accountState = createServerFn({ method: "POST" }).middleware([requi
     context.supabase.from("config_usuario").select("onboarding_concluido").eq("user_id", context.userId).maybeSingle(),
   ]);
   if (access.error || roles.error) throw new Error("Não consegui verificar os dados da sua conta.");
-  if (shouldRecordAccess(access.data.last_access_at)) void recordAuxiliary(async () => {
+  const { runBackground } = await import("./background.server");
+  if (shouldRecordAccess(access.data.last_access_at)) runBackground(recordAuxiliary(async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     return supabaseAdmin.rpc("registrar_acesso_auxiliar", { uid: context.userId });
-  }, "last_access");
+  }, "last_access"));
   return { status: access.data.status as AccountStatus, accepted: !!access.data.terms_accepted_at, role: roles.data.role as Role, onboarded: config.data?.onboarding_concluido ?? false };
 });
 export const acceptTerms = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((input: { accepted: boolean }) => {

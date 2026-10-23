@@ -46,6 +46,10 @@ async function destino(conector: Conector, path: string): Promise<{ url: string;
 
 export async function gw(conector: Conector, path: string, init: { method?: string; body?: unknown; raw?: BodyInit; headers?: Record<string, string> } = {}) {
   const d = await destino(conector, path);
+  const { contexto } = await import("./credenciais.server");
+  const { cachedIntegration, invalidateIntegrationCache } = await import("./integration-cache.server");
+  const { userId } = contexto();
+  const load = async () => {
   const headers: Record<string, string> = { ...d.headers, ...(init.headers ?? {}) };
   let body: BodyInit | undefined = init.raw;
   if (init.body !== undefined) {
@@ -63,6 +67,16 @@ export async function gw(conector: Conector, path: string, init: { method?: stri
   } catch {
     return t;
   }
+  };
+  // Includes connection identity in the hash, never tokens or private URLs in keys.
+  const identity = JSON.stringify([conector, path, d.url, d.headers]);
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(identity));
+  const key = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, "0")).join("");
+  if ((init.method ?? "GET") === "GET") return cachedIntegration(userId, key, load);
+  const result = await load();
+  // Writes are never cached/replayed; subsequent reads cannot use pre-write data.
+  await invalidateIntegrationCache(userId);
+  return result;
 }
 
 /* ---------------- Pipedrive ---------------- */

@@ -14,6 +14,8 @@ import { Pagina } from "@/components/munim/PaginaVazia";
 import { useAuth } from "@/lib/auth";
 import { useCarteira, useLembretesHoje, usePendentes, useRotinas, useRadarIdeias, DIAS_SEM_CONTATO, type Rotina } from "@/lib/dados";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -73,14 +75,14 @@ function AnelProgresso({ pct }: { pct: number }) {
 }
 
 function Inicio() {
-  const { perfil } = useAuth();
+  const { perfil, session } = useAuth();
   const pend = usePendentes();
   const lemb = useLembretesHoje();
   const rotinas = useRotinas();
   const ideias = useRadarIdeias();
   const cart = useCarteira();
   const statusFn=useServerFn(statusConexoes);
-  const connections=useQuery({queryKey:["conexoes"],queryFn:()=>statusFn()});
+  const connections=useQuery({queryKey:["conexoes",session?.user.id],queryFn:()=>statusFn()});
   const connectionAlerts=connections.data ? Object.entries({Pipedrive:connections.data.pipedrive,Gmail:connections.data.servicos.google_mail,Agenda:connections.data.servicos.google_calendar,Drive:connections.data.servicos.google_drive}).filter(([,value])=>!value.ok).map(([name,value])=>({name,detail:value.detalhe})) : [];
   const briefingAlert=rotinas.data?.manha?.conteudo_md.match(/\*\*Pede aten[çc][ãa]o\*\*([\s\S]*?)(?=\*\*|$)/i)?.[1]?.trim();
   const [aberto, setAberto] = useState(false);
@@ -145,7 +147,7 @@ function Inicio() {
           {connectionAlerts.map(a=><div key={a.name} className="mb-3 text-sm"><p className="text-warning">{a.name} desconectado ou indisponível</p><p className="text-xs text-muted-foreground">{a.detail}</p><Button variant="link" size="sm" asChild><Link to="/conexoes">Conectar</Link></Button></div>)}
           {cart.isError && <p className="mb-3 text-sm text-warning">{cart.error.message}</p>}
           {briefingAlert && <div className="prose-munim mb-3 text-sm"><ReactMarkdown>{briefingAlert}</ReactMarkdown></div>}
-          {nPend + nLemb === 0 ? (
+          {pend.isPending || lemb.isPending ? <Skeleton className="h-24 w-full" /> : nPend + nLemb === 0 ? (
             <Vazio texto={connectionAlerts.length || cart.isError ? "Revise os acessos acima para confirmar suas pendências." : "Nenhuma aprovação ou lembrete encontrado para hoje."} />
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
