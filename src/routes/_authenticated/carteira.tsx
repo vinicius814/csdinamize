@@ -68,7 +68,7 @@ function Carteira() {
   return (
     <Pagina>
       <Cabecalho titulo="Carteira" frase="Ao vivo do seu Pipedrive: quem está bem cuidado e quem pede atenção." />
-      {(res?.erro||error) && <div role="alert" className="mb-4 text-sm text-warning"><p>{res?.erro??error?.message}</p><Button variant="outline" className="mt-2" asChild><Link to="/conexoes">Conectar</Link></Button></div>}
+      {(res?.erro||error) && <div role="alert" className="mb-4 text-sm text-warning"><p>{res?.erro??error?.message}</p><Button variant="outline" className="mt-2" asChild><Link to="/conexoes">Resolver configuração</Link></Button></div>}
       {res?.erro||error ? null : isLoading ? (
         <p className="text-sm text-muted-foreground">Consultando seu Pipedrive…</p>
       ) : total === 0 ? (

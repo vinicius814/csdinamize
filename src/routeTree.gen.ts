@@ -25,6 +25,8 @@ import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
+import { Route as ApiPublicTelegramBriefingsRouteImport } from './routes/api/public/telegram/briefings'
+import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -106,6 +108,18 @@ const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   path: '/api/oauth/google/return',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicTelegramBriefingsRoute =
+  ApiPublicTelegramBriefingsRouteImport.update({
+    id: '/api/public/telegram/briefings',
+    path: '/api/public/telegram/briefings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -123,6 +137,8 @@ export interface FileRoutesByFullPath {
   '/notas': typeof AuthenticatedNotasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
   '/aguardando': typeof AguardandoRoute
@@ -140,6 +156,8 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -159,6 +177,8 @@ export interface FileRoutesById {
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
+  '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,6 +198,8 @@ export interface FileRouteTypes {
     | '/notas'
     | '/onboarding'
     | '/api/oauth/google/return'
+    | '/api/public/telegram/briefings'
+    | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/aguardando'
@@ -195,6 +217,8 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/'
     | '/api/oauth/google/return'
+    | '/api/public/telegram/briefings'
+    | '/api/public/telegram/webhook'
   id:
     | '__root__'
     | '/_authenticated'
@@ -213,6 +237,8 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding'
     | '/_authenticated/'
     | '/api/oauth/google/return'
+    | '/api/public/telegram/briefings'
+    | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -223,6 +249,8 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermosRoute: typeof TermosRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
+  ApiPublicTelegramBriefingsRoute: typeof ApiPublicTelegramBriefingsRoute
+  ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -339,6 +367,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telegram/briefings': {
+      id: '/api/public/telegram/briefings'
+      path: '/api/public/telegram/briefings'
+      fullPath: '/api/public/telegram/briefings'
+      preLoaderRoute: typeof ApiPublicTelegramBriefingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -377,6 +419,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TermosRoute: TermosRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
+  ApiPublicTelegramBriefingsRoute: ApiPublicTelegramBriefingsRoute,
+  ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

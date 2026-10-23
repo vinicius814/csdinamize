@@ -1,5 +1,6 @@
 // Server-only helpers for the connected services (Pipedrive, Gmail, Agenda, Drive).
 const GW = "https://connector-gateway.lovable.dev";
+import { missingPipedriveSettings } from "./connection-rules";
 export const FUSO = "America/Sao_Paulo";
 export const CAMPO_ULTIMO_CONTATO = "58cd094a23bd14b9275f4c006f1b19457b3c1d63";
 export const PIPELINE_CS = 15;
@@ -39,7 +40,7 @@ async function destino(conector: Conector, path: string): Promise<{ url: string;
     if (chave && lk) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": chave } };
   }
   const ck = process.env[CHAVES[conector]];
-  if (ctx.admin && lk && ck) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck } };
+  if ((conector === "pipedrive" ? ctx.superadmin : ctx.admin) && lk && ck) return { url: `${GW}/${conector}${path}`, headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck } };
   throw new SemConexao(conector);
 }
 
@@ -80,17 +81,19 @@ export type ClienteVivo = {
 
 export async function userSettings() {
   const C = await import("./credenciais.server");
-  const {userId,admin}=C.contexto();
+  const {userId,superadmin}=C.contexto();
+  const legacy = superadmin && !(await C.pipedriveAtual());
   const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");
   const [config,profile]=await Promise.all([db.from("config_usuario").select("pipeline_id,campo_ultimo_contato,dias_alerta").eq("user_id",userId).maybeSingle(),db.from("profiles").select("pipedrive_user_id,fuso").eq("id",userId).single()]);
   if(config.error||profile.error)throw new Error("Não consegui carregar suas configurações.");
-  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(admin?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(admin?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
+  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(legacy?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(legacy?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
 }
 export async function carteiraPipedrive(pipedriveUserId?: number | null): Promise<ClienteVivo[]> {
   const settings=await userSettings();
   const owner=pipedriveUserId??settings.owner;
-  if(!owner)throw new Error("Seu responsável no Pipedrive não está configurado. Conecte seu Pipedrive em /conexoes.");
-  if(!settings.pipeline||!settings.field)throw new Error("Escolha o pipeline e o campo de último contato em /onboarding.");
+  const missing = missingPipedriveSettings({...settings, owner});
+  if(missing.length)throw new Error(`Falta configurar: ${missing.join(", ")}. Resolva em Conexões.`);
+  if(!settings.pipeline || !settings.field) throw new Error("Configuração incompleta.");
   const out:ClienteVivo[]=[];let start=0;
   for(let page=0;page<200;page++){
     const j=await gw("pipedrive",`/deals?${new URLSearchParams({status:"open",limit:"500",start:String(start),user_id:String(owner)})}`);

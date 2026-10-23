@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth";
 import { useTema } from "@/lib/tema";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
+import { telegramLink } from "@/lib/telegram.functions";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -26,7 +27,6 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
 });
 
-const NOME_DO_BOT = "MunimWojtecBot";
 
 const HORARIOS = Array.from({ length: 17 }, (_, i) => {
   const m = 6 * 60 + i * 15;
@@ -50,6 +50,7 @@ function Configuracoes() {
   const { session, perfil, role, sair } = useAuth();
   const uid = session?.user.id;
   const qc = useQueryClient();
+  const openTelegram = useServerFn(telegramLink);
 
   const { data: p } = useQuery({
     queryKey: ["perfil-config", uid],
@@ -70,7 +71,7 @@ function Configuracoes() {
     if (p?.horario_briefing) setHorario(p.horario_briefing.slice(0, 5));
   }, [p?.horario_briefing]);
 
-  const salvar = async (campos: { horario_briefing?: string; alertas_ativos?: boolean; telegram_chat_id?: null; fuso?: string }) => {
+  const salvar = async (campos: { horario_briefing?: string; alertas_ativos?: boolean; fuso?: string }) => {
     if(!uid)return;
     const { error } = await supabase.from("profiles").update(campos).eq("id", uid);
     if (error) toast.error("Não consegui salvar agora.");
@@ -78,7 +79,6 @@ function Configuracoes() {
     qc.invalidateQueries({ queryKey: ["perfil-config"] });
   };
 
-  const linkTelegram = `https://t.me/${NOME_DO_BOT}?start=${p?.telegram_codigo ?? ""}`;
 
   return (
     <Pagina>
@@ -90,7 +90,7 @@ function Configuracoes() {
         </Bloco>
 
         <Bloco icon={<Send className="h-5 w-5" />} titulo="Telegram">
-          {p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <p className="text-sm text-muted-foreground">Vinculação automática ainda indisponível.</p>}
+          {p?.telegram_chat_id ? <p className="text-sm text-success">Vínculo registrado.</p> : <Button onClick={async()=>{const popup=window.open("","munim-telegram");try{const r=await openTelegram();if(!r.url){popup?.close();toast.info("Bot ainda não configurado. O responsável precisa salvar o token do BotFather.");return;}if(popup)popup.location.href=r.url;}catch(e){popup?.close();toast.error(e instanceof Error?e.message:"Não consegui abrir o bot.");}}}>Ativar Telegram</Button>}
         </Bloco>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">

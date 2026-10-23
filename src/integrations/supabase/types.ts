@@ -685,6 +685,51 @@ export type Database = {
           },
         ]
       }
+      telegram_deliveries: {
+        Row: {
+          created_at: string
+          local_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          local_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          local_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_updates: {
+        Row: {
+          created_at: string
+          status: string
+          update_id: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          status?: string
+          update_id: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          status?: string
+          update_id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           atualizado_em: string
@@ -773,6 +818,7 @@ export type Database = {
         Args: { role: Database["public"]["Enums"]["app_role"]; uid: string }
         Returns: boolean
       }
+      link_telegram: { Args: { chat: number; code: string }; Returns: string }
       meu_papel: {
         Args: never
         Returns: Database["public"]["Enums"]["papel_usuario"]

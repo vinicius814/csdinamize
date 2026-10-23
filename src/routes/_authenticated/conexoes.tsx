@@ -5,6 +5,9 @@ import { Brain, Briefcase, CalendarDays, RefreshCw, Send, type LucideIcon } from
 import { Cabecalho, Pagina } from "@/components/munim/PaginaVazia";
 import { statusConexoes, type StatusConexao } from "@/lib/conexoes.functions";
 import { ConexoesPessoais } from "@/components/munim/ConexoesPessoais";
+import { Button } from "@/components/ui/button";
+import { telegramLink } from "@/lib/telegram.functions";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
@@ -31,6 +34,7 @@ const ITENS: Item[] = [
 
 function Conexoes() {
   const buscar = useServerFn(statusConexoes);
+  const getTelegramLink = useServerFn(telegramLink);
   const { data, isFetching, refetch } = useQuery({ queryKey: ["conexoes"], queryFn: () => buscar() });
   const ativas = data ? ITENS.filter((it) => data[it.chave].ok).length : 0;
 
@@ -40,9 +44,9 @@ function Conexoes() {
       <ConexoesPessoais servicos={data?.servicos} pipedrive={data?.pipedrive} pipedriveDominio={data?.pipedriveDominio} />
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-muted-foreground">{data ? `${ativas} de ${ITENS.length} sistemas online` : "Verificando sistemas…"}</p>
-        <button onClick={() => refetch()} className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <Button variant="outline" onClick={() => refetch()}>
           <RefreshCw className={isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} /> Testar de novo
-        </button>
+        </Button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {ITENS.map((it) => {
@@ -56,9 +60,10 @@ function Conexoes() {
               </div>
               <p className="text-sm text-muted-foreground">{it.papel}</p>
               <p className={`text-sm ${s?.ok ? "text-success" : "text-foreground"}`}>{s?.detalhe ?? "…"}</p>
-              {it.acao && !s?.ok && (
-                <Link to={it.acao.to!} className="self-start text-sm text-primary hover:underline">{it.acao.label}</Link>
-              )}
+              {it.chave === "telegram" && !s?.ok ? <Button className="self-start" onClick={async()=>{
+                const popup=window.open("","munim-telegram");
+                try { const r=await getTelegramLink();if(!r.url){popup?.close();toast.info("Bot ainda não configurado. Salve o token do BotFather nas configurações seguras do projeto.");return;}if(popup)popup.location.href=r.url;else toast.error("Libere as janelas pop-up."); } catch(e) {popup?.close();toast.error(e instanceof Error?e.message:"Não consegui abrir o bot.");}
+              }}>Ativar Telegram</Button> : it.acao?.to && !s?.ok ? <Button variant="outline" className="self-start" asChild><Link to={it.acao.to}>{it.acao.label}</Link></Button> : null}
             </section>
           );
         })}

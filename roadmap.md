@@ -1,8 +1,14 @@
 # Munim — cadastro, administração e confiança
-- [ ] Banco V2: restringir perfil e execução de funções; fallback Pipedrive só superadmin; conferir proteção de senhas.
-- [ ] Banco V2: diagnóstico real Google; configuração Pipedrive em Conexões e mensagens de campos ausentes.
-- [ ] Banco V2: Telegram real com texto, áudio, aprovação e horário; depende de token e agendador externo.
-- [ ] Banco V2: contraste dos botões de Conexões e evidências por item.
+- [x] Banco V2: perfil restrito, permissões de funções verificadas e fallback Pipedrive só superadmin.
+- [ ] Banco V2: proteção contra senhas vazadas — desativada no Supabase externo; requer ativação pelo proprietário no Auth.
+- [x] Banco V2: erros reais Google; causa diagnosticada como SERVICE_DISABLED nas três APIs do projeto 739898835576.
+- [ ] Banco V2: validar sucesso Google — bloqueado até ativação de Gmail, Calendar e Drive no Google Cloud.
+- [x] Banco V2: seleção de pipeline/campo de data em Conexões, mensagens de configuração ausente e contraste dos botões.
+- [x] Banco V2: Telegram implementado com código de vínculo único, isolamento, áudio, aprovações e callback de briefing; bot omuninbot validado e transcrição real passou.
+- [ ] Banco V2: registrar webhook e testar conversa real — endereço público novo ainda retorna 404; exige publicação e vínculo da conta no Telegram.
+- [ ] Banco V2: automatizar horário dos briefings — exige agendador externo autenticado; callback implementado, não há serviço de agenda disponível.
+- [x] Banco V2: 29 testes passaram; páginas privadas redirecionam para login sem erros; chamadas Telegram sem autenticação rejeitadas (401).
+- [ ] Banco V2: contraste e fluxo completo autenticado — Supabase externo sem sessão de navegador disponível.
 - [x] Diagnosticar triggers e adicionar atualizado_em às quatro tabelas incompatíveis, preservando triggers.
 - [x] Isolar falhas de último acesso e consumo sem enfraquecer autorização ou auditoria administrativa.
 - [x] Rodar novamente os 20 testes e quatro regressões de registros auxiliares: 24 testes passaram.

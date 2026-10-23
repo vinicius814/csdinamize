@@ -10,12 +10,13 @@ export type PipedriveUsuario = { token: string; dominio: string; pipedrive_user_
 type Contexto = {
   userId: string;
   admin: boolean;
+  superadmin?: boolean;
   cache: Map<string, Promise<unknown>>;
 };
 
 const als = new AsyncLocalStorage<Contexto>();
 
-export function rodarComo<T>(c: { userId: string; admin: boolean }, fn: () => T): T {
+export function rodarComo<T>(c: { userId: string; admin: boolean; superadmin?: boolean }, fn: () => T): T {
   return als.run({ ...c, cache: new Map() }, fn);
 }
 
@@ -93,7 +94,9 @@ export async function salvarPipedrive(userId: string, p: PipedriveUsuario) {
     { onConflict: "user_id" },
   );
   if (error) throw error;
-  if (p.pipedrive_user_id) await sb.from("profiles").update({ pipedrive_user_id: p.pipedrive_user_id }).eq("id", userId);
+  if (!p.pipedrive_user_id) throw new Error("O Pipedrive não retornou seu identificador.");
+  const profile = await sb.from("profiles").update({ pipedrive_user_id: p.pipedrive_user_id }).eq("id", userId);
+  if (profile.error) throw profile.error;
 }
 
 export async function apagarPipedrive(userId: string) {

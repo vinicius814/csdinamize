@@ -1,0 +1,2 @@
+CREATE POLICY telegram_updates_server_only ON public.telegram_updates FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY telegram_deliveries_server_only ON public.telegram_deliveries FOR ALL TO service_role USING (true) WITH CHECK (true);
