@@ -1,0 +1,14 @@
+CREATE TABLE public.telegram_updates (update_id bigint PRIMARY KEY, status text NOT NULL DEFAULT 'processing', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+GRANT ALL ON public.telegram_updates TO service_role;
+ALTER TABLE public.telegram_updates ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.telegram_deliveries (user_id uuid NOT NULL, local_date date NOT NULL, status text NOT NULL DEFAULT 'processing', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(user_id,local_date));
+GRANT ALL ON public.telegram_deliveries TO service_role;
+ALTER TABLE public.telegram_deliveries ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.telegram_touch_updated() RETURNS trigger LANGUAGE plpgsql SET search_path=public AS $$ BEGIN NEW.updated_at=now(); RETURN NEW; END $$;
+REVOKE EXECUTE ON FUNCTION public.telegram_touch_updated() FROM PUBLIC, anon, authenticated;
+CREATE TRIGGER telegram_updates_updated BEFORE UPDATE ON public.telegram_updates FOR EACH ROW EXECUTE FUNCTION public.telegram_touch_updated();
+CREATE TRIGGER telegram_deliveries_updated BEFORE UPDATE ON public.telegram_deliveries FOR EACH ROW EXECUTE FUNCTION public.telegram_touch_updated();
+CREATE UNIQUE INDEX profiles_telegram_chat_unique ON public.profiles(telegram_chat_id) WHERE telegram_chat_id IS NOT NULL;
+CREATE OR REPLACE FUNCTION public.link_telegram(code text, chat bigint) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ DECLARE uid uuid; BEGIN SELECT p.id INTO uid FROM public.profiles p JOIN public.account_access a ON a.user_id=p.id WHERE p.telegram_codigo=code AND a.status='ativo' AND a.terms_accepted_at IS NOT NULL FOR UPDATE OF p; IF uid IS NULL THEN RAISE EXCEPTION 'Código inválido ou conta não liberada'; END IF; IF EXISTS(SELECT 1 FROM public.profiles WHERE telegram_chat_id=chat AND id<>uid) THEN RAISE EXCEPTION 'Telegram já vinculado a outra conta'; END IF; UPDATE public.profiles SET telegram_chat_id=chat,telegram_codigo=encode(gen_random_bytes(16),'hex') WHERE id=uid; RETURN uid; END $$;
+REVOKE EXECUTE ON FUNCTION public.link_telegram(text,bigint) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.link_telegram(text,bigint) TO service_role;
