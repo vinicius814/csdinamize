@@ -1,5 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { telegramStatus } from "@/lib/telegram.functions";
 import { useEffect, useState, type ReactNode } from "react";
 import { CheckCircle2, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
 import {

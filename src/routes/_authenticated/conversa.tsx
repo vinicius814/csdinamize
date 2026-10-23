@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { conversarComMunim } from "@/lib/munim.functions";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, Mic, MicOff } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Nucleo, type EstadoNucleo } from "@/components/munim/Nucleo";
 import { useAuth } from "@/lib/auth";
@@ -30,9 +30,9 @@ export const Route = createFileRoute("/_authenticated/conversa")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { title: "Conversa — Munim" },
-      { name: "description", content: "Converse com o Munim por texto ou voz." },
+      { name: "description", content: "Converse com o Munim por texto." },
       { property: "og:title", content: "Conversa — Munim" },
-      { property: "og:description", content: "Converse com o Munim por texto ou voz." },
+      { property: "og:description", content: "Converse com o Munim por texto." },
     ],
   }),
   component: Conversa,
@@ -45,7 +45,10 @@ type Msg = {
   conteudo: string;
   created_at: string;
   animar?: boolean;
+  meta?: unknown;
 };
+const ORIGEM:Record<string,string>={voz:"Voz",audio:"Áudio",video:"Vídeo",foto:"Foto",documento:"Documento"};
+function origem(m:Msg){const t=(m.meta as {origem_tipo?:string}|null)?.origem_tipo;return t?ORIGEM[t]:undefined;}
 
 function Digitando({ texto }: { texto: string }) {
   const [n, setN] = useState(0);
@@ -57,18 +60,9 @@ function Digitando({ texto }: { texto: string }) {
   return <ReactMarkdown>{texto.slice(0, n)}</ReactMarkdown>;
 }
 
-type Reconhecedor = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  start: () => void;
-  stop: () => void;
-  onresult: (e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
-  onend: () => void;
-};
 
 function Conversa() {
-  const { q, ouvir,topico } = Route.useSearch();
+  const { q,topico } = Route.useSearch();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -81,7 +75,7 @@ function Conversa() {
   const history = useQuery({ queryKey: ["conversation-history", userId,topicId], enabled: !!userId&&!!topicId,
     queryFn: async () => {
       if (!userId) throw new Error("Sessão ausente.");
-      const { data, error } = await supabase.from("mensagens").select("id, autor, canal, conteudo, created_at")
+      const { data, error } = await supabase.from("mensagens").select("id, autor, canal, conteudo, created_at, meta")
          .eq("user_id", userId).eq("conversa_id",topicId??"").order("created_at", { ascending: true }).limit(500);
       if (error) throw error;
       return data;
@@ -92,8 +86,6 @@ function Conversa() {
   const [estado, setEstado] = useState<EstadoNucleo>("repouso");
   const [erroVoz, setErroVoz] = useState<string | null>(null);
   const fimRef = useRef<HTMLDivElement>(null);
-  const recRef = useRef<Reconhecedor | null>(null);
-  const baseRef = useRef("");
   const conversar = useServerFn(conversarComMunim);
 
   useEffect(() => {
@@ -126,43 +118,10 @@ function Conversa() {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs.length, estado]);
 
-  const alternarMic = () => {
-    if (estado === "ouvindo") {
-      recRef.current?.stop();
-      return;
-    }
-    const W = window as unknown as { SpeechRecognition?: new () => Reconhecedor; webkitSpeechRecognition?: new () => Reconhecedor };
-    const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
-    if (!Ctor) {
-      setErroVoz("Seu navegador não permite ditar por voz. Tente o Chrome.");
-      return;
-    }
-    setErroVoz(null);
-    const rec = new Ctor();
-    rec.lang = "pt-BR";
-    rec.interimResults = true;
-    rec.continuous = true;
-    baseRef.current = texto ? texto.trimEnd() + " " : "";
-    rec.onresult = (e) => {
-      let t = "";
-      for (let i = 0; i < e.results.length; i++) t += e.results[i]?.[0]?.transcript ?? "";
-      setTexto(baseRef.current + t);
-    };
-    rec.onend = () => setEstado((s) => (s === "ouvindo" ? "repouso" : s));
-    recRef.current = rec;
-    rec.start();
-    setEstado("ouvindo");
-  };
-
-  useEffect(() => {
-    if (ouvir) alternarMic();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ouvir]);
 
   const enviar = async () => {
     const conteudo = texto.trim();
     if (!conteudo || !userId) return;
-    recRef.current?.stop();
     setTexto("");
     let sendTopic=topicId;if(!sendTopic){const t=await newTopic();sendTopic=t.id;await qc.invalidateQueries({queryKey:["topics"]});navigate({to:"/conversa",search:{topico:t.id}});}
     const { data, error } = await supabase
@@ -204,7 +163,7 @@ function Conversa() {
         <div>
           <h1 className="text-lg font-semibold text-foreground">Munim</h1>
           <p className="text-xs text-muted-foreground">
-            {estado === "ouvindo" ? "Ouvindo…" : estado === "pensando" ? "Pensando…" : "Pronto para ajudar"}
+            {estado === "pensando" ? "Pensando…" : "Pronto para ajudar"}
           </p>
         </div>
       </header>
@@ -216,7 +175,7 @@ function Conversa() {
           <div className="flex flex-col items-center py-16 text-center">
             <Nucleo tamanho={120} estado={estado} />
             <p className="mt-6 font-display text-xl text-foreground">Em que posso ajudar?</p>
-            <p className="mt-1 text-sm text-muted-foreground">Digite ou toque no microfone para falar.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Digite sua mensagem. Áudio, foto, vídeo e documentos: envie pelo Telegram.</p>
           </div>
         )}
         {msgs.map((m) => {
@@ -231,7 +190,7 @@ function Conversa() {
               >
                 {m.canal === "telegram" && (
                   <span className={cn("mb-1 inline-block rounded px-1.5 text-[10px] font-medium", meu ? "bg-background/20" : "bg-primary-soft text-primary")}>
-                    Telegram
+                    Telegram{origem(m)?` · ${origem(m)}`:""}
                   </span>
                 )}
                 {meu ? (
@@ -258,6 +217,7 @@ function Conversa() {
       <div className="pb-4">
         {capture?.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">Guardar: {capture.tipo} · {capture.titulo}?<Button size="sm" variant="link" onClick={async()=>{try{const item=await saveCapture({data:{tipo:capture.tipo,titulo:capture.titulo,conteudo:capture.conteudo,area_id:capture.area_id,data_alvo:capture.data_alvo,pessoa:capture.pessoa}});setCapture(item);qc.invalidateQueries({queryKey:["personal"]});}catch(e){setErroVoz(e instanceof Error?e.message:"Não consegui guardar.");}}}>Guardar</Button><Button size="sm" variant="link" onClick={()=>setCapture(null)}>Agora não</Button></div>}{capture&&!capture.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-success">Salvei: {capture.tipo} · {capture.titulo}<Button size="sm" variant="link" onClick={()=>setEditCapture(true)}>Editar</Button><Button size="sm" variant="link" onClick={async()=>{await undo({data:{id:capture.id}});setCapture(null);qc.invalidateQueries({queryKey:["personal"]});}}>Desfazer</Button></div>}
         {erroVoz && <p className="mb-2 text-xs text-ember">{erroVoz}</p>}
+        <p className="mb-2 text-[11px] text-muted-foreground">Áudio, foto, vídeo e documentos: envie pelo Telegram</p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -278,17 +238,6 @@ function Conversa() {
             placeholder="Pergunte ou peça algo ao Munim…"
             className="max-h-40 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
-          <button
-            type="button"
-            onClick={alternarMic}
-            aria-label={estado === "ouvindo" ? "Parar de ouvir" : "Falar"}
-            className={cn(
-              "grid h-10 w-10 place-items-center rounded-lg transition-colors duration-150",
-              estado === "ouvindo" ? "bg-primary-soft text-primary shadow-glow-sm" : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            {estado === "ouvindo" ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </button>
           <Button
             type="submit"
             disabled={!texto.trim()||estado==="pensando"}
