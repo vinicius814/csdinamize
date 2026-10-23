@@ -6,13 +6,8 @@ const MODELO = "anthropic/claude-sonnet-5";
 const FUSO = "America/Sao_Paulo";
 
 async function google(conector: "google_calendar" | "google_mail", envKey: string, path: string) {
-  const lk = process.env["LOVABLE_API_KEY"];
-  const ck = process.env[envKey];
-  if (!lk || !ck) throw new Error(`${conector} não conectado`);
-  const r = await fetch(`${GW}/${conector}${path}`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": ck } });
-  const t = await r.text();
-  if (!r.ok) throw new Error(`${conector} [${r.status}]: ${t.slice(0, 200)}`);
-  return JSON.parse(t);
+  const I=await import("./integracoes.server");
+  return I.gw(conector,path);
 }
 
 function limitesHojeSP() {
@@ -39,7 +34,7 @@ async function emailsImportantes() {
   const ids: string[] = (lista.messages ?? []).map((m: any) => m.id);
   const det = await Promise.all(
     ids.map((id) =>
-      google("google_mail", "GOOGLE_MAIL_API_KEY", `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`).catch(() => null),
+      google("google_mail", "GOOGLE_MAIL_API_KEY", `/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`).catch(e => ({erro:e.message,acao:"/conexoes"})),
     ),
   );
   return det.filter(Boolean).map((m: any) => {
@@ -53,7 +48,7 @@ export const statusGoogle = createServerFn({ method: "POST" })
   .handler(async () => {
     const [cal, mail] = await Promise.all([
       google("google_calendar", "GOOGLE_CALENDAR_API_KEY", "/calendar/v3/users/me/calendarList?maxResults=1").then(() => true).catch(() => false),
-      google("google_mail", "GOOGLE_MAIL_API_KEY", "/gmail/v1/users/me/profile").then((p) => p.emailAddress as string).catch(() => null),
+      google("google_mail", "GOOGLE_MAIL_API_KEY", "/gmail/v1/users/me/profile").then((p) => p.emailAddress as string).catch(e => ({erro:e.message,acao:"/conexoes"})),
     ]);
     return { agenda: cal, gmail: mail };
   });
@@ -81,6 +76,7 @@ export const gerarRotina = createServerFn({ method: "POST" })
     if (!apiKey) throw new Error("Cérebro sem chave configurada.");
     const I = await import("./integracoes.server");
     const tipo = data.tipo;
+    const {checkBudget}=await import("./budget.server");await checkBudget(userId);
 
     const amanha = new Date(Date.now() + 86400000).toLocaleDateString("en-CA", { timeZone: FUSO });
     const { data: perfil } = await supabase.from("profiles").select("nome, pipedrive_user_id").eq("id", userId).maybeSingle();
@@ -88,16 +84,16 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const desde = new Date(Date.now() - (tipo === "semana" ? 7 : 1) * 86400000).toISOString();
 
     const [agenda, emails, pend, notas, riscos, ideias, decididas, agAmanha, memoria] = await Promise.all([
-      tipo !== "semana" ? agendaHoje().catch((e) => (console.error(e), null)) : null,
-      tipo === "manha" ? emailsImportantes().catch((e) => (console.error(e), null)) : null,
+      tipo !== "semana" ? agendaHoje().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
+      tipo === "manha" ? emailsImportantes().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       supabase.from("acoes").select("resumo").eq("status", "pendente").limit(10),
       supabase.from("notas").select("titulo, lembrete_em").not("lembrete_em", "is", null).gte("lembrete_em", new Date().toISOString()).order("lembrete_em").limit(5),
-      tipo !== "fechamento" ? I.sinaisDeRisco(pdId).catch((e) => (console.error(e), null)) : null,
+      tipo !== "fechamento" ? I.sinaisDeRisco(pdId).catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" || tipo === "manha"
         ? supabase.from("notas").select("titulo, subcategoria, tags, resumo").in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(30)
         : null,
       tipo !== "manha" ? supabase.from("acoes").select("resumo, status").neq("status", "pendente").gte("decidido_em", desde).limit(20) : null,
-      tipo === "fechamento" ? I.eventos(`${amanha}T00:00:00-03:00`, `${amanha}T23:59:59-03:00`).catch(() => null) : null,
+      tipo === "fechamento" ? I.eventos(`${amanha}T00:00:00-03:00`, `${amanha}T23:59:59-03:00`).catch(e => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" ? I.memoriaDrive().then((m) => m.slice(0, 4000)).catch(() => "") : "",
     ]);
 
@@ -106,11 +102,11 @@ export const gerarRotina = createServerFn({ method: "POST" })
       agenda_hoje: agenda ?? undefined,
       agenda_amanha: agAmanha ?? undefined,
       emails_nao_lidos: emails ?? undefined,
-      aprovacoes_pendentes: pend.data?.map((a) => a.resumo) ?? [],
+      aprovacoes_pendentes: pend.error?{erro:pend.error.message}:pend.data?.map((a) => a.resumo) ?? [],
       acoes_decididas_no_periodo: decididas?.data ?? undefined,
-      proximos_lembretes: notas.data ?? [],
+      proximos_lembretes: notas.error?{erro:notas.error.message}:notas.data ?? [],
       sinais_de_risco: riscos ?? undefined,
-      ideias_e_projetos: ideias?.data ?? undefined,
+      ideias_e_projetos: ideias?.error?{erro:ideias.error.message}:ideias?.data ?? undefined,
       memoria: memoria || undefined,
     }).slice(0, 40000);
 
@@ -118,15 +114,17 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const client = new Anthropic({ baseURL: "https://ai.gateway.lovable.dev", apiKey, maxRetries: 0, defaultHeaders: { "X-Lovable-AIG-SDK": "anthropic-sdk" } });
 
     let md = "";
+    let entrada=0,saida=0;
     try {
       const r = await client.messages
         .stream({
           model: MODELO,
           max_tokens: 1800,
-          system: `Você é o Munim, conselheiro executivo pessoal de ${perfil?.nome ?? "seu usuário"}, inspirado no J.A.R.V.I.S.: confiante, calmo, preciso, próximo. Português do Brasil, Markdown leve. Seja direto, recomende, não apenas descreva. Não invente nada fora dos dados; se uma fonte estiver indisponível, ignore-a sem drama.\n\n${INSTRUCOES[tipo]}`,
+          system: `Você é o Munim, conselheiro executivo pessoal de ${perfil?.nome ?? "seu usuário"}, inspirado no J.A.R.V.I.S.: confiante, calmo, preciso, próximo. Português do Brasil, Markdown leve. Seja direto, recomende, não apenas descreva. Não invente nada fora dos dados; se uma fonte estiver indisponível, diga claramente qual falhou e ofereça [Conectar](/conexoes). Nunca conclua tudo em dia a partir de erro ou lista vazia. Use apenas números exatos retornados. Não use saudação Bom dia/Boa tarde/Boa noite: o texto pode ser exibido em outro horário.\n\n${INSTRUCOES[tipo]}`,
           messages: [{ role: "user", content: `Dados:\n${contexto}` }],
         })
         .finalMessage();
+      entrada=r.usage.input_tokens;saida=r.usage.output_tokens;
       md = r.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n").trim();
     } catch (e: any) {
       console.error("rotina erro", tipo, e?.status, e?.message);
@@ -137,5 +135,6 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("briefings").insert({ user_id: userId, tipo: TIPO_BANCO[tipo], conteudo_md: md });
     if (error) throw new Error("Não consegui salvar.");
+    const usage=await supabaseAdmin.from("uso").insert({user_id:userId,funcao:`rotina_${tipo}`,modelo:MODELO,tokens_entrada:entrada,tokens_saida:saida,custo_usd:(entrada*3+saida*15)/1000000});if(usage.error)throw usage.error;
     return { ok: true };
   });
