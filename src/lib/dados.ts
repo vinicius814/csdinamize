@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { coberturaAoVivo } from "./cerebro.functions";
 import { useAuth } from "@/lib/auth";
+import {useConnectionPresence} from "./connection-presence";
 
 export const DIAS_SEM_CONTATO = 60;
 
@@ -75,8 +76,9 @@ export function semContatoHaMais(ultimo: string | null, hoje = new Date(), dias 
 }
 
 export function useCarteira() {
+ const presence=useConnectionPresence();
  const {session}=useAuth();const fetch=useServerFn(coberturaAoVivo);
- return useQuery({queryKey:["carteira",session?.user.id],enabled:!!session,queryFn:()=>fetch()});
+ return useQuery({queryKey:["carteira",session?.user.id],enabled:!!session&&presence.data?.pipedrive===true,queryFn:()=>fetch()});
 }
 
 export type Rotina = "manha" | "riscos" | "fechamento" | "semana";

@@ -12,17 +12,21 @@ import { Cabecalho, Pagina } from "@/components/munim/PaginaVazia";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import {connectionRequestCounts} from "@/lib/connection-requests.functions";
 export const Route=createFileRoute("/_authenticated/admin")({
   beforeLoad:async({context})=>{const {data}=await supabase.auth.getSession();if(!data.session)throw redirect({to:"/auth",search:{}});const a=await context.queryClient.ensureQueryData(accountQueryOptions(data.session.user.id)); if(!canAdminister(a.role,a.status)) throw redirect({to:"/"});},
   head:()=>({meta:[{title:"Administração — Munim"},{name:"description",content:"Acessos, custos e metadados de contas do Munim."},{property:"og:title",content:"Administração — Munim"},{property:"og:description",content:"Administração privada de acessos e custos."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Admin,
 });
 function Admin(){
+  const readRequests=useServerFn(connectionRequestCounts);
+  const requests=useQuery({queryKey:["admin-connection-requests"],queryFn:()=>readRequests()});
   const read=useServerFn(adminOverview),mutate=useServerFn(adminAction),qc=useQueryClient();
   const query=useQuery({queryKey:["admin-overview"],queryFn:()=>read()});
   const [search,setSearch]=useState(""),[busy,setBusy]=useState(false);
   async function act(data:Parameters<typeof mutate>[0]){setBusy(true);try{await mutate(data);await Promise.all([qc.invalidateQueries({queryKey:["admin-overview"]}),qc.invalidateQueries({queryKey:["account-state"]})]);toast.success("Alteração registrada.");}catch(e){toast.error(e instanceof Error ? e.message : "Não consegui alterar.");}finally{setBusy(false);}}
   const d=query.data;
   return <Pagina><Cabecalho titulo="Administração" frase="Acessos e custos. Seu Munim pessoal continua separado."/>
+    <section className="mb-6 border-b border-border py-5"><h2 className="font-display text-lg">Conexões solicitadas</h2>{requests.error?<p role="alert" className="text-warning">{requests.error.message}</p>:requests.isPending?<p className="text-sm text-muted-foreground">Carregando…</p>:!requests.data?.length?<p className="text-sm text-muted-foreground">Nenhum pedido ainda.</p>:<ul className="mt-3 space-y-2">{requests.data.map(r=><li key={r.ferramenta} className="flex justify-between text-sm"><span>{r.ferramenta}</span><span>{r.quantidade} pedidos</span></li>)}</ul>}</section>
     {query.isError && <p role="alert" className="text-destructive">{query.error.message}<Button variant="outline" onClick={()=>query.refetch()}>Tentar de novo</Button></p>}
     {!d && !query.isError && <PageSkeleton />}
     {d && <><div className="grid grid-cols-2 gap-4 lg:grid-cols-5">{[["Usuários",d.metrics.total],["Ativos · 7 dias",d.metrics.active7],["Ativos · 30 dias",d.metrics.active30],["Pendentes",d.metrics.pending],["IA · mês",`US$ ${d.metrics.cost.toFixed(2)}`]].map(([label,value])=><div key={label} className="border-b border-border py-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 font-display text-2xl">{value}</p></div>)}</div>
