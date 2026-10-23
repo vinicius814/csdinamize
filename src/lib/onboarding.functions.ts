@@ -1,10 +1,20 @@
 import {createServerFn} from "@tanstack/react-start";
 import {comCredenciais} from "./credenciais.middleware";
 import {z} from "zod";
+async function allOptions(I:{gw:(connector:"pipedrive",path:string)=>Promise<any>},path:string){
+ const rows:any[]=[];let start=0;
+ for(let page=0;page<200;page++){
+  const result=await I.gw("pipedrive",`${path}?limit=500&start=${start}`);
+  if(result.success!==true || (result.data!==null && !Array.isArray(result.data)))throw new Error("Resposta inválida do Pipedrive.");
+  rows.push(...(result.data??[]));const pagination=result.additional_data?.pagination;
+  if(!pagination?.more_items_in_collection)return {data:rows,erro:null};
+  if(!Number.isFinite(pagination.next_start)||pagination.next_start<=start)throw new Error("Lista incompleta do Pipedrive.");start=pagination.next_start;
+ }throw new Error("Lista incompleta do Pipedrive.");
+}
 export const onboardingOptions=createServerFn({method:"POST"}).middleware([comCredenciais]).handler(async({context})=>{
  const I=await import("./integracoes.server");
  const [pipelines,fields,config,profile]=await Promise.all([
- I.gw("pipedrive","/pipelines").catch(e=>({erro:e.message})),I.gw("pipedrive","/dealFields").catch(e=>({erro:e.message})),
+ allOptions(I,"/pipelines").catch(e=>({data:[],erro:e.message})),allOptions(I,"/dealFields").catch(e=>({data:[],erro:e.message})),
  context.supabase.from("config_usuario").select("pipeline_id,campo_ultimo_contato,dias_alerta,onboarding_concluido").eq("user_id",context.userId).maybeSingle(),
  context.supabase.from("profiles").select("fuso,horario_briefing").eq("id",context.userId).single()]);
  return {pipelines:(pipelines.data??[]).map((p:any)=>({id:p.id,name:p.name})),fields:(fields.data??[]).filter((p:any)=>p.field_type==="date").map((p:any)=>({key:p.key,name:p.name})),erro:pipelines.erro??fields.erro??null,config:config.data,profile:profile.data};

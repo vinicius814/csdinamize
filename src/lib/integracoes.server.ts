@@ -82,10 +82,11 @@ export type ClienteVivo = {
 export async function userSettings() {
   const C = await import("./credenciais.server");
   const {userId,superadmin}=C.contexto();
+  const legacy = superadmin && !(await C.pipedriveAtual());
   const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");
   const [config,profile]=await Promise.all([db.from("config_usuario").select("pipeline_id,campo_ultimo_contato,dias_alerta").eq("user_id",userId).maybeSingle(),db.from("profiles").select("pipedrive_user_id,fuso").eq("id",userId).single()]);
   if(config.error||profile.error)throw new Error("Não consegui carregar suas configurações.");
-  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(superadmin?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(superadmin?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
+  return {owner:profile.data.pipedrive_user_id,timezone:profile.data.fuso,pipeline:config.data?.pipeline_id??(legacy?PIPELINE_CS:null),field:config.data?.campo_ultimo_contato??(legacy?CAMPO_ULTIMO_CONTATO:null),days:config.data?.dias_alerta??60};
 }
 export async function carteiraPipedrive(pipedriveUserId?: number | null): Promise<ClienteVivo[]> {
   const settings=await userSettings();
