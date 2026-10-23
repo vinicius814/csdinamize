@@ -206,3 +206,11 @@
   & a { color: var(--color-primary); text-decoration: underline; }
   & code { background: var(--color-secondary); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
 }
+.map-node { background:var(--card); color:var(--foreground); border:1px solid var(--border); border-radius:8px; }
+.map-center { border-color:var(--primary); color:var(--primary); }
+.area-azul { border-color:var(--primary); }
+.area-verde { border-color:var(--success); }
+.area-ambar { border-color:var(--warning); }
+.area-rosa { border-color:var(--area-rosa); }
+.react-flow__controls-button { background:var(--card); color:var(--foreground); border-color:var(--border); }
+.react-flow__controls-button svg { fill:currentColor; }
