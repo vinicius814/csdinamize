@@ -538,6 +538,54 @@ export type Database = {
           },
         ]
       }
+      entradas_telegram: {
+        Row: {
+          arquivo: Json | null
+          atualizado_em: string
+          chat_id: number
+          created_at: string
+          erro: string | null
+          extracao_erro: string | null
+          id: string
+          legenda: string | null
+          status: string
+          texto: string | null
+          tipo: string
+          update_id: number
+          user_id: string | null
+        }
+        Insert: {
+          arquivo?: Json | null
+          atualizado_em?: string
+          chat_id: number
+          created_at?: string
+          erro?: string | null
+          extracao_erro?: string | null
+          id?: string
+          legenda?: string | null
+          status?: string
+          texto?: string | null
+          tipo: string
+          update_id: number
+          user_id?: string | null
+        }
+        Update: {
+          arquivo?: Json | null
+          atualizado_em?: string
+          chat_id?: number
+          created_at?: string
+          erro?: string | null
+          extracao_erro?: string | null
+          id?: string
+          legenda?: string | null
+          status?: string
+          texto?: string | null
+          tipo?: string
+          update_id?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       google_tokens: {
         Row: {
           atualizado_em: string
