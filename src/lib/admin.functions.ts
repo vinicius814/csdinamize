@@ -50,6 +50,6 @@ export const adminAction = createServerFn({ method:"POST" }).middleware([require
   if ("userId" in data && data.userId===context.userId && (data.action==="role" || data.action==="status")) throw new Error("Não altere seu próprio acesso administrativo.");
   // Atomic mutation + audit; role is verified before privileged access.
   const { supabaseAdmin: db }=await import("@/integrations/supabase/client.server");
-  const { error }=await db.rpc("admin_mutation", { actor:context.userId,target:"userId" in data ? data.userId : null, operation:data.action, value:data.value });
+  const { error }=await db.rpc("admin_mutation", { actor:context.userId,target:"userId" in data ? data.userId : context.userId, operation:data.action, value:data.value });
   if(error) throw new Error(error.message); return {ok:true};
 });
