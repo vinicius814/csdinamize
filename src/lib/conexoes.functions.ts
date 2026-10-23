@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { comCredenciais } from "@/lib/credenciais.middleware";
+import { providerError } from "./provider-error";
 
 export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean };
 export type ServicoGoogle = "google_mail" | "google_calendar" | "google_drive";
@@ -34,19 +35,19 @@ export const statusConexoes = createServerFn({ method: "POST" })
   .middleware([comCredenciais])
   .handler(async ({ context }) => {
     const C = await import("./credenciais.server");
-    const { admin } = C.contexto();
+    const { admin, superadmin } = C.contexto();
     const lk = process.env["LOVABLE_API_KEY"];
 
     const ia: StatusConexao = lk ? { ok: true, detalhe: "Cérebro online e pronto para pensar." } : { ok: false, detalhe: "Cérebro sem chave configurada." };
 
     // Pipedrive
-    let pipedrive: StatusConexao = { ok: false, detalhe: "Conecte seu Pipedrive com o seu token." };
+    let pipedrive: StatusConexao = { ok: false, detalhe: "Pipedrive não conectado." };
     const pd = await C.pipedriveAtual();
     const pk = process.env["PIPEDRIVE_API_KEY"];
     try {
       let r: Response | null = null;
       if (pd) r = await fetch(`https://${pd.dominio}.pipedrive.com/api/v1/users/me?api_token=${encodeURIComponent(pd.token)}`);
-      else if (admin && lk && pk) r = await fetch(`${GW}/pipedrive/users/me`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": pk } });
+      else if (superadmin && lk && pk) r = await fetch(`${GW}/pipedrive/users/me`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": pk } });
       if (r) {
         if (r.ok) {
           const j = (await r.json()) as { data?: { name?: string; company_name?: string } };
@@ -61,18 +62,24 @@ export const statusConexoes = createServerFn({ method: "POST" })
     const servicos = {} as Record<ServicoGoogle, StatusConexao>;
     await Promise.all(
       (Object.keys(ESCOPOS) as ServicoGoogle[]).map(async (s) => {
-        const chave = await C.chaveGoogleAtual(s);
+        let chave: string | null;
+        try { chave = await C.chaveGoogleAtual(s); }
+        catch (e) { servicos[s] = {ok: false, proprio: true, detalhe: `Falha ao carregar conexão: ${e instanceof Error ? e.message : "erro desconhecido"}`}; return; }
         const proj = process.env[{ google_mail: "GOOGLE_MAIL_API_KEY", google_calendar: "GOOGLE_CALENDAR_API_KEY", google_drive: "GOOGLE_DRIVE_API_KEY" }[s]];
         const usar = chave ?? (admin ? proj : undefined);
         if (!usar || !lk) {
           servicos[s] = { ok: false, detalhe: "Não conectado." };
           return;
         }
-        const r = await fetch(`${GW}/${s}${PROVA[s]}`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": usar } }).catch(() => null);
-        if (r?.status === 401 && chave) servicos[s] = { ok: false, proprio: true, detalhe: "Precisa renovar o acesso." };
-        else servicos[s] = r?.ok
-          ? { ok: true, proprio: !!chave, detalhe: chave ? "Conectado com a sua conta." : "Conexão provisória do projeto." }
-          : { ok: false, proprio: !!chave, detalhe: "Sem acesso agora." };
+        try {
+          const r = await fetch(`${GW}/${s}${PROVA[s]}`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": usar } });
+          if (r.ok) servicos[s] = { ok: true, proprio: !!chave, detalhe: chave ? "Conectado com a sua conta." : "Conexão provisória do projeto." };
+          else {
+            const message = providerError(await r.text());
+            console.error(`${s} HTTP ${r.status}: ${message}`);
+            servicos[s] = { ok: false, proprio: !!chave, detalhe: `HTTP ${r.status}: ${message}` };
+          }
+        } catch (e) { servicos[s] = {ok: false, proprio: !!chave, detalhe: `Falha de rede: ${e instanceof Error ? e.message : "sem resposta"}`}; }
       }),
     );
     const todos = Object.values(servicos);
@@ -83,12 +90,13 @@ export const statusConexoes = createServerFn({ method: "POST" })
     };
 
     const { data: p } = await context.supabase.from("profiles").select("telegram_chat_id").eq("id", context.userId).single();
+    const botConfigured = !!process.env["TELEGRAM_BOT_TOKEN"];
 
     return {
       ia,
       pipedrive,
       google,
-      telegram: { ok: !!p?.telegram_chat_id, detalhe: p?.telegram_chat_id ? "Canal móvel ativo." : "Escaneie o QR para ativar." } as StatusConexao,
+      telegram: { ok: botConfigured && !!p?.telegram_chat_id, detalhe: !botConfigured ? "Bot ainda não configurado. O responsável precisa salvar o token do BotFather." : p?.telegram_chat_id ? "Canal móvel ativo." : "Abra o bot para vincular sua conta." } as StatusConexao,
       servicos,
       pipedriveDominio: pd?.dominio ?? null,
     };
@@ -158,6 +166,7 @@ export const salvarPipedrive = createServerFn({ method: "POST" })
     const r = await fetch(`https://${dominio}.pipedrive.com/api/v1/users/me?api_token=${encodeURIComponent(data.token)}`).catch(() => null);
     if (!r?.ok) return { ok: false, erro: "O Pipedrive não aceitou esse token com esse domínio." };
     const j = (await r.json()) as { data?: { id?: number; name?: string } };
+    if (!j.data?.id) return {ok:false,erro:"O Pipedrive não retornou seu identificador."};
     await C.salvarPipedrive(context.userId, { token: data.token, dominio, pipedrive_user_id: j.data?.id ?? null });
     return { ok: true, nome: j.data?.name ?? null, erro: null as string | null };
   });
