@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       account_access: {
         Row: {
+          atualizado_em: string
           created_at: string
           last_access_at: string | null
           status: string
@@ -25,6 +26,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          atualizado_em?: string
           created_at?: string
           last_access_at?: string | null
           status?: string
@@ -34,6 +36,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          atualizado_em?: string
           created_at?: string
           last_access_at?: string | null
           status?: string
@@ -101,18 +104,21 @@ export type Database = {
       }
       admin_settings: {
         Row: {
+          atualizado_em: string
           created_at: string
           id: boolean
           manual_approval: boolean
           updated_at: string
         }
         Insert: {
+          atualizado_em?: string
           created_at?: string
           id?: boolean
           manual_approval?: boolean
           updated_at?: string
         }
         Update: {
+          atualizado_em?: string
           created_at?: string
           id?: boolean
           manual_approval?: boolean
@@ -159,6 +165,7 @@ export type Database = {
         Row: {
           action: string
           actor_id: string
+          atualizado_em: string
           created_at: string
           details: Json
           id: string
@@ -168,6 +175,7 @@ export type Database = {
         Insert: {
           action: string
           actor_id: string
+          atualizado_em?: string
           created_at?: string
           details?: Json
           id?: string
@@ -177,6 +185,7 @@ export type Database = {
         Update: {
           action?: string
           actor_id?: string
+          atualizado_em?: string
           created_at?: string
           details?: Json
           id?: string
@@ -678,18 +687,21 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          atualizado_em: string
           created_at: string
           role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          atualizado_em?: string
           created_at?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          atualizado_em?: string
           created_at?: string
           role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string

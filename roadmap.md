@@ -1,4 +1,8 @@
 # Munim — cadastro, administração e confiança
+- [x] Diagnosticar triggers e adicionar atualizado_em às quatro tabelas incompatíveis, preservando triggers.
+- [x] Isolar falhas de último acesso e consumo sem enfraquecer autorização ou auditoria administrativa.
+- [x] Rodar novamente os 20 testes e quatro regressões de registros auxiliares: 24 testes passaram.
+- [ ] Verificar /, /conversa, /carteira, /conexoes e /admin no publicado com sessão — bloqueado: Supabase externo sem sessão disponível.
 - [x] Migrar papéis protegidos, status, aceite, auditoria e privacidade; promover a conta indicada.
 - [x] Cadastro Google/e-mail, confirmação, recuperação, espera e onboarding.
 - [x] Intranet com metadados, métricas, ações e limites auditados.

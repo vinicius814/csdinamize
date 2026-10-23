@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { comCredenciais } from "@/lib/credenciais.middleware";
 import { pontuacao } from "./ideias";
+import { recordAuxiliary } from "./auxiliary-record";
 
 const MODELO = "anthropic/claude-sonnet-5";
 const PIPEDRIVE_GW = "https://connector-gateway.lovable.dev/pipedrive";
@@ -422,7 +423,7 @@ export const conversarComMunim = createServerFn({ method: "POST" })
     });
     if(replyError)throw new Error("Não consegui salvar a resposta.");
     const custo = (entrada * 3 + saida * 15) / 1_000_000;
-    await supabaseAdmin.from("uso").insert({ user_id: userId, funcao: "chat", modelo: MODELO, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo });
+    await recordAuxiliary(() => supabaseAdmin.from("uso").insert({ user_id: userId, funcao: "chat", modelo: MODELO, tokens_entrada: entrada, tokens_saida: saida, custo_usd: custo }), "chat_usage");
     return { ok: true };
   });
 

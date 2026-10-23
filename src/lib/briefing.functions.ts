@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { comCredenciais } from "@/lib/credenciais.middleware";
+import { recordAuxiliary } from "./auxiliary-record";
 
 const GW = "https://connector-gateway.lovable.dev";
 const MODELO = "anthropic/claude-sonnet-5";
@@ -111,6 +112,6 @@ export const gerarRotina = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("briefings").insert({ user_id: userId, tipo: TIPO_BANCO[tipo], conteudo_md: md });
     if (error) throw new Error("Não consegui salvar.");
-    const usage=await supabaseAdmin.from("uso").insert({user_id:userId,funcao:`rotina_${tipo}`,modelo:MODELO,tokens_entrada:entrada,tokens_saida:saida,custo_usd:(entrada*3+saida*15)/1000000});if(usage.error)throw usage.error;
+    await recordAuxiliary(() => supabaseAdmin.from("uso").insert({user_id:userId,funcao:`rotina_${tipo}`,modelo:MODELO,tokens_entrada:entrada,tokens_saida:saida,custo_usd:(entrada*3+saida*15)/1000000}), "routine_usage");
     return { ok: true };
   });
