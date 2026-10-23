@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute,useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { conversarComMunim } from "@/lib/munim.functions";
 import { useEffect, useRef, useState } from "react";
@@ -12,10 +12,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-type Busca = { q?: string | undefined; ouvir?: boolean | undefined };
+import {topics,createTopic,editTopic} from "@/lib/topics.functions";
+import {undoItem} from "@/lib/personal.functions";
+import {ItemDetail} from "@/components/munim/ItemDetail";
+import {Sheet,SheetContent,SheetTitle} from "@/components/ui/sheet";
+import {Menu,Plus,Pin,Archive,Pencil} from "lucide-react";
+type Busca = { topico?:string|undefined; q?: string | undefined; ouvir?: boolean | undefined };
 
 export const Route = createFileRoute("/_authenticated/conversa")({
   validateSearch: (s: Record<string, unknown>): Busca => ({
+    topico:typeof s["topico"]==="string"?s["topico"]:undefined,
     q: typeof s["q"] === "string" ? s["q"] : undefined,
     ouvir: s["ouvir"] === true || s["ouvir"] === "true" ? true : undefined,
   }),
@@ -62,16 +68,21 @@ type Reconhecedor = {
 };
 
 function Conversa() {
-  const { q, ouvir } = Route.useSearch();
+  const { q, ouvir,topico } = Route.useSearch();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [msgs, setMsgs] = useState<Msg[]>([]);
-  const qc = useQueryClient();
-  const history = useQuery({ queryKey: ["conversation-history", userId], enabled: !!userId,
+  const qc = useQueryClient();const navigate=useNavigate();const readTopics=useServerFn(topics),newTopic=useServerFn(createTopic),updateTopic=useServerFn(editTopic),undo=useServerFn(undoItem);
+  const topicQuery=useQuery({queryKey:["topics",userId],queryFn:()=>readTopics(),enabled:!!userId});
+  const topicId=topico??topicQuery.data?.find(t=>!t.arquivada)?.id;
+  const [drawer,setDrawer]=useState(false),[topicSearch,setTopicSearch]=useState(""),[capture,setCapture]=useState<any>(null),[editCapture,setEditCapture]=useState(false);
+  const topicList=<div className="flex flex-col gap-2"><Button onClick={async()=>{const t=await newTopic();await qc.invalidateQueries({queryKey:["topics"]});navigate({to:"/conversa",search:{topico:t.id}});setDrawer(false);}}><Plus className="h-4 w-4"/>Nova conversa</Button><input aria-label="Buscar tópicos" placeholder="Buscar tópicos" className="my-2 min-w-0 rounded-md border border-input bg-background p-2 text-sm" value={topicSearch} onChange={e=>setTopicSearch(e.target.value)}/>{topicQuery.data?.filter(t=>!t.arquivada&&t.titulo.toLowerCase().includes(topicSearch.toLowerCase())).map(t=><div key={t.id} className="border-b border-border py-2"><Button variant={t.id===topicId?"secondary":"ghost"} className="h-auto w-full justify-start whitespace-normal text-left" onClick={()=>{navigate({to:"/conversa",search:{topico:t.id}});setDrawer(false);}}>{t.fixada&&<Pin className="h-3 w-3"/>}{t.titulo}</Button><div className="flex"><Button variant="ghost" size="icon" aria-label={`Renomear ${t.titulo}`} onClick={async()=>{const titulo=window.prompt("Novo título",t.titulo);if(titulo){await updateTopic({data:{id:t.id,titulo}});qc.invalidateQueries({queryKey:["topics"]});}}}><Pencil className="h-3 w-3"/></Button><Button variant="ghost" size="icon" aria-label={`Fixar ${t.titulo}`} onClick={async()=>{await updateTopic({data:{id:t.id,fixada:!t.fixada}});qc.invalidateQueries({queryKey:["topics"]});}}><Pin className="h-3 w-3"/></Button><Button variant="ghost" size="icon" aria-label={`Arquivar ${t.titulo}`} onClick={async()=>{await updateTopic({data:{id:t.id,arquivada:true}});qc.invalidateQueries({queryKey:["topics"]});navigate({to:"/conversa",search:{}});}}><Archive className="h-3 w-3"/></Button></div></div>)}</div>;
+
+  const history = useQuery({ queryKey: ["conversation-history", userId,topicId], enabled: !!userId&&!!topicId,
     queryFn: async () => {
       if (!userId) throw new Error("Sessão ausente.");
       const { data, error } = await supabase.from("mensagens").select("id, autor, canal, conteudo, created_at")
-        .eq("user_id", userId).order("created_at", { ascending: true }).limit(500);
+         .eq("user_id", userId).eq("conversa_id",topicId??"").order("created_at", { ascending: true }).limit(500);
       if (error) throw error;
       return data;
     },
@@ -97,18 +108,19 @@ function Conversa() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "mensagens", filter: `user_id=eq.${userId}` },
         (p) => {
-          const m = p.new as Msg;
+          const m = p.new as Msg & {conversa_id:string};
+          if(m.conversa_id!==topicId)return;
           setMsgs((atual) =>
             atual.some((x) => x.id === m.id) ? atual : [...atual, { ...m, animar: m.autor === "munim" }],
           );
-          qc.setQueryData<Msg[]>(["conversation-history", userId], current => current?.some(x => x.id === m.id) ? current : [...(current ?? []), m]);
+          qc.setQueryData<Msg[]>(["conversation-history", userId,topicId], current => current?.some(x => x.id === m.id) ? current : [...(current ?? []), m]);
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(canal);
     };
-  }, [userId, qc]);
+  }, [userId, qc,topicId]);
 
   useEffect(() => {
     fimRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -152,9 +164,10 @@ function Conversa() {
     if (!conteudo || !userId) return;
     recRef.current?.stop();
     setTexto("");
+    let sendTopic=topicId;if(!sendTopic){const t=await newTopic();sendTopic=t.id;await qc.invalidateQueries({queryKey:["topics"]});navigate({to:"/conversa",search:{topico:t.id}});}
     const { data, error } = await supabase
       .from("mensagens")
-      .insert({ user_id: userId, autor: "usuario", canal: "app", conteudo })
+      .insert({ user_id: userId, autor: "usuario", canal: "app", conteudo,conversa_id:sendTopic })
       .select("id, autor, canal, conteudo, created_at")
       .single();
     if (error) {
@@ -165,11 +178,12 @@ function Conversa() {
     setMsgs((a) => (a.some((x) => x.id === data.id) ? a : [...a, data]));
     setEstado("pensando");
     try {
-      await conversar({ data: { conteudo } });
+      const response=await conversar({ data: { conteudo,conversa_id:sendTopic } });
+      setCapture(response.captura);qc.invalidateQueries({queryKey:["personal"]});qc.invalidateQueries({queryKey:["topics"]});
       const { data: novas } = await supabase
         .from("mensagens")
         .select("id, autor, canal, conteudo, created_at")
-        .eq("autor", "munim")
+        .eq("user_id",userId).eq("conversa_id",sendTopic).eq("autor", "munim")
         .order("created_at", { ascending: false })
         .limit(1);
       const m = novas?.[0];
@@ -182,8 +196,10 @@ function Conversa() {
   };
 
   return (
+    <div className="flex"><aside className="hidden w-60 shrink-0 border-r border-border p-4 lg:block">{topicList}</aside><Sheet open={drawer} onOpenChange={setDrawer}><SheetContent side="left"><SheetTitle>Conversas</SheetTitle><div className="mt-4">{topicList}</div></SheetContent></Sheet><ItemDetail item={editCapture?capture:null} onClose={()=>setEditCapture(false)}/>
     <div className="mx-auto flex h-[calc(100dvh-6rem)] w-full max-w-3xl flex-col px-4 md:h-screen md:px-8">
       <header className="flex items-center gap-3 border-b border-border py-4">
+        <Button size="icon" variant="ghost" className="lg:hidden" onClick={()=>setDrawer(true)} aria-label="Abrir tópicos"><Menu className="h-5 w-5"/></Button>
         <Nucleo tamanho={44} estado={estado} />
         <div>
           <h1 className="text-lg font-semibold text-foreground">Munim</h1>
@@ -240,6 +256,7 @@ function Conversa() {
       </div>
 
       <div className="pb-4">
+        {capture&&!capture.suggestion&&<div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-success">Salvei: {capture.tipo} · {capture.titulo}<Button size="sm" variant="link" onClick={()=>setEditCapture(true)}>Editar</Button><Button size="sm" variant="link" onClick={async()=>{await undo({data:{id:capture.id}});setCapture(null);qc.invalidateQueries({queryKey:["personal"]});}}>Desfazer</Button></div>}
         {erroVoz && <p className="mb-2 text-xs text-ember">{erroVoz}</p>}
         <form
           onSubmit={(e) => {
@@ -274,7 +291,7 @@ function Conversa() {
           </button>
           <Button
             type="submit"
-            disabled={!texto.trim()}
+            disabled={!texto.trim()||estado==="pensando"}
             aria-label="Enviar"
             size="icon"
             className="h-10 w-10"
@@ -283,6 +300,6 @@ function Conversa() {
           </Button>
         </form>
       </div>
-    </div>
+    </div></div>
   );
 }
