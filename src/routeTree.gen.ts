@@ -22,8 +22,11 @@ import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedConexoesRouteImport } from './routes/_authenticated/conexoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticated/conversa'
+import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/mapa'
+import { Route as AuthenticatedMemoriaRouteImport } from './routes/_authenticated/memoria'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 import { Route as ApiPublicTelegramBriefingsRouteImport } from './routes/api/public/telegram/briefings'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
@@ -93,6 +96,16 @@ const AuthenticatedConversaRoute = AuthenticatedConversaRouteImport.update({
   path: '/conversa',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMapaRoute = AuthenticatedMapaRouteImport.update({
+  id: '/mapa',
+  path: '/mapa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMemoriaRoute = AuthenticatedMemoriaRouteImport.update({
+  id: '/memoria',
+  path: '/memoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
   id: '/notas',
   path: '/notas',
@@ -101,6 +114,11 @@ const AuthenticatedNotasRoute = AuthenticatedNotasRouteImport.update({
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
@@ -134,8 +152,11 @@ export interface FileRoutesByFullPath {
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
+  '/mapa': typeof AuthenticatedMapaRoute
+  '/memoria': typeof AuthenticatedMemoriaRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/projetos': typeof AuthenticatedProjetosRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
@@ -152,8 +173,11 @@ export interface FileRoutesByTo {
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
+  '/mapa': typeof AuthenticatedMapaRoute
+  '/memoria': typeof AuthenticatedMemoriaRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/projetos': typeof AuthenticatedProjetosRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
@@ -173,8 +197,11 @@ export interface FileRoutesById {
   '/_authenticated/conexoes': typeof AuthenticatedConexoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/conversa': typeof AuthenticatedConversaRoute
+  '/_authenticated/mapa': typeof AuthenticatedMapaRoute
+  '/_authenticated/memoria': typeof AuthenticatedMemoriaRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
@@ -195,8 +222,11 @@ export interface FileRouteTypes {
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
+    | '/mapa'
+    | '/memoria'
     | '/notas'
     | '/onboarding'
+    | '/projetos'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
     | '/api/public/telegram/webhook'
@@ -213,8 +243,11 @@ export interface FileRouteTypes {
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
+    | '/mapa'
+    | '/memoria'
     | '/notas'
     | '/onboarding'
+    | '/projetos'
     | '/'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
@@ -233,8 +266,11 @@ export interface FileRouteTypes {
     | '/_authenticated/conexoes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/conversa'
+    | '/_authenticated/mapa'
+    | '/_authenticated/memoria'
     | '/_authenticated/notas'
     | '/_authenticated/onboarding'
+    | '/_authenticated/projetos'
     | '/_authenticated/'
     | '/api/oauth/google/return'
     | '/api/public/telegram/briefings'
@@ -346,6 +382,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConversaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/mapa': {
+      id: '/_authenticated/mapa'
+      path: '/mapa'
+      fullPath: '/mapa'
+      preLoaderRoute: typeof AuthenticatedMapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/memoria': {
+      id: '/_authenticated/memoria'
+      path: '/memoria'
+      fullPath: '/memoria'
+      preLoaderRoute: typeof AuthenticatedMemoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/notas': {
       id: '/_authenticated/notas'
       path: '/notas'
@@ -358,6 +408,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/projetos': {
+      id: '/_authenticated/projetos'
+      path: '/projetos'
+      fullPath: '/projetos'
+      preLoaderRoute: typeof AuthenticatedProjetosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/oauth/google/return': {
@@ -391,8 +448,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConexoesRoute: typeof AuthenticatedConexoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConversaRoute: typeof AuthenticatedConversaRoute
+  AuthenticatedMapaRoute: typeof AuthenticatedMapaRoute
+  AuthenticatedMemoriaRoute: typeof AuthenticatedMemoriaRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
@@ -403,8 +463,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConexoesRoute: AuthenticatedConexoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConversaRoute: AuthenticatedConversaRoute,
+  AuthenticatedMapaRoute: AuthenticatedMapaRoute,
+  AuthenticatedMemoriaRoute: AuthenticatedMemoriaRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 
