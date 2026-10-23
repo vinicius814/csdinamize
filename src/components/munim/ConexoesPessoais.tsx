@@ -43,9 +43,9 @@ function esperarPopup(popup: Window, servico: ServicoGoogle) {
 }
 
 type Props = {
-  servicos?: Record<ServicoGoogle, StatusConexao>;
-  pipedrive?: StatusConexao;
-  pipedriveDominio?: string | null;
+  servicos?: Record<ServicoGoogle, StatusConexao> | undefined;
+  pipedrive?: StatusConexao | undefined;
+  pipedriveDominio?: string | null | undefined;
 };
 
 export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Props) {
@@ -63,7 +63,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
 
   const conectar = async (s: ServicoGoogle, nome: string, reconectar: boolean) => {
     const popup = window.open("", "munim-google", "width=560,height=720");
-    if (!popup) return toast.error("Libere as janelas pop-up e tente de novo.");
+    if (!popup) { toast.error("Libere as janelas pop-up e tente de novo."); return; }
     setOcupado(s);
     try {
       const { authorizationUrl } = await iniciar({ data: { servico: s } });
@@ -93,7 +93,7 @@ export function ConexoesPessoais({ servicos, pipedrive, pipedriveDominio }: Prop
     setOcupado("pd");
     const r = await salvarPd({ data: { token, dominio } }).catch(() => ({ ok: false, erro: "Não consegui salvar agora." }));
     setOcupado(null);
-    if (!r.ok) return toast.error(r.erro ?? "Não consegui conectar.");
+    if (!r.ok) { toast.error(r.erro ?? "Não consegui conectar."); return; }
     setToken("");
     toast.success("Pipedrive conectado.");
     atualizar();
