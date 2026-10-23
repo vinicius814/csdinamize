@@ -25,3 +25,4 @@
 - Pipedrive reads resolve per-user pipeline, contact field and owner, paginate completely, and fail closed on incomplete results; coverage is calculated in reliability.ts before any sample is sent to AI.
 - Telegram uses a server-only plain bot token, authenticated webhook, one-use linkage codes, private sender matching and persistent deduplication; shared assistant/approval cores explicitly scope all reads by user because trusted webhook processing uses service role.
 - Scheduled Telegram delivery requires an external authenticated scheduler callback; daily delivery claims prevent duplicate sends, and failed/ambiguous deliveries require inspection rather than automatic replay.
+- Assistant and routine engines live in server-only core modules behind thin authenticated wrappers so web, Telegram and scheduled flows share behavior without exposing provider logic to browser bundles.

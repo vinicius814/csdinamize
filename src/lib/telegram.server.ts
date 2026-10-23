@@ -96,6 +96,7 @@ export async function deliverBriefings() {
     for(const p of profiles.data??[]){
       const due=briefingDue(new Date(),p.fuso,p.horario_briefing);if(!due.due || !p.telegram_chat_id)continue;
       let role;try{role=(await activeUser(p.id)).role;}catch{continue;}
+      const blocked=await db.from("telegram_deliveries").select("status").eq("user_id",p.id).eq("status","failed").limit(1);if(blocked.error)throw blocked.error;if(blocked.data?.length)continue;
       const claim=await db.from("telegram_deliveries").insert({user_id:p.id,local_date:due.date});if(claim.error){if(claim.error.code==="23505")continue;throw claim.error;}
       try{
         const result=await rodarComo({userId:p.id,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{const {gerarRotinaCore}=await import("./briefing-core.server");return gerarRotinaCore({tipo:"manha"},{supabase:db,userId:p.id});});

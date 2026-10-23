@@ -9,12 +9,13 @@ async function google(conector: "google_calendar" | "google_mail", envKey: strin
   return I.gw(conector,path);
 }
 
-function limitesHojeSP() {
-  const d = new Date().toLocaleDateString("en-CA", { timeZone: FUSO }); // YYYY-MM-DD
-  return { ini: `${d}T00:00:00-03:00`, fim: `${d}T23:59:59-03:00` };
+async function localDayRange(timezone:string,offsetDays=0){
+ const date=new Date(Date.now()+offsetDays*86400000).toLocaleDateString("en-CA",{timeZone:timezone});
+ // Resolve local midnight to UTC, including non-Brazilian offsets and DST.
+ const utc=(day:string)=>{let instant=Date.parse(`${day}T00:00:00Z`);for(let i=0;i<3;i++){const p=new Intl.DateTimeFormat("en-CA",{timeZone:timezone,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date(instant));const v=(type:string)=>p.find(x=>x.type===type)?.value;const displayed=Date.parse(`${v("year")}-${v("month")}-${v("day")}T${v("hour")}:${v("minute")}:${v("second")}Z`);instant+=Date.parse(`${day}T00:00:00Z`)-displayed;}return new Date(instant).toISOString();};
+ const next=new Date(Date.parse(`${date}T12:00:00Z`)+86400000).toISOString().slice(0,10);return {ini:utc(date),fim:utc(next)};
 }
-
-async function agendaHoje(){const I=await import("./integracoes.server");const {ini,fim}=limitesHojeSP();return I.eventos(ini,fim);}
+async function agendaHoje(timezone:string){const I=await import("./integracoes.server");const {ini,fim}=await localDayRange(timezone);return I.eventos(ini,fim);}
 
 async function emailsImportantes(){const I=await import("./integracoes.server");return I.buscarEmails("is:unread in:inbox newer_than:2d -category:promotions -category:social",8);}
 
@@ -37,13 +38,14 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
     const tipo = data.tipo;
     const {checkBudget}=await import("./budget.server");await checkBudget(userId);
 
-    const amanha = new Date(Date.now() + 86400000).toLocaleDateString("en-CA", { timeZone: FUSO });
-    const { data: perfil } = await supabase.from("profiles").select("nome, pipedrive_user_id").eq("id", userId).maybeSingle();
+    const { data: perfil } = await supabase.from("profiles").select("nome, pipedrive_user_id, fuso").eq("id", userId).maybeSingle();
+    const timezone=perfil?.fuso ?? FUSO;
+    const tomorrow=await localDayRange(timezone,1);
     const pdId = perfil?.pipedrive_user_id ? Number(perfil.pipedrive_user_id) : null;
     const desde = new Date(Date.now() - (tipo === "semana" ? 7 : 1) * 86400000).toISOString();
 
     const [agenda, emails, pend, notas, riscos, ideias, decididas, agAmanha, memoria] = await Promise.all([
-      tipo !== "semana" ? agendaHoje().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
+      tipo !== "semana" ? agendaHoje(timezone).catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "manha" ? emailsImportantes().catch((e) => ({erro:e.message,acao:"/conexoes"})) : null,
       supabase.from("acoes").select("resumo").eq("user_id",userId).eq("status", "pendente").limit(10),
       supabase.from("notas").select("titulo, lembrete_em").eq("user_id",userId).not("lembrete_em", "is", null).gte("lembrete_em", new Date().toISOString()).order("lembrete_em").limit(5),
@@ -52,12 +54,12 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
         ? supabase.from("notas").select("titulo, subcategoria, tags, resumo").eq("user_id",userId).in("subcategoria", ["ideia", "projeto"]).order("created_at", { ascending: false }).limit(30)
         : null,
       tipo !== "manha" ? supabase.from("acoes").select("resumo, status").eq("user_id",userId).neq("status", "pendente").gte("decidido_em", desde).limit(20) : null,
-      tipo === "fechamento" ? I.eventos(`${amanha}T00:00:00-03:00`, `${amanha}T23:59:59-03:00`).catch(e => ({erro:e.message,acao:"/conexoes"})) : null,
+      tipo === "fechamento" ? I.eventos(tomorrow.ini,tomorrow.fim).catch(e => ({erro:e.message,acao:"/conexoes"})) : null,
       tipo === "semana" ? I.memoriaDrive().then((m) => m.slice(0, 4000)).catch(() => "") : "",
     ]);
 
     const contexto = JSON.stringify({
-      agora: new Date().toLocaleString("pt-BR", { timeZone: FUSO, dateStyle: "full", timeStyle: "short" }),
+      agora: new Date().toLocaleString("pt-BR", { timeZone: timezone, dateStyle: "full", timeStyle: "short" }),
       agenda_hoje: agenda ?? undefined,
       agenda_amanha: agAmanha ?? undefined,
       emails_nao_lidos: emails ?? undefined,
