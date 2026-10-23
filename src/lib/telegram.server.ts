@@ -66,6 +66,7 @@ export async function handleTelegram(update:any) {
       const userId=profile.data.id;const {role}=await activeUser(userId);
       await rodarComo({userId,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{
         if(update.callback_query){
+          const undo=/^desfazer:([0-9a-f-]{36})$/.exec(update.callback_query.data??"");if(undo){const removed=await db.from("itens").delete().eq("id",undo[1]??"").eq("user_id",userId);if(removed.error)throw removed.error;await telegram("answerCallbackQuery",{callback_query_id:update.callback_query.id,text:"Captura desfeita."});await telegram("editMessageReplyMarkup",{chat_id:chat,message_id:message.message_id,reply_markup:{inline_keyboard:[]}});return;}
           const match=/^(aprovada|recusada):([0-9a-f-]{36})$/.exec(update.callback_query.data??"");if(!match)throw new Error("Aprovação inválida.");
           const actionId=match[2];if(!actionId)throw new Error("Aprovação inválida.");
           const {decidirCore}=await import("./munim-core.server");
@@ -76,9 +77,12 @@ export async function handleTelegram(update:any) {
         const content=message.voice?await transcribe(message.voice.file_id):String(message.text??"").trim();
         if(!content || content.startsWith("/")){await sendText(chat,"Escreva uma mensagem ou envie um áudio para o Munim.");return;}
         if(content.length>8000)throw new Error("Mensagem muito longa. Envie em partes.");
-        const insert=await db.from("mensagens").insert({user_id:userId,autor:"usuario",canal:"telegram",conteudo:content});if(insert.error)throw insert.error;
-        const {conversarCore}=await import("./munim-core.server");const result=await conversarCore({conteudo:content},{supabase:db,userId,role},"telegram");
+        const topic=await db.from("conversas").select("id").eq("user_id",userId).eq("titulo","Telegram").eq("arquivada",false).limit(1).maybeSingle();if(topic.error)throw topic.error;
+        let topicId=topic.data?.id;if(!topicId){const created=await db.from("conversas").insert({user_id:userId,titulo:"Telegram"}).select("id").single();if(created.error)throw created.error;topicId=created.data.id;}
+        const insert=await db.from("mensagens").insert({user_id:userId,autor:"usuario",canal:"telegram",conteudo:content,conversa_id:topicId});if(insert.error)throw insert.error;
+        const {conversarCore}=await import("./munim-core.server");const result=await conversarCore({conteudo:content,conversa_id:topicId},{supabase:db,userId,role},"telegram");
         await sendText(chat,result.resposta);
+        if(result.captura&&!result.captura.suggestion&&"id" in result.captura)await sendText(chat,`Salvei: ${result.captura.tipo} · ${result.captura.titulo}`,{inline_keyboard:[[{text:"Editar",url:"https://munim.wojtec.com.br/mapa"},{text:"Desfazer",callback_data:`desfazer:${result.captura.id}`}]]});
         const pending=await db.from("acoes").select("id,resumo").eq("user_id",userId).eq("status","pendente").order("created_at",{ascending:false}).limit(10);if(pending.error)throw pending.error;
         for(const action of pending.data??[])await sendText(chat,action.resumo??"Ação aguardando sua decisão.",{inline_keyboard:[[{text:"Aprovar",callback_data:`aprovada:${action.id}`},{text:"Recusar",callback_data:`recusada:${action.id}`}]]});
       });

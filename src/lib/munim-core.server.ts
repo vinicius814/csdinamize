@@ -353,12 +353,14 @@ export async function conversarCore(data: {conteudo:string;conversa_id?:string},
     let topicId=data.conversa_id;
     if(topicId){const t=await supabase.from("conversas").select("id").eq("id",topicId).eq("user_id",userId).single();if(t.error)throw new Error("Conversa inválida.");}
     else {const t=await supabase.from("conversas").select("id").eq("user_id",userId).eq("arquivada",false).order("atualizado_em",{ascending:false}).limit(1).maybeSingle();topicId=t.data?.id;if(!topicId){const c=await supabaseAdmin.from("conversas").insert({user_id:userId,titulo:canal==="telegram"?"Telegram":"Nova conversa"}).select("id").single();if(c.error)throw c.error;topicId=c.data.id;}}
-    const [{data:perfil},{data:pref},{data:hist},{data:topic}] = await Promise.all([
+    const reads = await Promise.all([
       supabase.from("profiles").select("nome,pipedrive_user_id").eq("id",userId).maybeSingle(),
       supabase.from("preferencias_munim").select("memoria_compacta,autonomia,ai_pausada,ai_erro").eq("user_id",userId).maybeSingle(),
       supabase.from("mensagens").select("autor,conteudo").eq("user_id",userId).eq("conversa_id",topicId).neq("autor","sistema").order("created_at",{ascending:false}).limit(12),
       supabase.from("conversas").select("titulo,resumo").eq("id",topicId).eq("user_id",userId).single()
     ]);
+    if(reads.some(r=>r.error))throw new Error("Não consegui carregar o contexto pessoal.");
+    const [{data:perfil},{data:pref},{data:hist},{data:topic}]=reads;
     if(pref?.ai_pausada)throw new Error(pref.ai_erro??"IA pausada.");
     const P=await import("./personal-ai.server");
     const relevant=await P.relevantItems(userId,data.conteudo);
@@ -418,6 +420,7 @@ Não salve novamente o item capturado. Autonomia: ${JSON.stringify(pref?.autonom
       }
     } catch (e: any) {
       const st = e?.status;
+      if(st===402||st===403){const pause=await supabaseAdmin.from("preferencias_munim").upsert({user_id:userId,ai_pausada:true,ai_erro:e?.message??"IA pausada."});if(pause.error)throw pause.error;throw new Error(e?.message??"IA pausada.");}
       console.error("cerebro erro", st, e?.message);
       resposta =
         st === 402 ? "Meus créditos de IA acabaram. Recarregue em Configurações do workspace e tento de novo."
