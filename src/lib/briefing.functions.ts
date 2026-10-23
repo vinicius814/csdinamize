@@ -83,7 +83,7 @@ export async function gerarRotinaCore(data:{tipo:TipoRotina}, context:{supabase:
       agenda_hoje: agenda ?? undefined,
       agenda_amanha: agAmanha ?? undefined,
       emails_nao_lidos: emails ?? undefined,
-      aprovacoes_pendentes: pend.error?{erro:pend.error.message}:pend.data?.map((a) => a.resumo) ?? [],
+      aprovacoes_pendentes: pend.error?{erro:pend.error.message}:pend.data?.map((a: {resumo:string|null}) => a.resumo) ?? [],
       acoes_decididas_no_periodo: decididas?.data ?? undefined,
       proximos_lembretes: notas.error?{erro:notas.error.message}:notas.data ?? [],
       sinais_de_risco: riscos ?? undefined,

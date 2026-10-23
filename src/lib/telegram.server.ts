@@ -66,8 +66,9 @@ export async function handleTelegram(update:any) {
       await rodarComo({userId,admin:role==="admin"||role==="superadmin",superadmin:role==="superadmin"},async()=>{
         if(update.callback_query){
           const match=/^(aprovada|recusada):([0-9a-f-]{36})$/.exec(update.callback_query.data??"");if(!match)throw new Error("Aprovação inválida.");
+          const actionId=match[2];if(!actionId)throw new Error("Aprovação inválida.");
           const {decidirCore}=await import("./munim.functions");
-          const result=await decidirCore({acao_id:match[2],decisao:match[1] as "aprovada"|"recusada"},{supabase:db,userId});
+          const result=await decidirCore({acao_id:actionId,decisao:match[1] as "aprovada"|"recusada"},{supabase:db,userId});
           await telegram("answerCallbackQuery",{callback_query_id:update.callback_query.id,text:result.status==="executada"?"Ação executada.":result.status==="recusada"?"Ação recusada.":"Não consegui executar."});
           await telegram("editMessageReplyMarkup",{chat_id:chat,message_id:message.message_id,reply_markup:{inline_keyboard:[]}});return;
         }
