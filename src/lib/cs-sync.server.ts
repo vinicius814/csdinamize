@@ -5,7 +5,7 @@ import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 type RecordData = Record<string, any>;
 const pageSchema=z.object({success:z.literal(true),data:z.array(z.record(z.any())).nullable(),additional_data:z.object({next_cursor:z.string().nullable().optional()}).passthrough().optional()}).passthrough();
 export async function runCSSync(source:"manual"|"agendado",actor:string|null=null) {
- const {data:run,error:startError}=await db.rpc("cs_iniciar_sync",{source,actor:actor??undefined});
+ const {data:run,error:startError}=await db.rpc("cs_iniciar_sync",{source,...(actor?{actor}:{})});
  if(startError||!run) throw new Error(startError?.message??"Não consegui iniciar a atualização.");
  let lidos=0;
  try {
@@ -28,31 +28,31 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    } throw new Error("Limite de páginas excedido; snapshot preservado.");
   }
   const users=await get("/v1/users");if(!Array.isArray(users.data))throw new Error("Lista de responsáveis inválida.");
-  const names=new Map<number,string>(users.data.map((u:RecordData)=>[Number(u.id),String(u.name)]));
+  const names=new Map<number,string>(users.data.map((u:RecordData)=>[Number(u["id"]),String(u["name"])]));
   const deals=new Map<number,RecordData>();const custom_fields=Object.values(CS_FIELDS).join(",");
   for(const pipeline of [1,15,16]) {
    const found=await pages("/v2/deals",{pipeline_id:String(pipeline),status:"open",custom_fields});lidos+=found.length;
-   for(const d of found) {if(Number(d.pipeline_id)!==pipeline||d.status!=="open")throw new Error("Filtro de carteira não respeitado pela fonte.");deals.set(Number(d.id),d);}
+   for(const d of found) {if(Number(d["pipeline_id"])!==pipeline||d["status"]!=="open")throw new Error("Filtro de carteira não respeitado pela fonte.");deals.set(Number(d["id"]),d);}
    const stage=pipeline===15?105:pipeline===16?111:null;
-   if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d.pipeline_id)!==pipeline||Number(d.stage_id)!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d.id),d);}}
+   if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d["id"]),d);}}
   }
-  const owners=new Set([...deals.values()].map(d=>Number(d.owner_id)));const counts=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
+  const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
   // One shared read, then owner/deal scope is applied locally.
   for(const a of await pages("/v2/activities",{done:"false"})) {
-   if(!owners.has(Number(a.owner_id))||!deals.has(Number(a.deal_id)))continue;
-   const due=a.due_date as string|null;if(!due)continue;const id=Number(a.deal_id);
+   if(!owners.has(Number(a["owner_id"]))||!deals.has(Number(a["deal_id"])))continue;
+   const due=a["due_date"] as string|null;if(!due)continue;const id=Number(a["deal_id"]);
    if(due<today)counts.set(id,(counts.get(id)??0)+1);
    if(due>=today&&(!nextActivities.has(id)||due<String(nextActivities.get(id))))nextActivities.set(id,due);
   }
   const idSchema=z.coerce.number().int().positive();
   const date=(v:any):string|null=>{const value=v&&typeof v==="object"?v.value:v;return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(0,10):null;};
-  const field=(d:RecordData,k:string)=>{if(!d.custom_fields||!(k in d.custom_fields))return null;const v=d.custom_fields[k];return v&&typeof v==="object"?v.value:v;};
+  const field=(d:RecordData,k:string)=>{if(!d["custom_fields"]||!(k in d["custom_fields"]))return null;const v=d["custom_fields"][k];return v&&typeof v==="object"?v.value:v;};
   const rows:CSRow[]=[...deals.values()].map(d=>{
-   const deal_id=idSchema.parse(d.id),owner_id=idSchema.parse(d.owner_id);
+   const deal_id=idSchema.parse(d["id"]),owner_id=idSchema.parse(d["owner_id"]);
    if(!names.has(owner_id))throw new Error("Responsável não identificado pela fonte.");
-   if(d.currency!=="BRL"&&Number(d.pipeline_id)!==1)throw new Error("Receita fora de BRL; atualização interrompida.");
-   const value=d.value===null||d.value===undefined?null:z.coerce.number().finite().parse(d.value);
-   return {deal_id,org_id:d.org_id===null?null:idSchema.parse(d.org_id),titulo:z.string().min(1).parse(d.title),pipeline_id:Number(d.pipeline_id),stage_id:Number(d.stage_id),owner_id,owner_nome:names.get(owner_id)??null,status:d.status,valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo:date(field(d,CS_FIELDS.contato)),ultima_reuniao_cs:date(field(d,CS_FIELDS.reuniao)),data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d.stage_change_time??null,add_time:d.add_time??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
+   if(d["currency"]!=="BRL"&&Number(d["pipeline_id"])!==1)throw new Error("Receita fora de BRL; atualização interrompida.");
+   const value=d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
+   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo:date(field(d,CS_FIELDS.contato)),ultima_reuniao_cs:date(field(d,CS_FIELDS.reuniao)),data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
   });
   const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
   return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
