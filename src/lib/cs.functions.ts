@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireActive } from "./access.middleware";
+import { comCredenciais } from "./credenciais.middleware";
 import { csPodeVer, csMetricas, csDia, type CSRow } from "./cs-rules";
 import { z } from "zod";
 
@@ -52,19 +53,23 @@ export const historyCS=createServerFn({method:"POST"}).middleware([requireActive
  const {data:base,error:be}=await q;if(be)throw new Error(be.message);
  let e=db.from("cs_eventos_valor").select("deal_id,pipeline_id,valor_anterior,valor_novo,dia").gte("dia",data.from).lte("dia",data.to).in("pipeline_id",pipes);if(owner)e=e.eq("owner_id",owner);
  const {data:ev,error:ee}=await e;if(ee)throw new Error(ee.message);
+ // Logo churn by organization within the portfolio; owner breakdown uses the base owner (deal with highest MRR).
+ const baseKeys:{pipeline_id:number;cliente:string}[]=[];for(let s=0;;s+=1000){let bq=db.from("cs_base_diaria").select("pipeline_id,cliente").eq("dia",data.from).in("pipeline_id",pipes);if(owner)bq=bq.eq("owner_id",owner);const {data:bd,error:bde}=await bq.range(s,s+999);if(bde)throw new Error(bde.message);baseKeys.push(...(bd??[]));if((bd?.length??0)<1000)break;}
+ const {data:canc,error:ce}=await db.from("cs_snapshot").select("deal_id,org_id,pipeline_id,stage_change_time").in("stage_id",[105,111]).in("pipeline_id",pipes).gte("stage_change_time",data.from+"T03:00:00Z").lte("stage_change_time",new Date(Date.parse(data.to+"T03:00:00Z")+86400000).toISOString());if(ce)throw new Error(ce.message);
  return pipes.map(pipeline=>{
   const b=(base??[]).filter(r=>r.pipeline_id===pipeline);const temBase=b.length>0;
   const evs=(ev??[]).filter(r=>r.pipeline_id===pipeline);const up=evs.filter(r=>Number(r.valor_novo)>Number(r.valor_anterior));
   const valorDisponivel=data.from>=CS_VALOR_DESDE;
+  const base=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>base.has(k)));
   return {pipeline,historicoDesde:first?.dia??null,valorDesde:CS_VALOR_DESDE,
    mrrInicial:temBase&&b.every(r=>r.mrr!==null)?b.reduce((s,r)=>s+Number(r.mrr),0):null,clientesIniciais:temBase?b.reduce((s,r)=>s+r.clientes_ativos,0):null,
-   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:valorDisponivel?new Set(up.map(r=>r.deal_id)).size:null};
+   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:valorDisponivel?new Set(up.map(r=>r.deal_id)).size:null,baseInicial:base.size||null,logoChurn:base.size?churned.size/base.size*100:null,logoCancelados:base.size?churned.size:null};
  });
 });
 
-const regrasSchema=z.object({dias_atencao:z.number().int().min(1).max(365),dias_risco:z.number().int().min(1).max(365),vencidas_atencao:z.number().int().min(1).max(100),vencidas_risco:z.number().int().min(1).max(100),considerar_sem_uso_como_risco:z.boolean(),retorno_pendente_dias:z.number().int().min(0).max(60)}).refine(r=>r.dias_risco>r.dias_atencao,"Dias para risco deve ser maior que dias para atenção.").refine(r=>r.vencidas_risco>=r.vencidas_atencao,"Vencidas para risco deve ser igual ou maior que para atenção.");
+const regrasSchema=z.object({sem_proxima_atividade_e_atencao:z.boolean(),analista_aguardando_dias:z.number().int().min(1).max(90),prazo_onboarding_dias:z.number().int().min(1).max(365),prazo_por_etapa_dias:z.number().int().min(1).max(365),dias_atencao:z.number().int().min(1).max(365),dias_risco:z.number().int().min(1).max(365),vencidas_atencao:z.number().int().min(1).max(100),vencidas_risco:z.number().int().min(1).max(100),considerar_sem_uso_como_risco:z.boolean(),retorno_pendente_dias:z.number().int().min(0).max(60)}).refine(r=>r.dias_risco>r.dias_atencao,"Dias para risco deve ser maior que dias para atenção.").refine(r=>r.vencidas_risco>=r.vencidas_atencao,"Vencidas para risco deve ser igual ou maior que para atenção.");
 export const readRegrasCS=createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
- const {data,error}=await context.supabase.from("cs_regras_risco").select("dias_atencao,dias_risco,vencidas_atencao,vencidas_risco,considerar_sem_uso_como_risco,retorno_pendente_dias,atualizado_em").maybeSingle();if(error)throw new Error(error.message);
+ const {data,error}=await context.supabase.from("cs_regras_risco").select("dias_atencao,dias_risco,vencidas_atencao,vencidas_risco,considerar_sem_uso_como_risco,retorno_pendente_dias,sem_proxima_atividade_e_atencao,analista_aguardando_dias,prazo_onboarding_dias,prazo_por_etapa_dias,atualizado_em").maybeSingle();if(error)throw new Error(error.message);
  const {data:p,error:pe}=await context.supabase.from("profiles").select("papel").eq("id",context.userId).single();if(pe)throw new Error(pe.message);
  return {regras:data,podeEditar:["admin","superadmin"].includes(context.role)||["admin","gestor"].includes(p.papel)};
 });
@@ -82,5 +87,24 @@ export const cliente360=createServerFn({method:"POST"}).middleware([requireActiv
  const {cliente360Detalhe}=await import("./cs-360.server");const {cachedIntegration}=await import("./integration-cache.server");
  let detalhe=null,erro:string|null=null;
  try{detalhe=await cachedIntegration(context.userId,`cs360:${data.dealId}`,()=>cliente360Detalhe(data.dealId),()=>true,10*60_000);}catch(e){erro=e instanceof Error?e.message:"Não consegui ler o Pipedrive agora.";}
- return {row:normalize(row),detalhe,erro};
+ const {data:reunioes,error:re}=await context.supabase.from("cs_atividades_cache").select("activity_id,tipo,assunto,inicio,fim,dia,concluida").eq("deal_id",data.dealId).order("dia",{ascending:false});if(re)throw new Error(re.message);
+ return {row:normalize(row),detalhe,erro,atividadesCache:reunioes??[]};
+});
+
+const periodoSchema=z.object({from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
+/** Pipedrive activities from the central cache, scoped by cs_pode_ver RLS. */
+export const agendaCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>periodoSchema.parse(i)).handler(async({data,context})=>{
+ const out:any[]=[];for(let s=0;;s+=1000){const {data:a,error}=await context.supabase.from("cs_atividades_cache").select("activity_id,deal_id,pipeline_id,owner_id,tipo,assunto,inicio,fim,dia,concluida").gte("dia",data.from).lte("dia",data.to).order("dia").order("inicio").range(s,s+999);if(error)throw new Error(error.message);out.push(...(a??[]));if((a?.length??0)<1000)break;}
+ return out as {activity_id:number;deal_id:number;pipeline_id:number;owner_id:number;tipo:string;assunto:string;inicio:string|null;fim:string|null;dia:string|null;concluida:boolean}[];
+});
+/** The signed-in user's own Google Calendar (optional, read-only). Never another user's calendar. */
+export const googleAgendaCS=createServerFn({method:"POST"}).middleware([comCredenciais]).inputValidator(i=>periodoSchema.parse(i)).handler(async({data,context})=>{
+ const {eventos,SemConexao}=await import("./integracoes.server");const {csDominioCorporativo}=await import("./cs-rules");
+ let evs:Awaited<ReturnType<typeof eventos>>;
+ try{evs=await eventos(new Date(data.from+"T00:00:00-03:00").toISOString(),new Date(data.to+"T23:59:59-03:00").toISOString());}
+ catch(e){if(e instanceof SemConexao)return {conectado:false as const,eventos:[]};return {conectado:true as const,erro:e instanceof Error?e.message:"Não consegui ler sua agenda.",eventos:[]};}
+ // Domain -> clients visible to this user. Only an unambiguous single-client domain links an event.
+ const dom=new Map<string,Set<number>>();
+ for(let s=0;;s+=1000){const {data:r,error}=await context.supabase.from("cs_snapshot").select("deal_id,contato_dominios").eq("status","open").range(s,s+999);if(error)throw new Error(error.message);for(const x of r??[])for(const d of x.contato_dominios??[]){if(!dom.has(d))dom.set(d,new Set());dom.get(d)!.add(Number(x.deal_id));}if((r?.length??0)<1000)break;}
+ return {conectado:true as const,eventos:evs.map(e=>{const ds=[...new Set(e.convidados.map((c:string)=>csDominioCorporativo(c)).filter((x:string|null):x is string=>!!x))];const deals=new Set(ds.flatMap(d=>[...(dom.get(d)??[])]));return {titulo:String(e.titulo),inicio:String(e.inicio??""),fim:String(e.fim??""),dia_todo:!!e.dia_todo,deal_id:deals.size===1?[...deals][0]!:null};})};
 });
