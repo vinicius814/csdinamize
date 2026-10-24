@@ -9,8 +9,12 @@ export function csAtivo(r:CSRow) { return [15,16].includes(r.pipeline_id) && r.s
 export function csPodeVer(role:string,papel:string,own:number|null,owner:number,pipeline:number) { return [1,15,16].includes(pipeline) && (["admin","superadmin"].includes(role)||["admin","gestor"].includes(papel)||(papel==="cs"&&own===owner)); }
 export function csDia(d=new Date()) { return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(d); }
 export function csDias(data:string|null, hoje=csDia()) { return data?Math.floor((Date.parse(hoje+"T12:00:00Z")-Date.parse(data+"T12:00:00Z"))/86400000):null; }
-/** Data usada na cobertura: contato efetivo calculado (novo) ou o campo legado. */
-export function csContato(r:CSRow){ return r.contato_efetivo!==undefined?r.contato_efetivo:r.ultimo_contato_efetivo; }
+/** Etiqueta oficial de risco alto no Pipedrive ("Risco de Churn", id 709). */
+export const CS_TAG_RISCO_CHURN=709;
+/** Cobertura usa exclusivamente o campo oficial "Data do último contato efetivo" do Pipedrive. E-mails e atividades concluídas são complementares (Cliente 360) e nunca substituem o campo. */
+export function csContato(r:CSRow){ return r.ultimo_contato_efetivo; }
+/** Pendência de retorno: atividade aberta cujo assunto registra follow-up/retorno (identificador real da operação; não existe tipo ou campo dedicado no Pipedrive). */
+export const csEhRetorno=(assunto:string)=>/(follow|flw|retorno)/i.test(assunto);
 
 /** Contato efetivo = data mais recente entre campo, reunião CS, atividade concluída e e-mail enviado/recebido. Datas futuras (agendadas) nunca contam. */
 export function csContatoEfetivo(f:{campo:string|null;reuniao:string|null;atividade:string|null;emailRecebido:string|null;emailEnviado:string|null},hoje=csDia()):{data:string|null;origem:OrigemContato|null}{
