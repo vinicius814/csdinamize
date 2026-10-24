@@ -43,3 +43,4 @@
 - Email status comes from SQL cs_email_status (São Paulo day ages); activity types and upgrade counts live in cs-rules so all CS surfaces agree.
 - CS screens compute indicators client-side with csMetricas over the single cached readCS result, so Dashboard, Minha carteira and Carteiras CS always agree and filters never refetch.
 - Sync publication writes only changed rows and parses input once; service_role has a bounded 60s statement_timeout (API roles keep 3s/8s).
+- CS history (cancellations) is recovered by an admin-triggered job in cs-historico.server.ts, separate from the lazy sync, using bulk v2 deal lists (lost_time/lost_reason) so per-deal changelog calls stay limited to reversal checks.
