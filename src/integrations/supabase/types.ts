@@ -667,6 +667,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_auditoria_progresso: {
+        Row: {
+          ate: string
+          created_at: string
+          deal_id: number
+          desde: string
+          updated_at: string
+          verificado_em: string
+        }
+        Insert: {
+          ate: string
+          created_at?: string
+          deal_id: number
+          desde: string
+          updated_at?: string
+          verificado_em?: string
+        }
+        Update: {
+          ate?: string
+          created_at?: string
+          deal_id?: number
+          desde?: string
+          updated_at?: string
+          verificado_em?: string
+        }
+        Relationships: []
+      }
       cs_base_diaria: {
         Row: {
           atualizado_em: string
@@ -2096,6 +2123,10 @@ export type Database = {
       cs_pode_ver: {
         Args: { owner_id: number; pipeline_id: number }
         Returns: boolean
+      }
+      cs_publicar_auditoria: {
+        Args: { ate: string; desde: string; eventos: Json; negocios: number[] }
+        Returns: undefined
       }
       cs_publicar_snapshot: {
         Args: { lidos: number; rows: Json; run: string }
