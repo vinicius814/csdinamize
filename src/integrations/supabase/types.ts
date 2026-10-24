@@ -589,6 +589,84 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_auditoria_eventos: {
+        Row: {
+          activity_id: number | null
+          atualizado_em: string
+          cliente: string
+          created_at: string
+          deal_id: number
+          dia: string
+          estado: string
+          evento_id: string
+          fonte: string
+          motivo: string
+          mrr_anterior: number | null
+          mrr_perdido: number | null
+          mrr_posterior: number | null
+          negocio: string
+          ocorrido_em: string
+          org_id: number | null
+          owner_id: number
+          owner_nome: string | null
+          pipeline_id: number
+          status: string | null
+          tipo: string
+          valor_anterior: number | null
+          valor_posterior: number | null
+        }
+        Insert: {
+          activity_id?: number | null
+          atualizado_em?: string
+          cliente: string
+          created_at?: string
+          deal_id: number
+          dia: string
+          estado: string
+          evento_id: string
+          fonte: string
+          motivo: string
+          mrr_anterior?: number | null
+          mrr_perdido?: number | null
+          mrr_posterior?: number | null
+          negocio: string
+          ocorrido_em: string
+          org_id?: number | null
+          owner_id: number
+          owner_nome?: string | null
+          pipeline_id: number
+          status?: string | null
+          tipo: string
+          valor_anterior?: number | null
+          valor_posterior?: number | null
+        }
+        Update: {
+          activity_id?: number | null
+          atualizado_em?: string
+          cliente?: string
+          created_at?: string
+          deal_id?: number
+          dia?: string
+          estado?: string
+          evento_id?: string
+          fonte?: string
+          motivo?: string
+          mrr_anterior?: number | null
+          mrr_perdido?: number | null
+          mrr_posterior?: number | null
+          negocio?: string
+          ocorrido_em?: string
+          org_id?: number | null
+          owner_id?: number
+          owner_nome?: string | null
+          pipeline_id?: number
+          status?: string | null
+          tipo?: string
+          valor_anterior?: number | null
+          valor_posterior?: number | null
+        }
+        Relationships: []
+      }
       cs_base_diaria: {
         Row: {
           atualizado_em: string

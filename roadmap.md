@@ -1,4 +1,9 @@
 
+# Auditoria financeira CS (24/10)
+- [ ] Confrontar upgrades, valores e cancelamentos com Pipedrive real
+- [ ] Corrigir filtros e adicionar detalhamento reconciliável
+- [ ] Testes completos, compilação e relatório de conferência
+
 # Evolução indicadores CS (24/10)
 - [x] Fase 1 mapeamento Pipedrive (campo oficial, Sem uso 104/110, etiqueta 709, retornos por assunto, changelog v1)
 - [x] Cobertura pelo campo oficial; risco 3 fatores; etiquetas sincronizadas
