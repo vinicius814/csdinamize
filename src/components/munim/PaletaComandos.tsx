@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Briefcase, CalendarCheck, Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
