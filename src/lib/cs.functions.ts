@@ -60,10 +60,10 @@ export const historyCS=createServerFn({method:"POST"}).middleware([requireActive
   const b=(base??[]).filter(r=>r.pipeline_id===pipeline);const temBase=b.length>0;
   const evs=(ev??[]).filter(r=>r.pipeline_id===pipeline);const up=evs.filter(r=>Number(r.valor_novo)>Number(r.valor_anterior));
   const valorDisponivel=data.from>=CS_VALOR_DESDE;
-  const base=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>base.has(k)));
+  const baseSet=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>baseSet.has(k)));
   return {pipeline,historicoDesde:first?.dia??null,valorDesde:CS_VALOR_DESDE,
    mrrInicial:temBase&&b.every(r=>r.mrr!==null)?b.reduce((s,r)=>s+Number(r.mrr),0):null,clientesIniciais:temBase?b.reduce((s,r)=>s+r.clientes_ativos,0):null,
-   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:valorDisponivel?new Set(up.map(r=>r.deal_id)).size:null,baseInicial:base.size||null,logoChurn:base.size?churned.size/base.size*100:null,logoCancelados:base.size?churned.size:null};
+   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:valorDisponivel?new Set(up.map(r=>r.deal_id)).size:null,baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
  });
 });
 
@@ -106,5 +106,5 @@ export const googleAgendaCS=createServerFn({method:"POST"}).middleware([comCrede
  // Domain -> clients visible to this user. Only an unambiguous single-client domain links an event.
  const dom=new Map<string,Set<number>>();
  for(let s=0;;s+=1000){const {data:r,error}=await context.supabase.from("cs_snapshot").select("deal_id,contato_dominios").eq("status","open").range(s,s+999);if(error)throw new Error(error.message);for(const x of r??[])for(const d of x.contato_dominios??[]){if(!dom.has(d))dom.set(d,new Set());dom.get(d)!.add(Number(x.deal_id));}if((r?.length??0)<1000)break;}
- return {conectado:true as const,eventos:evs.map(e=>{const ds=[...new Set(e.convidados.map((c:string)=>csDominioCorporativo(c)).filter((x:string|null):x is string=>!!x))];const deals=new Set(ds.flatMap(d=>[...(dom.get(d)??[])]));return {titulo:String(e.titulo),inicio:String(e.inicio??""),fim:String(e.fim??""),dia_todo:!!e.dia_todo,deal_id:deals.size===1?[...deals][0]!:null};})};
+ return {conectado:true as const,eventos:evs.map(e=>{const ds=[...new Set((e.convidados as string[]).map((c:string)=>csDominioCorporativo(c)).filter((x:string|null):x is string=>!!x))];const deals=new Set(ds.flatMap(d=>[...(dom.get(d)??[])]));return {titulo:String(e.titulo),inicio:String(e.inicio??""),fim:String(e.fim??""),dia_todo:!!e.dia_todo,deal_id:deals.size===1?[...deals][0]!:null};})};
 });
