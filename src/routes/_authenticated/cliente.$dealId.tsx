@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ExternalLink, ArrowLeft } from "lucide-react";
 import { cliente360 } from "@/lib/cs.functions";
 import { useAuth } from "@/lib/auth";
-import { CS_PIPELINES, CS_STAGES, csDias } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_STAGES, csDias, csEhReuniao, csEstadoReuniao } from "@/lib/cs-rules";
 import { money, fmt } from "@/components/munim/CSWorkspace";
 import { RiscoBadge } from "@/components/munim/RiscoBadge";
 import { Pagina, Cabecalho } from "@/components/munim/PaginaVazia";
@@ -40,6 +40,8 @@ function Cliente360(){
  <div className="grid gap-6 lg:grid-cols-2">
   <section><h2 className="mb-3 font-display text-lg">Atividades abertas</h2>{det?det.abertas.length?<ul className="divide-y divide-border border-y border-border">{det.abertas.map(a=><li key={a.id} className="flex justify-between gap-3 py-2 text-sm"><span className="min-w-0 truncate">{a.reuniao?"Reunião agendada · ":""}{a.assunto}</span><span className={a.data&&a.data<hoje?"text-destructive":"text-muted-foreground"}>{fmt(a.data)}</span></li>)}</ul>:<p className="text-sm text-muted-foreground">Nenhuma atividade aberta.</p>:<p className="text-sm text-muted-foreground">sem dados</p>}</section>
   <section><h2 className="mb-3 font-display text-lg">Histórico resumido</h2>{linha.length?<ol className="border-l border-border pl-4">{linha.map((x,i)=><li key={i} className="mb-3 text-sm"><span className="text-xs text-muted-foreground">{fmt(x.data)}</span><p>{x.texto}</p></li>)}</ol>:<p className="text-sm text-muted-foreground">sem dados</p>}</section>
+  <section><h2 className="mb-3 font-display text-lg">Reuniões</h2>{(()=>{const rs=(q.data.atividadesCache??[]).filter(a=>csEhReuniao(a.tipo));return rs.length?<ul className="divide-y divide-border border-y border-border">{rs.map(a=>{const e=csEstadoReuniao(a);return <li key={a.activity_id} className="flex justify-between gap-3 py-2 text-sm"><span className="min-w-0 truncate">{a.assunto}</span><span className={e==="encerrada_nao_confirmada"?"text-warning":"text-muted-foreground"}>{fmt(a.dia)} · {e==="realizada"?"realizada":e==="agendada"?"agendada":"horário encerrado, não confirmada"}</span></li>;})}</ul>:<p className="text-sm text-muted-foreground">Nenhuma reunião nos últimos 30 dias ou próximos 14.</p>;})()}</section>
+  <section><h2 className="mb-3 font-display text-lg">Últimos e-mails</h2>{det?.emails?.length?<ul className="divide-y divide-border border-y border-border">{det.emails.map(m=><li key={m.id} className="py-2 text-sm"><span className="text-xs text-muted-foreground">{fmt(m.data)} · {m.direcao} · {m.remetente}</span><p className="truncate">{m.assunto}</p></li>)}</ul>:<p className="text-sm text-muted-foreground">{det?"Sem e-mail vinculado.":"sem dados"}</p>}</section>
   <section className="lg:col-span-2"><h2 className="mb-3 font-display text-lg">Últimas notas</h2>{det?det.notas.length?<ul className="grid gap-3">{det.notas.map((n:{id:number;data:string|null;resumo:string})=><li key={n.id} className="card-munim p-3 text-sm"><span className="text-xs text-muted-foreground">{fmt(n.data)}</span><p className="mt-1">{n.resumo||"(nota sem texto)"}</p></li>)}</ul>:<p className="text-sm text-muted-foreground">Nenhuma nota.</p>:<p className="text-sm text-muted-foreground">sem dados</p>}</section>
  </div></Pagina>;
 }

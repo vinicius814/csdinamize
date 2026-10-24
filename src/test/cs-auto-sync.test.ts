@@ -15,3 +15,10 @@ describe("janela e contato efetivo", () => {
   const r=m2([{...base,deal_id:1,contato_efetivo:null},{...base,deal_id:2,contato_efetivo:"2026-10-20"}],60,"2026-10-01","2026-10-24","2026-10-24"); expect(r.cobertura).toBe(100); expect(r.semDados).toBe(1); expect(r.semContato).toBe(0); });
  it("mês anterior vai do dia 1 ao último dia", () => { expect(csPeriodo("anterior","2026-10-24")).toEqual({from:"2026-09-01",to:"2026-09-30"}); });
 });
+import { csDominioCorporativo, csEstadoReuniao, csOnboardingAtrasado, csDonoCliente } from "@/lib/cs-rules";
+describe("Parte B", () => {
+ it("domínios públicos e da Dinamize não associam cliente", () => { expect(csDominioCorporativo("a@gmail.com")).toBeNull(); expect(csDominioCorporativo("a@uol.com.br")).toBeNull(); expect(csDominioCorporativo("a@dinamize.com")).toBeNull(); expect(csDominioCorporativo("Ana@Cryah.com.br")).toBe("cryah.com.br"); });
+ it("reunião com horário passado não concluída nunca é realizada", () => { const agora=new Date("2026-10-24T15:00:00Z"); expect(csEstadoReuniao({concluida:false,inicio:"2026-10-24T12:00:00Z",fim:"2026-10-24T13:00:00Z",dia:"2026-10-24"},agora)).toBe("encerrada_nao_confirmada"); expect(csEstadoReuniao({concluida:true,inicio:null,fim:null,dia:"2026-10-20"},agora)).toBe("realizada"); expect(csEstadoReuniao({concluida:false,inicio:"2026-10-25T12:00:00Z",fim:null,dia:"2026-10-25"},agora)).toBe("agendada"); });
+ it("onboarding atrasado acima de 30 dias no total ou 10 na etapa", () => { expect(csOnboardingAtrasado(31,2,30,10)).toBe(true); expect(csOnboardingAtrasado(20,11,30,10)).toBe(true); expect(csOnboardingAtrasado(30,10,30,10)).toBe(false); });
+ it("organização pertence ao responsável do negócio de maior MRR", () => { const b={org_id:1,titulo:"x",pipeline_id:15,stage_id:103,owner_nome:null,status:"open",perfil_conta:null,ultimo_contato_efetivo:null,ultima_reuniao_cs:null,data_contratacao:null,stage_change_time:null,add_time:null,proxima_atividade_data:null,atividades_vencidas:0}; expect(csDonoCliente([{...b,deal_id:1,owner_id:7,valor:100},{...b,deal_id:2,owner_id:9,valor:500}])).toBe(9); });
+});
