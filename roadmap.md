@@ -1,4 +1,10 @@
 # Munim — cadastro, administração e confiança
+- [x] Redesign: timeout da sync corrigido (gravação só do que mudou, entrada lida uma vez, limite de 60s só no papel do servidor); 4/4 syncs seguidas OK (17–20s).
+- [x] Redesign: Dashboard/Minha carteira/Carteiras CS com propósitos distintos e indicadores calculados dos mesmos dados em cache; filtros enxutos com "Mais filtros".
+- [x] Redesign: agenda Dia/Semana/Mês/Lista com painel de detalhes; Kanban de onboarding com lista, detalhes e "histórico a verificar" (>180d).
+- [x] Redesign: menu agrupado, Aprovações fora do menu, Chat do CS em breve, Ctrl+K como busca.
+- [ ] Redesign: responsáveis inativos no Pipedrive com negócio ativo ainda aparecem — o status ativo do usuário não é guardado hoje.
+- [ ] Redesign: validar telas logadas e tempos de carregamento — Supabase externo sem sessão de teste.
 - [x] Ajustes finais CS: teste corrigido (11 leituras e RPC atual), e-mail 30 dias validado em SQL, tipos reais/no-show/contato e upgrades por conclusão; sync 7502/7461 e totais por cliente/responsável conferidos. Teste com duas contas fica com o usuário.
 - [x] Central CS: camada cs_snapshot/cs_metricas_diarias/cs_sync_runs e RLS por carteira/responsável, sem remover dados.
 - [x] Central CS: sync central somente leitura, transação e atualização manual com bloqueio de 10 minutos.
