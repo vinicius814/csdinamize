@@ -26,9 +26,9 @@ function Cards({metrics,days,available,dashboard,onboarding}:{metrics:M|undefine
  return <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{base.map(([label,value,note])=><Card key={label} label={label} value={v(value)} note={available?note:undefined}/>)}</div>;
 }
 type H={pipeline:number;historicoDesde:string|null;valorDesde:string;mrrInicial:number|null;clientesIniciais:number|null;expansao:number|null;upgrades:number|null};
-function HistoryCards({h,m}:{h:H|undefined;m:M|undefined}){
+function HistoryCards({h,cancBase}:{h:H|undefined;cancBase:number}){
  if(!h)return null;const desde=(d:string|null)=>`coletando histórico desde ${d?ddmm(d):"a primeira atualização"}`;
- const logo=h.clientesIniciais&&m?`${(m.cancelados/h.clientesIniciais*100).toFixed(1)}%`:null;
+ const logo=h.clientesIniciais?`${(cancBase/h.clientesIniciais*100).toFixed(1)}%`:null;
  return <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
   <Card label="MRR inicial do período" value={h.mrrInicial===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:money(h.mrrInicial)}/>
   <Card label="Expansão de receita" value={h.expansao===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:money(h.expansao)}/>
@@ -80,7 +80,7 @@ export function CSWorkspace({mode="carteira"}:{mode?:"dashboard"|"carteira"|"ges
  const showComparativos=mode!=="carteira"&&manager;
  const ativos=filtered.filter(csAtivo);
  const card=(id:number)=>metrics.data?.find(m=>m.pipeline===id)?.metrics;
- const block=(id:number)=><><Cards metrics={card(id)} days={days} available={success&&!!metrics.data} dashboard={mode==="dashboard"} onboarding={onboarding}/>{mode!=="carteira"&&<HistoryCards h={history.data?.find(h=>h.pipeline===id)} m={card(id)}/>}</>;
+ const block=(id:number)=><><Cards metrics={card(id)} days={days} available={success&&!!metrics.data} dashboard={mode==="dashboard"} onboarding={onboarding}/>{mode!=="carteira"&&<HistoryCards h={history.data?.find(h=>h.pipeline===id)} cancBase={filtered.filter(r=>r.pipeline_id===id&&[105,111].includes(r.stage_id)&&!!r.stage_change_time&&csDia(new Date(r.stage_change_time))>=from&&csDia(new Date(r.stage_change_time))<=to&&!!r.add_time&&csDia(new Date(r.add_time))<from).length}/>}</>;
  return <Pagina><Cabecalho titulo={mode==="dashboard"?"Central de Comando de CS":mode==="gestao"?"Carteiras CS":"Minha carteira"} frase="Dinamize · Customer Success"/>
  <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><div><UltimaAtualizacao d={d}/>{executing&&<p role="status" className="mt-1 text-sm text-primary">Lendo negócios e atividades…</p>}</div><Button onClick={refresh} disabled={executing||cooldown}><RefreshCw className={executing?"animate-spin":""}/>{executing?"Atualizando…":"Atualizar dados"}</Button></div>
  <section className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
