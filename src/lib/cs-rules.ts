@@ -103,3 +103,6 @@ export function csOnboardingAtrasado(diasTotal:number|null,diasEtapa:number|null
 export function csResponsaveisAtivos(rows:CSRow[]):[number,string][]{const m=new Map<number,string>();for(const r of rows)if(csAtivo(r)&&!m.has(r.owner_id))m.set(r.owner_id,r.owner_nome??String(r.owner_id));return [...m.entries()].sort((a,b)=>a[1].localeCompare(b[1],"pt-BR"));}
 /** Onboarding projects open longer than this are flagged as legacy/incomplete history instead of counted in the average. */
 export const CS_ONBOARDING_LEGADO_DIAS=180;
+export type CSOrigemAgenda="todas"|"pipedrive"|"google";
+/** Agenda source filter: Google events never appear under Pipedrive and vice versa. */
+export function csFiltrarOrigem<T extends {fonte:"pipedrive"|"google"}>(evs:T[],origem:CSOrigemAgenda):T[]{return origem==="todas"?evs:evs.filter(e=>e.fonte===origem);}
