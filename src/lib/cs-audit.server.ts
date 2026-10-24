@@ -4,7 +4,7 @@ import { csAuditDeal, type AuditEvent, type Change } from "./cs-audit";
 /** Explicit incremental audit only; never changes lazy sync, personal connections, or Pipedrive data. */
 export async function runCSAudit(from: string, to: string) {
   const token = process.env["PIPEDRIVE_SYNC_TOKEN"], domain = process.env["PIPEDRIVE_SYNC_DOMAIN"];
-  if (!token || domain !== "cs-dinamize") throw new Error("Connexion corporativa indisponível.");
+  if (!token || domain !== "cs-dinamize") throw new Error("Conexão corporativa indisponível.");
   let calls = 0;
   async function get(path: string, query: Record<string, string> = {}) {
     const url = new URL(`https://${domain}.pipedrive.com/api${path}`);
@@ -26,7 +26,7 @@ export async function runCSAudit(from: string, to: string) {
   }
   const { data: existing, error: exError } = await (db as any).from("cs_auditoria_eventos").select("deal_id,atualizado_em").gte("dia", from).lte("dia", to);
   if (exError) throw new Error(exError.message);
-  const fresh = new Set((existing ?? []).filter((e: any) => Date.now() - Date.parse(e.atualizado_em) < 86400000).map((e: any) => Number(e.deal_id)));
+  const fresh = new Set((existing ?? []).filter((e: any) => candidates.has(Number(e.deal_id)) && Date.now() - Date.parse(e.atualizado_em) < 86400000).map((e: any) => Number(e.deal_id)));
   const ids = [...candidates].filter(id => !fresh.has(id)).slice(0, 25);
   const users = await get("/v1/users"), owners = new Map<number, string>((users.data ?? []).map((u: any) => [Number(u.id), String(u.name)]));
   const result: AuditEvent[] = [];
@@ -41,16 +41,19 @@ export async function runCSAudit(from: string, to: string) {
       if (!cursor) break;
       if (seen.has(cursor)) throw new Error("Histórico repetido; lote não publicado."); seen.add(cursor);
     }
-    const acts: Record<string, any>[] = []; let activityCursor: string | null = null;
+    const acts: Record<string, any>[] = []; let activityCursor: string | null = null; const activitySeen = new Set<string>();
     for (let page = 0; ; page++) {
       if (page >= 100) throw new Error("Atividades incompletas; lote não publicado.");
       const b = await get("/v2/activities", { deal_id: String(id), limit: "500", ...(activityCursor ? { cursor: activityCursor } : {}) });
+      if (!Array.isArray(b.data) && b.data !== null) throw new Error("Atividades inválidas; lote não publicado.");
       acts.push(...(b.data ?? [])); activityCursor = b.additional_data?.next_cursor ?? null; if (!activityCursor) break;
+      if (activitySeen.has(activityCursor)) throw new Error("Atividades repetidas; lote não publicado."); activitySeen.add(activityCursor);
     }
     result.push(...csAuditDeal(deal, changes, acts, owners, true).filter(e => e.dia >= from && e.dia <= to));
   }
   if (result.length) {
-    const { error } = await (db as any).from("cs_auditoria_eventos").upsert(result, { onConflict: "evento_id" });
+    const unique = [...new Map(result.map(e => [e.evento_id, e])).values()];
+    const { error } = await (db as any).from("cs_auditoria_eventos").upsert(unique, { onConflict: "evento_id" });
     if (error) throw new Error(error.message);
   }
   return { verificados: ids.length, restantes: candidates.size - fresh.size - ids.length, eventos: result.length, consultas: calls };
