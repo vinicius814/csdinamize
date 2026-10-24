@@ -13,6 +13,7 @@ import { PageSkeleton } from "./PageSkeleton";
 import { RiscoBadge, RISCO_LABEL } from "./RiscoBadge";
 import { toast } from "sonner";
 import { CSEvolucao } from "./CSEvolucao";
+import { CSFinancialAudit } from "./CSFinancialAudit";
 
 export const money=(v:number|null|undefined)=>v===null||v===undefined?"sem dados":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const moneyK=(v:number|null|undefined)=>v===null||v===undefined?"sem dados":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
@@ -70,14 +71,14 @@ const situacaoOk=(s:Situacao,days:number)=>(r:CSRow)=>{if(!s)return true;if(s===
 // ───────────────────────── Dashboard ─────────────────────────
 export function CSDashboard(){
  const ws=useWorkspace();const {session,perfil}=useAuth();const hist=useServerFn(historyCS),agenda=useServerFn(agendaCS);
- const [filtro,setFiltro]=useState({pipeline:"15",periodo:"mes" as CSPeriodo|"custom",ini:"",fim:""}),[rascunho,setRascunho]=useState(filtro);
- const {pipeline,periodo,ini,fim}=filtro;
- const pendentes=rascunho.pipeline!==pipeline||rascunho.periodo!==periodo||rascunho.ini!==ini||rascunho.fim!==fim;
+ const [filtro,setFiltro]=useState({pipeline:"15",periodo:"mes" as CSPeriodo|"custom",ini:"",fim:"",owner:""}),[rascunho,setRascunho]=useState(filtro);
+ const {pipeline,periodo,ini,fim,owner}=filtro;
+ const pendentes=rascunho.pipeline!==pipeline||rascunho.periodo!==periodo||rascunho.ini!==ini||rascunho.fim!==fim||rascunho.owner!==owner;
  const {from,to}=periodo==="custom"?{from:ini||csDia(),to:fim||csDia()}:csPeriodo(periodo);const hoje=csDia();
  const all=ws.d?.rows??[];const allowed=allowedPipes(all);const pipe=allowed.length===1?String(allowed[0]):pipeline;
- const rows=useMemo(()=>all.filter(inPipe(pipe)),[all,pipe]);
+ const rows=useMemo(()=>all.filter(inPipe(pipe)).filter(r=>!owner||r.owner_id===Number(owner)),[all,pipe,owner]);
  const m=useMemo(()=>csMetricas(rows,60,from,to),[rows,from,to]);
- const history=useQuery({queryKey:["cs-history",session?.user.id,pipe,from,to,ws.d?.lastSuccess],enabled:!!ws.d&&ws.manager,staleTime:5*60_000,queryFn:()=>hist({data:{pipeline:pipe as "15"|"16"|"both",owner:null,from,to,mine:false}})});
+ const history=useQuery({queryKey:["cs-history",session?.user.id,pipe,owner,from,to,ws.d?.lastSuccess],enabled:!!ws.d&&ws.manager,staleTime:5*60_000,queryFn:()=>hist({data:{pipeline:pipe as "15"|"16"|"both",owner:owner?Number(owner):null,from,to,mine:false}})});
  const retFn=useServerFn(retornosCS),evoFn=useServerFn(evolucaoCS);
  const rets=useQuery({queryKey:["cs-retornos",session?.user.id,ws.d?.lastSuccess],enabled:!!ws.d,staleTime:60_000,queryFn:()=>retFn()});
  const [evoDias,setEvoDias]=useState<"30"|"90"|"180"|"365"|"ano">("90");
@@ -106,6 +107,7 @@ export function CSDashboard(){
   <Topo titulo="Central de Comando" frase="Saúde da operação e o que pede decisão hoje." ws={ws}>
    <PipelineSelect value={rascunho.pipeline} onChange={v=>setRascunho(r=>({...r,pipeline:v}))} allowed={allowed}/>
    <select aria-label="Período" className={selectStyle} value={rascunho.periodo} onChange={e=>setRascunho(r=>({...r,periodo:e.target.value as typeof r.periodo}))}>{CS_PERIODOS.map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="custom">Intervalo personalizado</option></select>{rascunho.periodo==="custom"&&<><input type="date" aria-label="Data inicial" className={selectStyle} value={rascunho.ini} max={rascunho.fim||undefined} onChange={e=>setRascunho(r=>({...r,ini:e.target.value}))}/><input type="date" aria-label="Data final" className={selectStyle} value={rascunho.fim} min={rascunho.ini||undefined} onChange={e=>setRascunho(r=>({...r,fim:e.target.value}))}/></>}
+   <select aria-label="Responsável" className={selectStyle} value={rascunho.owner} onChange={e=>setRascunho(r=>({...r,owner:e.target.value}))}><option value="">Todos os permitidos</option>{[...new Map(all.filter(inPipe(rascunho.pipeline)).map(r=>[r.owner_id,r.owner_nome??String(r.owner_id)])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"pt-BR")).map(([id,n])=><option key={id} value={id}>{n}</option>)}</select>
    <Button size="sm" variant={pendentes?"default":"outline"} onClick={()=>setFiltro(rascunho)} disabled={!pendentes} title={pendentes?"Aplicar os filtros selecionados":"Os filtros já estão aplicados"} aria-label="Aplicar filtros"><Filter className="h-4 w-4"/>Filtrar</Button>
    <span className="text-xs text-muted-foreground">{pipe==="both"?"Ambas as carteiras":CS_PIPELINES[Number(pipe) as 15|16]} · {ws.manager?"todos os responsáveis":"seu escopo"}</span>
   </Topo>
@@ -120,19 +122,13 @@ export function CSDashboard(){
   <section className="mt-8"><h2 className="mb-3 font-display text-lg">Saúde da operação</h2><div className="grid gap-4 lg:grid-cols-3">
    <Bars title="Distribuição de risco" items={(["vermelho","amarelo","verde","sem_dados"] as RiscoCor[]).map(c=>[RISCO_LABEL[c],clientes.filter(x=>x.cor===c).length])} link={<Link to="/clientes-risco" className="text-xs text-primary hover:underline">Ver lista</Link>}/>
    {ws.manager?<Bars title="Cobertura 60d por responsável" items={cobOwner} format={n=>`${n.toFixed(0)}%`} link={<Link to="/carteiras-cs" className="text-xs text-primary hover:underline">Comparar</Link>}/>:<Bars title="Clientes por etapa" items={[...new Set(clientes.map(c=>c.rows[0]!.stage_id))].map(s=>[CS_STAGES[s]??String(s),clientes.filter(c=>c.rows[0]!.stage_id===s).length])}/>}
-   <section className="card-munim p-4"><h3 className="mb-3 text-sm font-medium">Expansão e cancelamentos · {fmt(from)} a {fmt(to)}</h3><dl className="grid grid-cols-2 gap-3 text-sm">
-    <div><dt className="text-xs text-muted-foreground">Cancelados no período</dt><dd className="font-display text-lg">{m.cancelados}</dd></div>
-    <div><dt className="text-xs text-muted-foreground">Churn de MRR</dt><dd className="font-display text-lg">{moneyK(m.mrrCancelado)}</dd></div>
-    <div><dt className="text-xs text-muted-foreground">Clientes com upgrade (atividade)</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":hs("upgrades")??<span className="text-xs text-muted-foreground">coletando histórico</span>}</dd></div>
-    <div><dt className="text-xs text-muted-foreground">Expansão de MRR confirmada</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":h?.some(x=>(x as {expansaoEventos?:number}).expansaoEventos)?moneyK(h!.reduce((s,x)=>s+((x as {expansao?:number|null}).expansao??0),0)):<span className="text-xs text-muted-foreground">sem valor incremental confirmado no período</span>}</dd></div>
-    <div><dt className="text-xs text-muted-foreground">Logo churn</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":hs("logoCancelados")===null?<span className="text-xs text-muted-foreground">coletando histórico desde {h?.[0]?.historicoDesde?ddmm(h[0].historicoDesde):"a 1ª atualização"}</span>:`${hs("logoCancelados")} organizações`}</dd></div>
-   </dl></section>
+   <section className="card-munim p-4"><CSFinancialAudit pipeline={pipe} owner={owner?Number(owner):null} from={from} to={to} admin={["admin","superadmin"].includes(String(ws.d?.role??""))} sync={ws.d?.lastSuccess}/></section>
    {pipe==="both"&&<Bars title="Clientes por carteira" items={[15,16].map(p=>[CS_PIPELINES[p as 15|16],clientes.filter(c=>c.pipeline_id===p).length])}/>}
    <Bars title="Principais motivos de risco" items={[...clientes.filter(c=>c.cor==="vermelho").flatMap(c=>c.fatores).reduce((m,f)=>m.set(f,(m.get(f)??0)+1),new Map<string,number>()).entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}/>
   </div></section>
   {ws.manager&&<section className="mt-8"><details className="card-munim p-4">
    <summary className="cursor-pointer text-sm font-medium">Evolução e tendências<span className="ml-2 text-xs font-normal text-muted-foreground">{evo.data?.desde?`histórico real desde ${fmt(evo.data.desde)}`:""}</span></summary>
-   <CSEvolucao pipe={pipe} from={from} to={to} rows={all} admin={["admin","superadmin"].includes(String(ws.d?.role??""))} receita={<>
+   <CSEvolucao pipe={pipe} owner={owner?Number(owner):null} from={from} to={to} rows={all} admin={["admin","superadmin"].includes(String(ws.d?.role??""))} receita={<>
    <div><select aria-label="Período de evolução" className={selectStyle} value={evoDias} onChange={e=>setEvoDias(e.target.value as typeof evoDias)}><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 6 meses</option><option value="365">Últimos 12 meses</option><option value="ano">Ano atual</option></select></div>
    {evo.isPending?<p className="mt-4 text-xs text-muted-foreground">Carregando…</p>:evo.error?<p className="mt-4 text-xs text-warning">Falha ao ler o histórico.</p>:(evo.data?.serie.length??0)<2?<p className="mt-4 text-xs text-muted-foreground">Posição de receita registrada a partir de {evo.data?.desde?fmt(evo.data.desde):"a primeira sincronização"}. Os gráficos aparecem com pelo menos dois dias registrados — nenhum mês anterior é preenchido com números atuais.</p>:
    <div className="mt-4 grid gap-4 md:grid-cols-3">

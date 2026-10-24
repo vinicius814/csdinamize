@@ -43,3 +43,4 @@
 - CS screens compute indicators client-side with csMetricas over the single cached readCS result, so Dashboard, Minha carteira and Carteiras CS always agree and filters never refetch.
 - Sync publishes only changed rows; service_role statement_timeout is 60s (API roles 3s/8s).
 - CS cancellation history: admin-triggered job (cs-historico.server.ts), separate from lazy sync, bulk v2 lists; changelog only for reversal checks.
+- Financial cards use cs-audit evidence and a shared summary for cards/detail; timestamp-keyed events retain historical owner/pipeline and distinguish native MRR from deal value, preventing unverified financial claims. Explicit admin audit is separate from sync.
