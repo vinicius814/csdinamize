@@ -2,7 +2,7 @@ import { cifrar, decifrar } from "./cripto.server";
 import { cacheIsFresh, INTEGRATION_TTL_MS } from "./cache-rules";
 
 // Durable encrypted data, not a worker-global cache. Auth is checked before entry.
-export async function cachedIntegration<T>(userId: string, key: string, load: () => Promise<T>, cacheable: (value: T) => boolean = () => true): Promise<T> {
+export async function cachedIntegration<T>(userId: string, key: string, load: () => Promise<T>, cacheable: (value: T) => boolean = () => true, ttlMs = INTEGRATION_TTL_MS): Promise<T> {
   const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
   try {
     const { data, error } = await db.from("integration_cache").select("response_ciphertext,expires_at")
@@ -13,7 +13,7 @@ export async function cachedIntegration<T>(userId: string, key: string, load: ()
   if (!cacheable(value)) return value;
   try {
     await db.from("integration_cache").upsert({ user_id: userId, cache_key: key,
-      response_ciphertext: cifrar(JSON.stringify(value)), expires_at: new Date(Date.now() + INTEGRATION_TTL_MS).toISOString(),
+      response_ciphertext: cifrar(JSON.stringify(value)), expires_at: new Date(Date.now() + ttlMs).toISOString(),
     }, { onConflict: "user_id,cache_key" });
   } catch { /* The live result remains authoritative. */ }
   return value;
