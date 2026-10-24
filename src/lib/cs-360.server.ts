@@ -1,5 +1,6 @@
 // Extension point (future, not active): an on-demand classifier could read a single e-mail subject/snippet here to detect "retorno prometido". No AI is used in this phase.
 // Read-only Pipedrive lookup for one deal (Cliente 360). Uses the central read token; never writes.
+import { csEhReuniao } from "./cs-rules";
 type A={id:number;assunto:string;tipo:string;data:string|null;concluida:boolean;reuniao:boolean};
 export async function cliente360Detalhe(dealId:number){
  const token=process.env["PIPEDRIVE_SYNC_TOKEN"],domain=process.env["PIPEDRIVE_SYNC_DOMAIN"];
@@ -7,7 +8,7 @@ export async function cliente360Detalhe(dealId:number){
  async function get(path:string,q:Record<string,string>){const u=new URL(`https://${domain}.pipedrive.com/api${path}`);for(const [k,v] of Object.entries(q))u.searchParams.set(k,v);
   const r=await fetch(u,{headers:{"x-api-token":token??""},signal:AbortSignal.timeout(20000)});if(!r.ok){console.error("CS 360 Pipedrive",r.status,await r.text());throw new Error(`Pipedrive ${r.status}: leitura não concluída.`);}
   const b=await r.json();if(b.success!==true)throw new Error("Pipedrive recusou a leitura.");return b;}
- const map=(a:any,concluida:boolean):A=>({id:Number(a.id),assunto:String(a.subject??"Atividade"),tipo:String(a.type??""),data:(concluida?(a.done_time??a.marked_as_done_time??a.due_date):a.due_date)?String(concluida?(a.done_time??a.marked_as_done_time??a.due_date):a.due_date).slice(0,10):null,concluida,reuniao:/meeting|reuni/i.test(String(a.type??""))});
+  const map=(a:any,concluida:boolean):A=>({id:Number(a.id),assunto:String(a.subject??"Atividade"),tipo:String(a.type??""),data:(concluida?(a.done_time??a.marked_as_done_time??a.due_date):a.due_date)?String(concluida?(a.done_time??a.marked_as_done_time??a.due_date):a.due_date).slice(0,10):null,concluida,reuniao:csEhReuniao(String(a.type??""))});
  const [abertas,feitas,notas,mails]=await Promise.all([
   get("/v2/activities",{deal_id:String(dealId),done:"false",limit:"100",sort_by:"due_date",sort_direction:"asc"}),
   get("/v2/activities",{deal_id:String(dealId),done:"true",limit:"10",sort_by:"update_time",sort_direction:"desc"}),

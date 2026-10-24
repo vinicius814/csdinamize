@@ -1,4 +1,5 @@
 # Munim — cadastro, administração e confiança
+- [x] Ajustes finais CS: teste corrigido (11 leituras e RPC atual), e-mail 30 dias validado em SQL, tipos reais/no-show/contato e upgrades por conclusão; sync 7502/7461 e totais por cliente/responsável conferidos. Teste com duas contas fica com o usuário.
 - [x] Central CS: camada cs_snapshot/cs_metricas_diarias/cs_sync_runs e RLS por carteira/responsável, sem remover dados.
 - [x] Central CS: sync central somente leitura, transação e atualização manual com bloqueio de 10 minutos.
 - [x] Central CS: Dashboard, Carteira, filtros combinados, menu e atribuição de papel CS no admin.

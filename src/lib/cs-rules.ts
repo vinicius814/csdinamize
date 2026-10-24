@@ -69,11 +69,23 @@ export function csDominioCorporativo(email:string):string|null{const m=/^[^@\s]+
 /** Metadados mínimos de uma atividade (sem descrição/notas). due_time do Pipedrive é UTC. */
 export function csAtividade(a:Record<string,any>){const dia=typeof a["due_date"]==="string"?a["due_date"]:null;const t=typeof a["due_time"]==="string"&&a["due_time"]?a["due_time"]:null;const inicio=dia&&t?new Date(`${dia}T${t.length===5?t+":00":t}Z`).toISOString():null;
  const dur=typeof a["duration"]==="string"&&/^\d{1,2}:\d{2}/.test(a["duration"])?a["duration"].split(":").map(Number):null;const fim=inicio&&dur?new Date(Date.parse(inicio)+(dur[0]!*60+dur[1]!)*60000).toISOString():null;
- return {activity_id:Number(a["id"]),deal_id:Number(a["deal_id"]),owner_id:Number(a["owner_id"]),tipo:String(a["type"]??"task"),assunto:String(a["subject"]??"Atividade").slice(0,200),inicio,dia,fim,concluida:a["done"]===true};}
-export type ReuniaoEstado="realizada"|"agendada"|"encerrada_nao_confirmada";
+ return {activity_id:Number(a["id"]),deal_id:Number(a["deal_id"]),owner_id:Number(a["owner_id"]),tipo:String(a["type"]??"task"),assunto:String(a["subject"]??"Atividade").slice(0,200),inicio,dia,fim,concluida:a["done"]===true,data_conclusao:csDataAtividadeConcluida(a)};}
+export type ReuniaoEstado="realizada"|"agendada"|"encerrada_nao_confirmada"|"nao_realizada";
 /** Reunião só é realizada quando concluída; horário passado sem conclusão nunca vira realizada. */
-export function csEstadoReuniao(a:{concluida:boolean;inicio:string|null;fim:string|null;dia:string|null},agora=new Date()):ReuniaoEstado{if(a.concluida)return "realizada";const fimMs=a.fim?Date.parse(a.fim):a.inicio?Date.parse(a.inicio):a.dia?Date.parse(a.dia+"T23:59:59-03:00"):NaN;return fimMs<agora.getTime()?"encerrada_nao_confirmada":"agendada";}
-export const csEhReuniao=(tipo:string)=>/meeting|reuni/i.test(tipo);
+export function csEstadoReuniao(a:{concluida:boolean;inicio:string|null;fim:string|null;dia:string|null;tipo?:string},agora=new Date()):ReuniaoEstado{if(a.tipo==="no_show_implementao")return "nao_realizada";if(a.concluida)return "realizada";const fimMs=a.fim?Date.parse(a.fim):a.inicio?Date.parse(a.inicio):a.dia?Date.parse(a.dia+"T23:59:59-03:00"):NaN;return fimMs<agora.getTime()?"encerrada_nao_confirmada":"agendada";}
+export const csEhReuniao=(tipo:string)=>["reunio_3___ativao","reunio_acompanhamento","no_show_implementao"].includes(tipo)||/meeting|reuni/i.test(tipo);
+/** Completed activity date, never a scheduled future date. */
+export function csDataAtividadeConcluida(a:Record<string,any>,hoje=csDia()):string|null{
+ if(a["done"]!==true||a["type"]==="no_show_implementao")return null;
+ const v=a["done_time"]??a["marked_as_done_time"]??a["due_date"];
+ const dia=typeof v==="string"?(/^\d{4}-\d{2}-\d{2}$/.test(v)?v:csDia(new Date(v.includes("T")?v:v.replace(" ","T")+"Z"))):null;
+ return dia&&dia<=hoje?dia:null;
+}
+/** Distinct clients with a completed upgrade in the selected period; downgrade is not included. */
+export function csClientesUpgrade(rows:CSRow[],atividades:{deal_id:number;tipo:string;concluida:boolean;data_conclusao:string|null}[],from:string,to:string):number{
+ const upgraded=new Set(atividades.filter(a=>a.tipo==="upgrade"&&a.concluida&&a.data_conclusao&&a.data_conclusao>=from&&a.data_conclusao<=to).map(a=>a.deal_id));
+ return new Set(rows.filter(r=>upgraded.has(r.deal_id)).map(r=>`${r.pipeline_id}:${r.org_id===null?"deal:"+r.deal_id:"org:"+r.org_id}`)).size;
+}
 /** Dono do cliente (para quebra por responsável): responsável do negócio de maior MRR. */
 export function csDonoCliente(rows:CSRow[]):number{return [...rows].sort((a,b)=>(b.valor??-1)-(a.valor??-1))[0]!.owner_id;}
 export const CS_ONBOARDING_STAGES:[number,string][]=[[136,"Aguardando Ficha"],[137,"Agendamento de Kick-Off"],[138,"Configurações Iniciais Pendentes"],[139,"Testes"],[148,"Treinamentos Sistema"],[140,"Aguardando Cliente Automações"],[141,"Acompanhamento Final"]];

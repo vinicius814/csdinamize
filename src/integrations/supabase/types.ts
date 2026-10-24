@@ -545,6 +545,7 @@ export type Database = {
           atualizado_em: string
           concluida: boolean
           created_at: string
+          data_conclusao: string | null
           deal_id: number
           dia: string | null
           fim: string | null
@@ -560,6 +561,7 @@ export type Database = {
           atualizado_em?: string
           concluida: boolean
           created_at?: string
+          data_conclusao?: string | null
           deal_id: number
           dia?: string | null
           fim?: string | null
@@ -575,6 +577,7 @@ export type Database = {
           atualizado_em?: string
           concluida?: boolean
           created_at?: string
+          data_conclusao?: string | null
           deal_id?: number
           dia?: string | null
           fim?: string | null
@@ -1888,6 +1891,16 @@ export type Database = {
           fatores: string[]
           retorno_dias: number
         }[]
+      }
+      cs_email_status: {
+        Args: {
+          agora?: string
+          analista_limite: number
+          enviado: string
+          recebido: string
+          retorno_limite: number
+        }
+        Returns: string
       }
       cs_iniciar_sync: {
         Args: { actor?: string; source: string }
