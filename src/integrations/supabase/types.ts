@@ -661,6 +661,7 @@ export type Database = {
           created_at: string
           deal_id: number
           dia: string
+          origem: string
           owner_id: number
           pipeline_id: number
           valor_anterior: number
@@ -671,6 +672,7 @@ export type Database = {
           created_at?: string
           deal_id: number
           dia: string
+          origem?: string
           owner_id: number
           pipeline_id: number
           valor_anterior: number
@@ -681,6 +683,7 @@ export type Database = {
           created_at?: string
           deal_id?: number
           dia?: string
+          origem?: string
           owner_id?: number
           pipeline_id?: number
           valor_anterior?: number
@@ -804,6 +807,7 @@ export type Database = {
           created_at: string
           data_contratacao: string | null
           deal_id: number
+          etiquetas: number[]
           org_id: number | null
           org_nome: string | null
           origem_contato: string | null
@@ -835,6 +839,7 @@ export type Database = {
           created_at?: string
           data_contratacao?: string | null
           deal_id: number
+          etiquetas?: number[]
           org_id?: number | null
           org_nome?: string | null
           origem_contato?: string | null
@@ -866,6 +871,7 @@ export type Database = {
           created_at?: string
           data_contratacao?: string | null
           deal_id?: number
+          etiquetas?: number[]
           org_id?: number | null
           org_nome?: string | null
           origem_contato?: string | null
@@ -936,6 +942,21 @@ export type Database = {
           origem?: string
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cs_upgrade_fonte: {
+        Row: {
+          consultado_em: string
+          deal_id: number
+        }
+        Insert: {
+          consultado_em?: string
+          deal_id: number
+        }
+        Update: {
+          consultado_em?: string
+          deal_id?: number
         }
         Relationships: []
       }
@@ -1797,6 +1818,7 @@ export type Database = {
           atividades_abertas: number | null
           atividades_vencidas: number | null
           atualizado_em: string | null
+          contato_dominios: string[] | null
           contato_efetivo: string | null
           created_at: string | null
           data_contratacao: string | null
@@ -1804,6 +1826,7 @@ export type Database = {
           dias_contato: number | null
           dias_desde_envio: number | null
           email_status: string | null
+          etiquetas: number[] | null
           org_id: number | null
           org_nome: string | null
           origem_contato: string | null
@@ -1880,6 +1903,7 @@ export type Database = {
         Args: {
           contato: string
           enviado: string
+          etiquetas: number[]
           proxima: string
           recebido: string
           stage: number
