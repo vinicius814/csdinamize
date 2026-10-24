@@ -37,23 +37,32 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    const stage=pipeline===15?105:pipeline===16?111:null;
    if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d["id"]),d);}}
   }
+  // Complementary v1 read (same pipelines, paginated): last done activity date and linked e-mail times.
+  const extra=new Map<number,RecordData>();
+  for(const pipeline of [1,15,16]){let start=0;for(let n=0;;n++){if(n>1000)throw new Error("Limite de páginas excedido; snapshot preservado.");const body=await get(`/v1/pipelines/${pipeline}/deals`,{everyone:"1",limit:"500",start:String(start)});if(body.data!==null&&!Array.isArray(body.data))throw new Error("Leitura complementar inválida.");for(const d of body.data??[])extra.set(Number(d["id"]),d);const pg=body.additional_data?.pagination;if(!pg||typeof pg.more_items_in_collection!=="boolean")throw new Error("Paginação incompleta do Pipedrive.");if(!pg.more_items_in_collection)break;start=Number(pg.next_start);}}
+  for(const [id,d] of deals)if(d["status"]==="open"&&!extra.has(id))throw new Error("Leitura complementar incompleta; snapshot preservado.");
   const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),abertas=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
   // One shared read, then owner/deal scope is applied locally.
   for(const a of await pages("/v2/activities",{done:"false"})) {
    if(!owners.has(Number(a["owner_id"]))||!deals.has(Number(a["deal_id"])))continue;
-   const due=a["due_date"] as string|null;if(!due)continue;const id=Number(a["deal_id"]);
+   const id=Number(a["deal_id"]);abertas.set(id,(abertas.get(id)??0)+1);
+   const due=a["due_date"] as string|null;if(!due)continue;
    if(due<today)counts.set(id,(counts.get(id)??0)+1);
    if(due>=today&&(!nextActivities.has(id)||due<String(nextActivities.get(id))))nextActivities.set(id,due);
   }
   const idSchema=z.coerce.number().int().positive();
   const date=(v:any):string|null=>{const value=v&&typeof v==="object"?v.value:v;return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(0,10):null;};
   const field=(d:RecordData,k:string)=>{if(!d["custom_fields"]||!(k in d["custom_fields"]))return null;const v=d["custom_fields"][k];return v&&typeof v==="object"?v.value:v;};
+  const mail=(v:any)=>typeof v==="string"&&/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(v)?new Date(v.replace(" ","T")+"Z").toISOString():null;
   const rows:CSRow[]=[...deals.values()].map(d=>{
    const deal_id=idSchema.parse(d["id"]),owner_id=idSchema.parse(d["owner_id"]);
    if(!names.has(owner_id))throw new Error("Responsável não identificado pela fonte.");
    // No implicit currency conversion: unknown BRL revenue remains unavailable.
    const value=d["currency"]!=="BRL"||d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
-   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
+   const x=extra.get(deal_id),ultima_reuniao_cs=date(field(d,CS_FIELDS.reuniao)),ultimo_contato_efetivo=date(field(d,CS_FIELDS.contato));
+   const ultima_atividade_concluida=date(x?.["last_activity_date"]),ultimo_email_recebido=mail(x?.["last_incoming_mail_time"]),ultimo_email_enviado=mail(x?.["last_outgoing_mail_time"]);
+   const ef=csContatoEfetivo({campo:ultimo_contato_efetivo,reuniao:ultima_reuniao_cs,atividade:ultima_atividade_concluida,emailRecebido:ultimo_email_recebido,emailEnviado:ultimo_email_enviado},today);
+   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem};
   });
   const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
   return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
