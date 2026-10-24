@@ -4,7 +4,7 @@ import { comCredenciais } from "@/lib/credenciais.middleware";
 import { providerError } from "./provider-error";
 
 import { estadoConexao, ROTULO_ESTADO, type EstadoConexao } from "./connection-rules";
-export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean; estado?: EstadoConexao; conta?: string | null; verificadoEm?: string; leitura?: string | null; tecnico?: string | null };
+export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean | undefined; estado?: EstadoConexao | undefined; conta?: string | null | undefined; verificadoEm?: string | undefined; leitura?: string | null | undefined; tecnico?: string | null | undefined };
 export type ServicoGoogle = "google_mail" | "google_calendar" | "google_drive";
 
 const GW = "https://connector-gateway.lovable.dev";

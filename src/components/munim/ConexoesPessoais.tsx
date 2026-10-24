@@ -19,7 +19,7 @@ import { useQuery } from "@tanstack/react-query";
 
 const COR: Record<EstadoConexao, string> = { validado: "bg-success", aguardando: "bg-muted-foreground", sem_permissao: "bg-warning", expirada: "bg-warning", erro_autenticacao: "bg-destructive", desconectado: "bg-muted-foreground", erro: "bg-warning" };
 const hora = (d?: string | null) => d ? new Date(d).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }) : "—";
-function Estado({ st }: { st?: StatusConexao }) {
+function Estado({ st }: { st?: StatusConexao | undefined }) {
   const e = st?.estado ?? (st ? (st.ok ? "validado" : st.proprio ? "erro" : "desconectado") : "aguardando");
   return <div className="flex flex-col gap-1 text-xs">
     <span className="flex items-center gap-2 font-medium text-foreground"><span className={`h-2.5 w-2.5 rounded-full ${COR[e]}`} />{st ? ROTULO_ESTADO[e] : "Verificando…"}</span>
