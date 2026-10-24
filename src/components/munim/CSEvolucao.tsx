@@ -25,7 +25,7 @@ function Lista({ titulo, itens, format = String }: { titulo: string; itens: [str
   const max = Math.max(1, ...itens.map(i => i[1]));
   return <section><h4 className="mb-2 text-xs font-medium text-muted-foreground">{titulo}</h4>{itens.length ? <div className="grid gap-1.5">{itens.map(([l, n]) => <div key={l} className="grid grid-cols-[minmax(0,9rem)_1fr_4.5rem] items-center gap-2 text-xs"><span className="truncate" title={l}>{l}</span><div className="h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{ width: `${n / max * 100}%` }} /></div><span className="text-right tabular-nums">{format(n)}</span></div>)}</div> : <p className="text-xs text-muted-foreground">sem eventos</p>}</section>;
 }
-function Kpi({ l, v, n }: { l: string; v: React.ReactNode; n?: string }) { return <div><dt className="text-xs text-muted-foreground">{l}</dt><dd className="font-display text-lg tabular-nums">{v}</dd>{n && <p className="text-[11px] text-muted-foreground">{n}</p>}</div>; }
+function Kpi({ l, v, n }: { l: string; v: React.ReactNode; n?: string | undefined }) { return <div><dt className="text-xs text-muted-foreground">{l}</dt><dd className="font-display text-lg tabular-nums">{v}</dd>{n && <p className="text-[11px] text-muted-foreground">{n}</p>}</div>; }
 
 export function CSEvolucao({ pipe, from, to, rows, admin, receita }: { pipe: string; from: string; to: string; rows: CSRow[]; admin: boolean; receita: React.ReactNode }) {
   const { session } = useAuth(); const fn = useServerFn(historicoCS), rec = useServerFn(recuperarHistoricoCS); const qc = useQueryClient();
