@@ -28,8 +28,8 @@
 - Telegram link codes expire and are consumed atomically by a service-role-only RPC; protected profile fields are changed only by authenticated server functions.
 
 - Administrative functions use requireAdmin and metadata-only projections; mutations and audit_log inserts are atomic in a service-role-only SQL function to preserve privacy and accountability.
-- Optional last-access and usage writes use recordAuxiliary so telemetry failure cannot reject a successful operation; authorization reads, budget enforcement, primary content writes and atomic administrative audit remain fail-closed.
-- Account UI checks share a user-keyed React Query entry; server operations always revalidate access through meu_acesso. Last-access recording runs under the request execution context and is atomically throttled in SQL; no browser or worker-global state authorizes access.
+- Optional last-access/usage writes use recordAuxiliary (telemetry never fails an operation); authorization, budget, primary writes and admin audit stay fail-closed.
+- Account UI checks share a user-keyed query; server operations revalidate via meu_acesso; last-access is SQL-throttled; no browser/worker-global state authorizes access.
 - Pipedrive reads resolve per-user pipeline, contact field and owner, paginate completely, and fail closed on incomplete results; coverage is calculated in reliability.ts before any sample is sent to AI.
 - Telegram uses one bot per user (token encrypted in telegram_bots, server-only): each bot's webhook /api/public/telegram/bot/$botId is authenticated by its own secret, talks only to its linked chat, and proactive output uses the owner's token, so no shared bot or third-party relay exists.
 - Scheduled Telegram delivery (daily, reminders, end-of-day) needs an external authenticated scheduler callback; persistent per-user claims prevent replay; failed sends need inspection.
