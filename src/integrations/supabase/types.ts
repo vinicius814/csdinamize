@@ -545,6 +545,7 @@ export type Database = {
           atualizado_em: string
           concluida: boolean
           created_at: string
+          data_conclusao: string | null
           deal_id: number
           dia: string | null
           fim: string | null
@@ -560,6 +561,7 @@ export type Database = {
           atualizado_em?: string
           concluida: boolean
           created_at?: string
+          data_conclusao?: string | null
           deal_id: number
           dia?: string | null
           fim?: string | null
@@ -575,6 +577,7 @@ export type Database = {
           atualizado_em?: string
           concluida?: boolean
           created_at?: string
+          data_conclusao?: string | null
           deal_id?: number
           dia?: string | null
           fim?: string | null
