@@ -41,5 +41,5 @@
 - Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
 - Email status comes from SQL cs_email_status (São Paulo day ages); activity types and upgrade counts live in cs-rules so all CS surfaces agree.
 - CS screens compute indicators client-side with csMetricas over the single cached readCS result, so Dashboard, Minha carteira and Carteiras CS always agree and filters never refetch.
-- Sync publication writes only changed rows and parses input once; service_role has a bounded 60s statement_timeout (API roles keep 3s/8s).
+- Sync publishes only changed rows; service_role statement_timeout is 60s (API roles 3s/8s).
 - CS cancellation history: admin-triggered job (cs-historico.server.ts), separate from lazy sync, bulk v2 lists; changelog only for reversal checks.
