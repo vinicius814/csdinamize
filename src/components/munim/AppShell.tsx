@@ -73,32 +73,31 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
 function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: () => void }) {
   const connections = useConnectionPresence();
   const { role, perfil } = useAuth();
-  const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const itens = navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel);
   return (
-    <nav className="flex flex-col gap-1">
-      {navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel).map((i) => {
+    <nav className="flex flex-col gap-0.5">
+      {itens.map((i, n) => {
         const ativo = i.to === "/" ? path === "/" : path.startsWith(i.to);
+        const novoGrupo = n === 0 || itens[n - 1]!.grupo !== i.grupo;
         return (
-          <Link
-            key={i.to}
-            to={i.to}
-            onClick={aoNavegar}
-            title={recolhida ? i.label : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
-              ativo
-                ? "bg-primary-soft text-primary shadow-glow-sm"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            <i.icon className="h-[18px] w-[18px] shrink-0" />
-            {!recolhida && <span>{i.label}</span>}
-            {!recolhida && i.to === "/aprovacoes" && <Contador n={pendentes?.length ?? 0} />}
-            {recolhida && i.to === "/aprovacoes" && !!pendentes?.length && (
-              <span className="absolute ml-4 -mt-4 h-2 w-2 rounded-full bg-ember" />
-            )}
-          </Link>
+          <div key={i.to}>
+            {novoGrupo && (recolhida ? n > 0 && <div className="mx-3 my-2 border-t border-border" /> : <p className="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{i.grupo}</p>)}
+            <Link
+              to={i.to}
+              onClick={aoNavegar}
+              title={recolhida ? i.label : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
+                ativo
+                  ? "bg-primary-soft text-primary shadow-glow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              <i.icon className="h-[18px] w-[18px] shrink-0" />
+              {!recolhida && <span>{i.label}</span>}
+            </Link>
+          </div>
         );
       })}
     </nav>
