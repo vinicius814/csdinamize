@@ -12,6 +12,7 @@ import { Pagina } from "./PaginaVazia";
 import { PageSkeleton } from "./PageSkeleton";
 import { RiscoBadge, RISCO_LABEL } from "./RiscoBadge";
 import { toast } from "sonner";
+import { CSEvolucao } from "./CSEvolucao";
 
 export const money=(v:number|null|undefined)=>v===null||v===undefined?"sem dados":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const moneyK=(v:number|null|undefined)=>v===null||v===undefined?"sem dados":v.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0});
