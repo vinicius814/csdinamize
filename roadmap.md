@@ -4,7 +4,9 @@
 - [x] Central CS: Dashboard, Carteira, filtros combinados, menu e atribuição de papel CS no admin.
 - [x] Central CS: sync real bem-sucedido, 7502 registros lidos/7461 únicos e métricas verificadas no banco.
 - [ ] Central CS: validar painel/filtros/admin e isolamento real com duas contas — Supabase externo sem sessão autenticada disponível.
-- [ ] Central CS: horários 08h/12h São Paulo — callback externo depende de serviço de agenda compatível; pg_cron HTTP não suportado neste backend.
+- [x] Central CS: atualização por acesso 08h/12h com uma tentativa por janela (testada com dois acessos simultâneos).
+- [x] Central CS Parte A: contato efetivo multi-fonte, termômetro de risco, Dashboard ampliado, Clientes em risco, Cliente 360, regras em Configurações.
+- [ ] Central CS Parte A: validar telas com sessão real — Supabase externo sem sessão de navegador disponível.
 - [x] Parte 3: áreas, itens, ligações, conversas; 1 nota original e 1 item migrado, nenhuma mensagem sem tópico; RLS e bloqueio anon verificados.
 - [x] Parte 3: captura natural, Home pessoal, mapa, projetos atômicos, tópicos e memória editável implementados.
 - [x] Parte 3: autonomia, Haiku, embeddings 3072, memória semanal, limites e contagem diária; 44 testes; build OK.
