@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireActive } from "./access.middleware";
 import { comCredenciais } from "./credenciais.middleware";
-import { csPodeVer, csMetricas, csDia, csClientesUpgrade, type CSRow } from "./cs-rules";
+import { csPodeVer, csMetricas, csDia, csClientesUpgrade, csEhRetorno, type CSRow } from "./cs-rules";
 import { z } from "zod";
 
 /** Value-change tracking (expansion/upgrade) started with the first sync on this date. */
