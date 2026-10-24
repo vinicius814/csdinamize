@@ -50,8 +50,8 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
   const rows:CSRow[]=[...deals.values()].map(d=>{
    const deal_id=idSchema.parse(d["id"]),owner_id=idSchema.parse(d["owner_id"]);
    if(!names.has(owner_id))throw new Error("Responsável não identificado pela fonte.");
-   if(d["currency"]!=="BRL"&&Number(d["pipeline_id"])!==1)throw new Error("Receita fora de BRL; atualização interrompida.");
-   const value=d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
+   // No implicit currency conversion: unknown BRL revenue remains unavailable.
+   const value=d["currency"]!=="BRL"||d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
    return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo:date(field(d,CS_FIELDS.contato)),ultima_reuniao_cs:date(field(d,CS_FIELDS.reuniao)),data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
   });
   const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
