@@ -31,6 +31,7 @@ import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedOnboardingCsRouteImport } from './routes/_authenticated/onboarding-cs'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
+import { Route as AuthenticatedClienteDealIdRouteImport } from './routes/_authenticated/cliente.$dealId'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 import { Route as ApiPublicCsSyncRouteImport } from './routes/api/public/cs/sync'
 import { Route as ApiPublicTelegramBriefingsRouteImport } from './routes/api/public/telegram/briefings'
@@ -151,6 +152,12 @@ const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
   path: '/projetos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedClienteDealIdRoute =
+  AuthenticatedClienteDealIdRouteImport.update({
+    id: '/cliente/$dealId',
+    path: '/cliente/$dealId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   id: '/api/oauth/google/return',
   path: '/api/oauth/google/return',
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/projetos': typeof AuthenticatedProjetosRoute
+  '/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
@@ -230,6 +238,7 @@ export interface FileRoutesByTo {
   '/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/': typeof AuthenticatedIndexRoute
+  '/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/_authenticated/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
   '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
@@ -290,6 +300,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/onboarding-cs'
     | '/projetos'
+    | '/cliente/$dealId'
     | '/api/oauth/google/return'
     | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
@@ -318,6 +329,7 @@ export interface FileRouteTypes {
     | '/onboarding-cs'
     | '/projetos'
     | '/'
+    | '/cliente/$dealId'
     | '/api/oauth/google/return'
     | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
@@ -347,6 +359,7 @@ export interface FileRouteTypes {
     | '/_authenticated/onboarding-cs'
     | '/_authenticated/projetos'
     | '/_authenticated/'
+    | '/_authenticated/cliente/$dealId'
     | '/api/oauth/google/return'
     | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
@@ -524,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cliente/$dealId': {
+      id: '/_authenticated/cliente/$dealId'
+      path: '/cliente/$dealId'
+      fullPath: '/cliente/$dealId'
+      preLoaderRoute: typeof AuthenticatedClienteDealIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/oauth/google/return': {
       id: '/api/oauth/google/return'
       path: '/api/oauth/google/return'
@@ -579,6 +599,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingCsRoute: typeof AuthenticatedOnboardingCsRoute
   AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedClienteDealIdRoute: typeof AuthenticatedClienteDealIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -598,6 +619,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingCsRoute: AuthenticatedOnboardingCsRoute,
   AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedClienteDealIdRoute: AuthenticatedClienteDealIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
