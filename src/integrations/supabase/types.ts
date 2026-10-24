@@ -1738,6 +1738,10 @@ export type Database = {
         Returns: undefined
       }
       cs_atualizar_regras: { Args: { regras: Json }; Returns: undefined }
+      cs_atualizar_regras_por: {
+        Args: { actor: string; regras: Json }
+        Returns: undefined
+      }
       cs_avaliar_risco: {
         Args: {
           contato: string
