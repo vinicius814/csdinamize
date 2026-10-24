@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { RefreshCw, ExternalLink, X, Briefcase } from "lucide-react";
 import { readCS, syncCS, metricsCS, autoSyncCS, historyCS } from "@/lib/cs.functions";
-import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDia, csDias, csMetricas, csPeriodo, type CSRow, type RiscoCor } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, type CSRow, type RiscoCor } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,15 +25,15 @@ function Cards({metrics,days,available,dashboard,onboarding}:{metrics:M|undefine
  if(dashboard)base.push(["Projetos de onboarding",onboarding]);
  return <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{base.map(([label,value,note])=><Card key={label} label={label} value={v(value)} note={available?note:undefined}/>)}</div>;
 }
-type H={pipeline:number;historicoDesde:string|null;valorDesde:string;mrrInicial:number|null;clientesIniciais:number|null;expansao:number|null;upgrades:number|null};
-function HistoryCards({h,cancBase}:{h:H|undefined;cancBase:number}){
+type H={pipeline:number;historicoDesde:string|null;valorDesde:string;mrrInicial:number|null;clientesIniciais:number|null;expansao:number|null;upgrades:number|null;logoChurn:number|null;logoCancelados:number|null;baseInicial:number|null};
+function HistoryCards({h}:{h:H|undefined}){
  if(!h)return null;const desde=(d:string|null)=>`coletando histórico desde ${d?ddmm(d):"a primeira atualização"}`;
- const logo=h.clientesIniciais?`${(cancBase/h.clientesIniciais*100).toFixed(1)}%`:null;
+ const logo=h.logoChurn===null?null:`${h.logoChurn.toFixed(1)}%`;
  return <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
   <Card label="MRR inicial do período" value={h.mrrInicial===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:money(h.mrrInicial)}/>
   <Card label="Expansão de receita" value={h.expansao===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:money(h.expansao)}/>
   <Card label="Clientes com upgrade" value={h.upgrades===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:h.upgrades}/>
-  <Card label="Logo churn" value={logo===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:logo}/>
+  <Card label="Logo churn" value={logo===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:logo} note={logo===null?undefined:`${h.logoCancelados} de ${h.baseInicial} organizações da base inicial`}/>
   {["Taxa de reversão","NRR","GRR"].map(t=><div key={t} className="min-w-0 border border-dashed border-border p-4"><p className="text-xs text-muted-foreground">{t}</p><p className="mt-2 text-sm text-muted-foreground">em breve</p></div>)}
  </div>;
 }
@@ -80,7 +80,7 @@ export function CSWorkspace({mode="carteira"}:{mode?:"dashboard"|"carteira"|"ges
  const showComparativos=mode!=="carteira"&&manager;
  const ativos=filtered.filter(csAtivo);
  const card=(id:number)=>metrics.data?.find(m=>m.pipeline===id)?.metrics;
- const block=(id:number)=><><Cards metrics={card(id)} days={days} available={success&&!!metrics.data} dashboard={mode==="dashboard"} onboarding={onboarding}/>{mode!=="carteira"&&<HistoryCards h={history.data?.find(h=>h.pipeline===id)} cancBase={filtered.filter(r=>r.pipeline_id===id&&[105,111].includes(r.stage_id)&&!!r.stage_change_time&&csDia(new Date(r.stage_change_time))>=from&&csDia(new Date(r.stage_change_time))<=to&&!!r.add_time&&csDia(new Date(r.add_time))<from).length}/>}</>;
+ const block=(id:number)=><><Cards metrics={card(id)} days={days} available={success&&!!metrics.data} dashboard={mode==="dashboard"} onboarding={onboarding}/>{mode!=="carteira"&&<HistoryCards h={history.data?.find(h=>h.pipeline===id)}/>}</>;
  return <Pagina><Cabecalho titulo={mode==="dashboard"?"Central de Comando de CS":mode==="gestao"?"Carteiras CS":"Minha carteira"} frase="Dinamize · Customer Success"/>
  <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"><div><UltimaAtualizacao d={d}/>{executing&&<p role="status" className="mt-1 text-sm text-primary">Lendo negócios e atividades…</p>}</div><Button onClick={refresh} disabled={executing||cooldown}><RefreshCw className={executing?"animate-spin":""}/>{executing?"Atualizando…":"Atualizar dados"}</Button></div>
  <section className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -95,10 +95,11 @@ export function CSWorkspace({mode="carteira"}:{mode?:"dashboard"|"carteira"|"ges
  <div className="mb-6 flex flex-wrap gap-2 text-xs text-muted-foreground">{[effectivePipeline==="both"?"Carteiras separadas":CS_PIPELINES[Number(effectivePipeline) as 15|16],owner?owners.find(([id])=>id===Number(owner))?.[1]:null,stage?CS_STAGES[Number(stage)]:null,risco?RISCO_LABEL[risco]:null,`${days} dias`,`${fmt(from)} a ${fmt(to)}`,search||null].filter(Boolean).map(chip=><span key={String(chip)} className="inline-flex items-center gap-1 border-b border-primary py-1"><Briefcase className="h-3 w-3"/>{chip}</span>)}</div>
  {metrics.error&&<p role="alert" className="mb-3 text-warning">{metrics.error.message}</p>}
  {effectivePipeline==="both"?<div className="grid gap-6 xl:grid-cols-2">{[15,16].map(id=><section key={id}><h2 className="mb-3 font-display text-lg">{CS_PIPELINES[id as 15|16]}</h2>{block(id)}</section>)}</div>:block(Number(effectivePipeline))}
+ {mode==="dashboard"&&success&&<p className="mt-4 text-xs text-muted-foreground">Origem do contato efetivo (negócios ativos): {(["atividade","campo","e-mail","reunião"] as const).map(o=>`${o} ${ativos.filter(r=>r.origem_contato===o).length}`).join(" · ")} · nenhuma fonte {ativos.filter(r=>!r.origem_contato).length}</p>}
  {mode!=="carteira"&&success&&<div className="mt-6 grid gap-4 lg:grid-cols-2"><Bars title="Clientes por etapa" items={[...new Set(ativos.map(r=>r.stage_id))].map(s=>[CS_STAGES[s]??String(s),csClientes(ativos.filter(r=>r.stage_id===s)).length] as [string,number])}/><Bars title="Clientes por risco" items={(["vermelho","amarelo","verde","sem_dados"] as RiscoCor[]).map(c=>[RISCO_LABEL[c],csClientes(ativos).filter(x=>x.cor===c).length] as [string,number])}/></div>}
  {showComparativos&&success&&<>
   {effectivePipeline==="both"&&<Comparativo title="Por carteira" days={days} groups={[15,16].map(id=>({key:String(id),label:CS_PIPELINES[id as 15|16],rows:filtered.filter(r=>r.pipeline_id===id)}))} onPick={k=>{setPipeline(k);setPage(0);}}/>}
-  <Comparativo title="Por responsável" days={days} groups={owners.map(([id,name])=>({key:String(id),label:effectivePipeline==="both"?name:name,rows:filtered.filter(r=>r.owner_id===id)}))} onPick={k=>{setOwner(k);setPage(0);document.getElementById("lista-clientes")?.scrollIntoView({behavior:"smooth"});}}/>
+  <Comparativo title="Por responsável" days={days} groups={owners.map(([id,name])=>({key:String(id),label:name,rows:[...csClientes(filtered).filter(c=>csDonoCliente(c.rows)===id).flatMap(c=>c.rows),...filtered.filter(r=>!csAtivo(r)&&r.owner_id===id)]}))} onPick={k=>{setOwner(k);setPage(0);document.getElementById("lista-clientes")?.scrollIntoView({behavior:"smooth"});}}/>
  </>}
  <ListaClientes rows={rows} page={page} setPage={setPage} success={success}/>
  </Pagina>;

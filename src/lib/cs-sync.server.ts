@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CS_FIELDS, csDia, csContatoEfetivo, type CSRow } from "./cs-rules";
+import { CS_FIELDS, csDia, csContatoEfetivo, csDominioCorporativo, csAtividade, type CSRow } from "./cs-rules";
 import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 
 type RecordData = Record<string, any>;
@@ -43,13 +43,20 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
   for(const [id,d] of deals)if(d["status"]==="open"&&!extra.has(id))throw new Error("Leitura complementar incompleta; snapshot preservado.");
   const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),abertas=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
   // One shared read, then owner/deal scope is applied locally.
+ const atividades:RecordData[]=[];const hojeMs=Date.parse(today+"T12:00:00Z"),desde=new Date(hojeMs-30*86400000).toISOString().slice(0,10),ate=new Date(hojeMs+14*86400000).toISOString().slice(0,10);
   for(const a of await pages("/v2/activities",{done:"false"})) {
    if(!owners.has(Number(a["owner_id"]))||!deals.has(Number(a["deal_id"])))continue;
    const id=Number(a["deal_id"]);abertas.set(id,(abertas.get(id)??0)+1);
    const due=a["due_date"] as string|null;if(!due)continue;
+   if(due>=desde&&due<=ate)atividades.push(a);
    if(due<today)counts.set(id,(counts.get(id)??0)+1);
    if(due>=today&&(!nextActivities.has(id)||due<String(nextActivities.get(id))))nextActivities.set(id,due);
   }
+  // Completed activities of the last 30 days (incremental window by update_time).
+  for(const a of await pages("/v2/activities",{done:"true",updated_since:new Date(hojeMs-31*86400000).toISOString().slice(0,19)+"Z"})){if(!deals.has(Number(a["deal_id"]))||!owners.has(Number(a["owner_id"])))continue;const due=a["due_date"] as string|null;if(due&&due>=desde&&due<=today)atividades.push(a);}
+  // Contact e-mail domains (corporate only) for optional calendar matching; batched person read.
+  const personIds=[...new Set([...deals.values()].filter(d=>d["status"]==="open"&&d["person_id"]).map(d=>Number(d["person_id"])))];const dominios=new Map<number,string[]>();
+  for(let i=0;i<personIds.length;i+=100){const b=await get("/v2/persons",{ids:personIds.slice(i,i+100).join(","),limit:"100"});if(!Array.isArray(b.data))throw new Error("Leitura de contatos inválida.");for(const p of b.data)dominios.set(Number(p["id"]),[...new Set(((p["emails"]??[]) as RecordData[]).map(e=>csDominioCorporativo(String(e["value"]??""))).filter((x):x is string=>!!x))]);}
   const idSchema=z.coerce.number().int().positive();
   const date=(v:any):string|null=>{const value=v&&typeof v==="object"?v.value:v;return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(0,10):null;};
   const field=(d:RecordData,k:string)=>{if(!d["custom_fields"]||!(k in d["custom_fields"]))return null;const v=d["custom_fields"][k];return v&&typeof v==="object"?v.value:v;};
@@ -62,9 +69,9 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    const x=extra.get(deal_id),ultima_reuniao_cs=date(field(d,CS_FIELDS.reuniao)),ultimo_contato_efetivo=date(field(d,CS_FIELDS.contato));
    const ultima_atividade_concluida=date(x?.["last_activity_date"]),ultimo_email_recebido=mail(x?.["last_incoming_mail_time"]),ultimo_email_enviado=mail(x?.["last_outgoing_mail_time"]);
    const ef=csContatoEfetivo({campo:ultimo_contato_efetivo,reuniao:ultima_reuniao_cs,atividade:ultima_atividade_concluida,emailRecebido:ultimo_email_recebido,emailEnviado:ultimo_email_enviado},today);
-   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem};
+   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem,contato_dominios:d["person_id"]?dominios.get(Number(d["person_id"]))??[]:[]} as CSRow;
   });
-  const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
+  const {error}=await db.rpc("cs_publicar_tudo",{run,rows:JSON.parse(JSON.stringify(rows)),atividades:atividades.map(csAtividade),lidos});if(error)throw new Error(error.message);
   return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
  } catch(e) {
   const erro=e instanceof Error?e.message:"Não consegui concluir a leitura central.";
