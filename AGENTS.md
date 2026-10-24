@@ -24,22 +24,22 @@
 - Personal AI helpers stream native Messages for classification and summaries; embeddings use the full default dimension with chunk records and owner-scoped search.
 - Routines (manhã, riscos, fechamento, semana) reuse the briefings table's existing tipo enum (manha, alerta, rodada, leitura_cs) via gerarRotina; they auto-run on the first Início visit of each period since no scheduler can be added to the database.
 - Integration credentials are per user via comCredenciais and AsyncLocalStorage; no project credentials are substituted for missing personal connections, so optional modules cannot access shared accounts.
-- Connection presence has its own user-keyed query, shared by navigation and optional CS surfaces; assistant tools are filtered and rechecked on the server.
+- Connection presence is one user-keyed query shared by nav and CS; assistant tools are rechecked server-side.
 - Telegram link codes expire and are consumed atomically by a service-role-only RPC; protected profile fields are changed only by authenticated server functions.
 
 - Administrative functions use requireAdmin and metadata-only projections; mutations and audit_log inserts are atomic in a service-role-only SQL function to preserve privacy and accountability.
-- Optional last-access and usage writes use recordAuxiliary so telemetry failure cannot reject a successful operation; authorization reads, budget enforcement, primary content writes and atomic administrative audit remain fail-closed.
-- Account UI checks share a user-keyed React Query entry; server operations always revalidate access through meu_acesso. Last-access recording runs under the request execution context and is atomically throttled in SQL; no browser or worker-global state authorizes access.
+- Optional last-access/usage writes use recordAuxiliary (telemetry never fails an operation); authorization, budget, primary writes and admin audit stay fail-closed.
+- Account UI checks share a user-keyed query; server operations revalidate via meu_acesso; last-access is SQL-throttled; no browser/worker-global state authorizes access.
 - Pipedrive reads resolve per-user pipeline, contact field and owner, paginate completely, and fail closed on incomplete results; coverage is calculated in reliability.ts before any sample is sent to AI.
 - Telegram uses one bot per user (token encrypted in telegram_bots, server-only): each bot's webhook /api/public/telegram/bot/$botId is authenticated by its own secret, talks only to its linked chat, and proactive output uses the owner's token, so no shared bot or third-party relay exists.
-- Scheduled Telegram delivery requires an external authenticated scheduler callback; daily delivery claims prevent duplicate sends, and failed/ambiguous deliveries require inspection rather than automatic replay.
-- Telegram reminder and end-of-day delivery reuse the scheduler callback with per-user persistent notification claims, preventing side-effect replay on repeated scheduler calls.
+- Scheduled Telegram delivery (daily, reminders, end-of-day) needs an external authenticated scheduler callback; persistent per-user claims prevent replay; failed sends need inspection.
 - Assistant and routine engines live in server-only core modules behind thin authenticated wrappers so web, Telegram and scheduled flows share behavior without exposing provider logic to browser bundles.
 
-- Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
-- Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
+- Project conversion is one owner-scoped transactional RPC (activities and idea never diverge).
+- Daily relationship suggestions use a DB counter and profile timezone so the cap cannot be reset.
 - CS lazy sync runs on the first CS visit after each 08:00/12:00 São Paulo slot, claimed once in unique cs_sync_runs.janela so concurrency/failures never retry or replay old windows.
 - Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
 - Email status comes from SQL cs_email_status (São Paulo day ages); activity types and upgrade counts live in cs-rules so all CS surfaces agree.
 - CS screens compute indicators client-side with csMetricas over the single cached readCS result, so Dashboard, Minha carteira and Carteiras CS always agree and filters never refetch.
-- Sync publication writes only changed rows and parses input once; service_role has a bounded 60s statement_timeout (API roles keep 3s/8s).
+- Sync publishes only changed rows; service_role statement_timeout is 60s (API roles 3s/8s).
+- CS cancellation history: admin-triggered job (cs-historico.server.ts), separate from lazy sync, bulk v2 lists; changelog only for reversal checks.

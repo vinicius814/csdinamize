@@ -13,5 +13,6 @@
 - [x] Conexões: card corporativo (admin) separado de "Minha conta"; Google com conta + leitura real
 - [x] Risco: sem próxima atividade não altera cor
 - [x] Períodos: 10 opções + intervalo personalizado
-- [ ] Cliente 360: separar Risco x Acompanhamento; filtro de origem na Agenda
-- [ ] Cancelamentos retroativos (mapear pipeline/etapas) e upgrades retroativos completos (changelog incremental)
+- [x] Cliente 360: separar Risco x Acompanhamento; filtro de origem na Agenda
+- [x] Cancelamentos retroativos 12 meses (cs_cancelamentos) + upgrades confirmados x registrados; aba Evolução e tendências
+- [ ] Pendente: reversões de negócios já reativados (exige changelog por negócio ativo); taxas históricas só com base diária (desde 24/10/2026)

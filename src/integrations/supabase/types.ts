@@ -619,6 +619,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_cancelamentos: {
+        Row: {
+          consultado_em: string
+          deal_id: number
+          dia: string
+          moeda: string | null
+          motivo: string | null
+          org_id: number | null
+          origem: string
+          owner_id: number
+          pipeline_id: number
+          revertido: boolean
+          stage_id: number
+          valor: number | null
+        }
+        Insert: {
+          consultado_em?: string
+          deal_id: number
+          dia: string
+          moeda?: string | null
+          motivo?: string | null
+          org_id?: number | null
+          origem?: string
+          owner_id: number
+          pipeline_id: number
+          revertido?: boolean
+          stage_id: number
+          valor?: number | null
+        }
+        Update: {
+          consultado_em?: string
+          deal_id?: number
+          dia?: string
+          moeda?: string | null
+          motivo?: string | null
+          org_id?: number | null
+          origem?: string
+          owner_id?: number
+          pipeline_id?: number
+          revertido?: boolean
+          stage_id?: number
+          valor?: number | null
+        }
+        Relationships: []
+      }
       cs_eventos_onboarding: {
         Row: {
           atualizado_em: string
@@ -688,6 +733,45 @@ export type Database = {
           pipeline_id?: number
           valor_anterior?: number
           valor_novo?: number
+        }
+        Relationships: []
+      }
+      cs_historico_execucoes: {
+        Row: {
+          actor: string | null
+          concluido_em: string | null
+          consultas: number
+          desde: string | null
+          erro: string | null
+          id: string
+          iniciado_em: string
+          registros: number
+          status: string
+          tipo: string
+        }
+        Insert: {
+          actor?: string | null
+          concluido_em?: string | null
+          consultas?: number
+          desde?: string | null
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          registros?: number
+          status?: string
+          tipo: string
+        }
+        Update: {
+          actor?: string | null
+          concluido_em?: string | null
+          consultas?: number
+          desde?: string | null
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          registros?: number
+          status?: string
+          tipo?: string
         }
         Relationships: []
       }
