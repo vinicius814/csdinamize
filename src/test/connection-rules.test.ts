@@ -8,7 +8,7 @@ describe("Banco Munim V2", () => {
     expect(canUsePipedriveFallback("user")).toBe(false);
   });
   it("CS exige Pipedrive próprio", () => { for(const name of ["carteira","buscar_cliente","atividades_pipedrive","radar_riscos"]) { expect(csToolAvailable(name,false)).toBe(false);expect(csToolAvailable(name,true)).toBe(true); } expect(csToolAvailable("agenda",false)).toBe(true); });
-  it("oculta o módulo CS no menu sem Pipedrive",()=>{expect(navVisivel("superadmin",false).some(i=>i.to==="/carteira")).toBe(false);expect(navVisivel("user",true).some(i=>i.to==="/carteira")).toBe(true);});
+  it("CS central não depende de conexão pessoal; gestão exige papel autorizado",()=>{expect(navVisivel("user",false).some(i=>i.to==="/carteira")).toBe(true);expect(navVisivel("user",false,"cs").some(i=>i.to==="/carteiras-cs")).toBe(false);expect(navVisivel("user",false,"gestor").some(i=>i.to==="/carteiras-cs")).toBe(true);});
   it("enumera cada configuração obrigatória ausente", () => {
     expect(missingPipedriveSettings({ owner: null, pipeline: null, field: null })).toEqual(["responsável do Pipedrive", "pipeline", "campo de data do último contato"]);
     expect(missingPipedriveSettings({ owner: 1, pipeline: 15, field: "data" })).toEqual([]);

@@ -1,0 +1,64 @@
+import { z } from "zod";
+import { CS_FIELDS, csDia, type CSRow } from "./cs-rules";
+import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
+
+type RecordData = Record<string, any>;
+const pageSchema=z.object({success:z.literal(true),data:z.array(z.record(z.any())).nullable(),additional_data:z.object({next_cursor:z.string().nullable().optional()}).passthrough().optional()}).passthrough();
+export async function runCSSync(source:"manual"|"agendado",actor:string|null=null) {
+ const {data:run,error:startError}=await db.rpc("cs_iniciar_sync",{source,...(actor?{actor}:{})});
+ if(startError||!run) throw new Error(startError?.message??"Não consegui iniciar a atualização.");
+ let lidos=0;
+ try {
+  const token=process.env["PIPEDRIVE_SYNC_TOKEN"],domain=process.env["PIPEDRIVE_SYNC_DOMAIN"];
+  if(!token||!domain) throw new Error("Configure PIPEDRIVE_SYNC_TOKEN e PIPEDRIVE_SYNC_DOMAIN.");
+  if(domain!=="cs-dinamize") throw new Error("Configure o domínio central como cs-dinamize.");
+  const base=`https://${domain}.pipedrive.com/api`;
+  async function get(path:string,query:Record<string,string>={}) {
+   const url=new URL(base+path);for(const [k,v] of Object.entries(query))url.searchParams.set(k,v);
+   const response=await fetch(url,{headers:{"x-api-token":token??""},signal:AbortSignal.timeout(60000)});
+   if(!response.ok){const body=await response.text(); console.error("CS Pipedrive",response.status,body);throw new Error(`Pipedrive ${response.status}: leitura não concluída.`);}
+   const body=await response.json();if(body.success!==true)throw new Error("Pipedrive recusou a leitura.");return body;
+  }
+  async function pages(path:string,params:Record<string,string>) {
+   const out:RecordData[]=[];let cursor:string|undefined;const seen=new Set<string>();
+   for(let n=0;n<10000;n++) {
+    const body=pageSchema.parse(await get(path,{...params,limit:"500",...(cursor?{cursor}:{})}));out.push(...(body.data??[]));
+    if(!body.additional_data||!("next_cursor" in body.additional_data))throw new Error("Paginação incompleta do Pipedrive.");
+    const next=body.additional_data.next_cursor;if(!next)return out;if(seen.has(next))throw new Error("Cursor repetido no Pipedrive.");seen.add(next);cursor=next;
+   } throw new Error("Limite de páginas excedido; snapshot preservado.");
+  }
+  const users=await get("/v1/users");if(!Array.isArray(users.data))throw new Error("Lista de responsáveis inválida.");
+  const names=new Map<number,string>(users.data.map((u:RecordData)=>[Number(u["id"]),String(u["name"])]));
+  const deals=new Map<number,RecordData>();const custom_fields=Object.values(CS_FIELDS).join(",");
+  for(const pipeline of [1,15,16]) {
+   const found=await pages("/v2/deals",{pipeline_id:String(pipeline),status:"open",custom_fields});lidos+=found.length;
+   for(const d of found) {if(Number(d["pipeline_id"])!==pipeline||d["status"]!=="open")throw new Error("Filtro de carteira não respeitado pela fonte.");deals.set(Number(d["id"]),d);}
+   const stage=pipeline===15?105:pipeline===16?111:null;
+   if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d["id"]),d);}}
+  }
+  const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
+  // One shared read, then owner/deal scope is applied locally.
+  for(const a of await pages("/v2/activities",{done:"false"})) {
+   if(!owners.has(Number(a["owner_id"]))||!deals.has(Number(a["deal_id"])))continue;
+   const due=a["due_date"] as string|null;if(!due)continue;const id=Number(a["deal_id"]);
+   if(due<today)counts.set(id,(counts.get(id)??0)+1);
+   if(due>=today&&(!nextActivities.has(id)||due<String(nextActivities.get(id))))nextActivities.set(id,due);
+  }
+  const idSchema=z.coerce.number().int().positive();
+  const date=(v:any):string|null=>{const value=v&&typeof v==="object"?v.value:v;return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(0,10):null;};
+  const field=(d:RecordData,k:string)=>{if(!d["custom_fields"]||!(k in d["custom_fields"]))return null;const v=d["custom_fields"][k];return v&&typeof v==="object"?v.value:v;};
+  const rows:CSRow[]=[...deals.values()].map(d=>{
+   const deal_id=idSchema.parse(d["id"]),owner_id=idSchema.parse(d["owner_id"]);
+   if(!names.has(owner_id))throw new Error("Responsável não identificado pela fonte.");
+   // No implicit currency conversion: unknown BRL revenue remains unavailable.
+   const value=d["currency"]!=="BRL"||d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
+   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo:date(field(d,CS_FIELDS.contato)),ultima_reuniao_cs:date(field(d,CS_FIELDS.reuniao)),data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
+  });
+  const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
+  return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
+ } catch(e) {
+  const erro=e instanceof Error?e.message:"Não consegui concluir a leitura central.";
+  await db.from("cs_sync_runs").update({status:lidos?"parcial":"falha",concluido_em:new Date().toISOString(),negocios_lidos:lidos,erro}).eq("id",run).eq("status","executando");
+  throw new Error(erro);
+ }
+}

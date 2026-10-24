@@ -17,8 +17,11 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedAgendaAtividadesRouteImport } from './routes/_authenticated/agenda-atividades'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
+import { Route as AuthenticatedCarteirasCsRouteImport } from './routes/_authenticated/carteiras-cs'
+import { Route as AuthenticatedClientesRiscoRouteImport } from './routes/_authenticated/clientes-risco'
 import { Route as AuthenticatedConexoesRouteImport } from './routes/_authenticated/conexoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedConversaRouteImport } from './routes/_authenticated/conversa'
@@ -26,8 +29,10 @@ import { Route as AuthenticatedMapaRouteImport } from './routes/_authenticated/m
 import { Route as AuthenticatedMemoriaRouteImport } from './routes/_authenticated/memoria'
 import { Route as AuthenticatedNotasRouteImport } from './routes/_authenticated/notas'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedOnboardingCsRouteImport } from './routes/_authenticated/onboarding-cs'
 import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticated/projetos'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
+import { Route as ApiPublicCsSyncRouteImport } from './routes/api/public/cs/sync'
 import { Route as ApiPublicTelegramBriefingsRouteImport } from './routes/api/public/telegram/briefings'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicTelegramBotBotIdRouteImport } from './routes/api/public/telegram/bot/$botId'
@@ -71,6 +76,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAgendaAtividadesRoute =
+  AuthenticatedAgendaAtividadesRouteImport.update({
+    id: '/agenda-atividades',
+    path: '/agenda-atividades',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   id: '/aprovacoes',
   path: '/aprovacoes',
@@ -81,6 +92,18 @@ const AuthenticatedCarteiraRoute = AuthenticatedCarteiraRouteImport.update({
   path: '/carteira',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCarteirasCsRoute =
+  AuthenticatedCarteirasCsRouteImport.update({
+    id: '/carteiras-cs',
+    path: '/carteiras-cs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClientesRiscoRoute =
+  AuthenticatedClientesRiscoRouteImport.update({
+    id: '/clientes-risco',
+    path: '/clientes-risco',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConexoesRoute = AuthenticatedConexoesRouteImport.update({
   id: '/conexoes',
   path: '/conexoes',
@@ -117,6 +140,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnboardingCsRoute =
+  AuthenticatedOnboardingCsRouteImport.update({
+    id: '/onboarding-cs',
+    path: '/onboarding-cs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
   id: '/projetos',
   path: '/projetos',
@@ -125,6 +154,11 @@ const AuthenticatedProjetosRoute = AuthenticatedProjetosRouteImport.update({
 const ApiOauthGoogleReturnRoute = ApiOauthGoogleReturnRouteImport.update({
   id: '/api/oauth/google/return',
   path: '/api/oauth/google/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCsSyncRoute = ApiPublicCsSyncRouteImport.update({
+  id: '/api/public/cs/sync',
+  path: '/api/public/cs/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTelegramBriefingsRoute =
@@ -154,8 +188,11 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
+  '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
+  '/clientes-risco': typeof AuthenticatedClientesRiscoRoute
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
@@ -163,8 +200,10 @@ export interface FileRoutesByFullPath {
   '/memoria': typeof AuthenticatedMemoriaRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/telegram/bot/$botId': typeof ApiPublicTelegramBotBotIdRoute
@@ -176,8 +215,11 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
+  '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
+  '/clientes-risco': typeof AuthenticatedClientesRiscoRoute
   '/conexoes': typeof AuthenticatedConexoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/conversa': typeof AuthenticatedConversaRoute
@@ -185,9 +227,11 @@ export interface FileRoutesByTo {
   '/memoria': typeof AuthenticatedMemoriaRoute
   '/notas': typeof AuthenticatedNotasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/projetos': typeof AuthenticatedProjetosRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/telegram/bot/$botId': typeof ApiPublicTelegramBotBotIdRoute
@@ -201,8 +245,11 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
+  '/_authenticated/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
+  '/_authenticated/clientes-risco': typeof AuthenticatedClientesRiscoRoute
   '/_authenticated/conexoes': typeof AuthenticatedConexoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/conversa': typeof AuthenticatedConversaRoute
@@ -210,9 +257,11 @@ export interface FileRoutesById {
   '/_authenticated/memoria': typeof AuthenticatedMemoriaRoute
   '/_authenticated/notas': typeof AuthenticatedNotasRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/onboarding-cs': typeof AuthenticatedOnboardingCsRoute
   '/_authenticated/projetos': typeof AuthenticatedProjetosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
+  '/api/public/cs/sync': typeof ApiPublicCsSyncRoute
   '/api/public/telegram/briefings': typeof ApiPublicTelegramBriefingsRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
   '/api/public/telegram/bot/$botId': typeof ApiPublicTelegramBotBotIdRoute
@@ -227,8 +276,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/termos'
     | '/admin'
+    | '/agenda-atividades'
     | '/aprovacoes'
     | '/carteira'
+    | '/carteiras-cs'
+    | '/clientes-risco'
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
@@ -236,8 +288,10 @@ export interface FileRouteTypes {
     | '/memoria'
     | '/notas'
     | '/onboarding'
+    | '/onboarding-cs'
     | '/projetos'
     | '/api/oauth/google/return'
+    | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
     | '/api/public/telegram/webhook'
     | '/api/public/telegram/bot/$botId'
@@ -249,8 +303,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/termos'
     | '/admin'
+    | '/agenda-atividades'
     | '/aprovacoes'
     | '/carteira'
+    | '/carteiras-cs'
+    | '/clientes-risco'
     | '/conexoes'
     | '/configuracoes'
     | '/conversa'
@@ -258,9 +315,11 @@ export interface FileRouteTypes {
     | '/memoria'
     | '/notas'
     | '/onboarding'
+    | '/onboarding-cs'
     | '/projetos'
     | '/'
     | '/api/oauth/google/return'
+    | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
     | '/api/public/telegram/webhook'
     | '/api/public/telegram/bot/$botId'
@@ -273,8 +332,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/termos'
     | '/_authenticated/admin'
+    | '/_authenticated/agenda-atividades'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/carteira'
+    | '/_authenticated/carteiras-cs'
+    | '/_authenticated/clientes-risco'
     | '/_authenticated/conexoes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/conversa'
@@ -282,9 +344,11 @@ export interface FileRouteTypes {
     | '/_authenticated/memoria'
     | '/_authenticated/notas'
     | '/_authenticated/onboarding'
+    | '/_authenticated/onboarding-cs'
     | '/_authenticated/projetos'
     | '/_authenticated/'
     | '/api/oauth/google/return'
+    | '/api/public/cs/sync'
     | '/api/public/telegram/briefings'
     | '/api/public/telegram/webhook'
     | '/api/public/telegram/bot/$botId'
@@ -298,6 +362,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermosRoute: typeof TermosRoute
   ApiOauthGoogleReturnRoute: typeof ApiOauthGoogleReturnRoute
+  ApiPublicCsSyncRoute: typeof ApiPublicCsSyncRoute
   ApiPublicTelegramBriefingsRoute: typeof ApiPublicTelegramBriefingsRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
   ApiPublicTelegramBotBotIdRoute: typeof ApiPublicTelegramBotBotIdRoute
@@ -361,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agenda-atividades': {
+      id: '/_authenticated/agenda-atividades'
+      path: '/agenda-atividades'
+      fullPath: '/agenda-atividades'
+      preLoaderRoute: typeof AuthenticatedAgendaAtividadesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/aprovacoes': {
       id: '/_authenticated/aprovacoes'
       path: '/aprovacoes'
@@ -373,6 +445,20 @@ declare module '@tanstack/react-router' {
       path: '/carteira'
       fullPath: '/carteira'
       preLoaderRoute: typeof AuthenticatedCarteiraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/carteiras-cs': {
+      id: '/_authenticated/carteiras-cs'
+      path: '/carteiras-cs'
+      fullPath: '/carteiras-cs'
+      preLoaderRoute: typeof AuthenticatedCarteirasCsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clientes-risco': {
+      id: '/_authenticated/clientes-risco'
+      path: '/clientes-risco'
+      fullPath: '/clientes-risco'
+      preLoaderRoute: typeof AuthenticatedClientesRiscoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/conexoes': {
@@ -424,6 +510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding-cs': {
+      id: '/_authenticated/onboarding-cs'
+      path: '/onboarding-cs'
+      fullPath: '/onboarding-cs'
+      preLoaderRoute: typeof AuthenticatedOnboardingCsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projetos': {
       id: '/_authenticated/projetos'
       path: '/projetos'
@@ -436,6 +529,13 @@ declare module '@tanstack/react-router' {
       path: '/api/oauth/google/return'
       fullPath: '/api/oauth/google/return'
       preLoaderRoute: typeof ApiOauthGoogleReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cs/sync': {
+      id: '/api/public/cs/sync'
+      path: '/api/public/cs/sync'
+      fullPath: '/api/public/cs/sync'
+      preLoaderRoute: typeof ApiPublicCsSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/telegram/briefings': {
@@ -464,8 +564,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAgendaAtividadesRoute: typeof AuthenticatedAgendaAtividadesRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
+  AuthenticatedCarteirasCsRoute: typeof AuthenticatedCarteirasCsRoute
+  AuthenticatedClientesRiscoRoute: typeof AuthenticatedClientesRiscoRoute
   AuthenticatedConexoesRoute: typeof AuthenticatedConexoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedConversaRoute: typeof AuthenticatedConversaRoute
@@ -473,14 +576,18 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMemoriaRoute: typeof AuthenticatedMemoriaRoute
   AuthenticatedNotasRoute: typeof AuthenticatedNotasRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedOnboardingCsRoute: typeof AuthenticatedOnboardingCsRoute
   AuthenticatedProjetosRoute: typeof AuthenticatedProjetosRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAgendaAtividadesRoute: AuthenticatedAgendaAtividadesRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
+  AuthenticatedCarteirasCsRoute: AuthenticatedCarteirasCsRoute,
+  AuthenticatedClientesRiscoRoute: AuthenticatedClientesRiscoRoute,
   AuthenticatedConexoesRoute: AuthenticatedConexoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedConversaRoute: AuthenticatedConversaRoute,
@@ -488,6 +595,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMemoriaRoute: AuthenticatedMemoriaRoute,
   AuthenticatedNotasRoute: AuthenticatedNotasRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedOnboardingCsRoute: AuthenticatedOnboardingCsRoute,
   AuthenticatedProjetosRoute: AuthenticatedProjetosRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
@@ -503,6 +611,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TermosRoute: TermosRoute,
   ApiOauthGoogleReturnRoute: ApiOauthGoogleReturnRoute,
+  ApiPublicCsSyncRoute: ApiPublicCsSyncRoute,
   ApiPublicTelegramBriefingsRoute: ApiPublicTelegramBriefingsRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
   ApiPublicTelegramBotBotIdRoute: ApiPublicTelegramBotBotIdRoute,
