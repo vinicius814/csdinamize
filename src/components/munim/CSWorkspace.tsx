@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { RefreshCw, ExternalLink, X, SlidersHorizontal, AlertTriangle, PhoneOff, Clock, Mail, UserPlus, ChevronRight, ArrowUpDown, Search } from "lucide-react";
-import { readCS, syncCS, autoSyncCS, historyCS, agendaCS } from "@/lib/cs.functions";
+import { readCS, syncCS, autoSyncCS, historyCS, agendaCS, retornosCS, evolucaoCS } from "@/lib/cs.functions";
 import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, csEhReuniao, csResponsaveisAtivos, type CSRow, type RiscoCor } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,7 @@ function PipelineSelect({value,onChange,allowed}:{value:string;onChange:(v:strin
 const inPipe=(p:string)=>(r:CSRow)=>p==="both"?[15,16].includes(r.pipeline_id):r.pipeline_id===Number(p);
 const allowedPipes=(rows:CSRow[])=>[15,16].filter(p=>rows.some(r=>r.pipeline_id===p&&csAtivo(r)));
 function Bars({title,items,format=String,link}:{title:string;items:[string,number][];format?:(n:number)=>string;link?:React.ReactNode}){const max=Math.max(1,...items.map(i=>i[1]));return <section className="card-munim p-4"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-medium">{title}</h3>{link}</div>{items.length?<div className="grid gap-2">{items.map(([l,n])=><div key={l} className="grid grid-cols-[minmax(0,9rem)_1fr_3.5rem] items-center gap-2 text-xs"><span className="truncate text-muted-foreground" title={l}>{l}</span><div className="h-2 rounded-full bg-muted"><div className="h-2 rounded-full bg-primary" style={{width:`${n/max*100}%`}}/></div><span className="text-right tabular-nums">{format(n)}</span></div>)}</div>:<p className="text-xs text-muted-foreground">Nenhum cliente corresponde aos filtros.</p>}</section>;}
-const situacaoOk=(s:Situacao,days:number)=>(r:CSRow)=>{if(!s)return true;if(s==="risco")return r.risco_cor==="vermelho";if(s==="atrasadas")return r.atividades_vencidas>0;if(s==="retorno")return r.email_status==="aguardando_resposta";const n=csDias(r.contato_efetivo??null);return n!==null&&n>days;};
+const situacaoOk=(s:Situacao,days:number)=>(r:CSRow)=>{if(!s)return true;if(s==="risco")return r.risco_cor==="vermelho";if(s==="atrasadas")return r.atividades_vencidas>0;if(s==="retorno")return r.email_status==="aguardando_resposta";const n=csDias(r.ultimo_contato_efetivo);return n!==null&&n>days;};
 
 // ───────────────────────── Dashboard ─────────────────────────
 export function CSDashboard(){
@@ -129,13 +129,13 @@ export function CSDashboard(){
 // ───────────────────────── Tabela de clientes ─────────────────────────
 type Ordem="mrr"|"risco"|"contato"|"atraso"|"nome";
 const RANK:Record<string,number>={vermelho:3,amarelo:2,sem_dados:1,verde:0};
-function ordenar(rows:CSRow[],o:Ordem){const nome=(r:CSRow)=>(r.org_nome??r.titulo).toLowerCase();return [...rows].sort((a,b)=>o==="mrr"?(b.valor??-1)-(a.valor??-1):o==="risco"?(RANK[b.risco_cor??"sem_dados"]!-RANK[a.risco_cor??"sem_dados"]!)||(b.valor??0)-(a.valor??0):o==="contato"?(csDias(b.contato_efetivo??null)??99999)-(csDias(a.contato_efetivo??null)??99999):o==="atraso"?b.atividades_vencidas-a.atividades_vencidas:nome(a).localeCompare(nome(b),"pt-BR"));}
+function ordenar(rows:CSRow[],o:Ordem){const nome=(r:CSRow)=>(r.org_nome??r.titulo).toLowerCase();return [...rows].sort((a,b)=>o==="mrr"?(b.valor??-1)-(a.valor??-1):o==="risco"?(RANK[b.risco_cor??"sem_dados"]!-RANK[a.risco_cor??"sem_dados"]!)||(b.valor??0)-(a.valor??0):o==="contato"?(csDias(b.ultimo_contato_efetivo)??99999)-(csDias(a.ultimo_contato_efetivo)??99999):o==="atraso"?b.atividades_vencidas-a.atividades_vencidas:nome(a).localeCompare(nome(b),"pt-BR"));}
 export function ListaClientes({rows,mostrarDono=true}:{rows:CSRow[];mostrarDono?:boolean}){
  const [ordem,setOrdem]=useState<Ordem>("risco"),[page,setPage]=useState(0);
  useEffect(()=>setPage(0),[rows.length]);
  const lista=ordenar(rows,ordem);const vis=lista.slice(page*50,(page+1)*50);
  const pend=(r:CSRow)=>r.retorno_dias!==null&&r.retorno_dias!==undefined?<span className="text-warning">Retorno · {r.retorno_dias}d</span>:r.atividades_vencidas?<span className="text-destructive">{r.atividades_vencidas} atrasada{r.atividades_vencidas>1?"s":""}</span>:<span className="text-muted-foreground">—</span>;
- const contato=(r:CSRow)=>r.contato_efetivo?<>{fmt(r.contato_efetivo)} <span className="text-muted-foreground">· {csDias(r.contato_efetivo)}d</span></>:<span className="text-muted-foreground">sem dados</span>;
+ const contato=(r:CSRow)=>r.ultimo_contato_efetivo?<>{fmt(r.ultimo_contato_efetivo)} <span className="text-muted-foreground">· {csDias(r.ultimo_contato_efetivo)}d</span></>:<span className="text-muted-foreground">sem dados</span>;
  return <section id="lista-clientes" className="mt-6">
  <div className="mb-2 flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{rows.length} negócios</p><label className="flex items-center gap-1.5 text-xs text-muted-foreground"><ArrowUpDown className="h-3.5 w-3.5"/><select aria-label="Ordenar" className={selectStyle} value={ordem} onChange={e=>setOrdem(e.target.value as Ordem)}><option value="risco">Maior risco</option><option value="mrr">Maior MRR</option><option value="contato">Mais tempo sem contato</option><option value="atraso">Mais atividades atrasadas</option><option value="nome">Nome do cliente</option></select></label></div>
  <div className="hidden overflow-x-auto rounded-lg border border-border md:block"><table className="w-full text-left text-sm"><thead className="bg-muted/30 text-[11px] uppercase tracking-wide text-muted-foreground"><tr>{["Cliente","MRR","Último contato","Última reunião","Risco","Pendências","Próxima atividade",...(mostrarDono?["Responsável"]:[]),""].map(t=><th key={t} className="whitespace-nowrap px-3 py-2.5 font-medium">{t}</th>)}</tr></thead>
