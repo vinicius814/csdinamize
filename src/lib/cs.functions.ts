@@ -23,4 +23,9 @@ export const readCS = createServerFn({method:"POST"}).middleware([requireActive]
 });
 export const syncCS = createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
  const {runCSSync}=await import("./cs-sync.server");return runCSSync("manual",context.userId);
+});export const autoSyncCS = createServerFn({method:"POST"}).middleware([requireActive]).handler(async()=>{
+ const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");const {csPrecisaAtualizar}=await import("./cs-rules");
+ const {data,error}=await db.from("cs_sync_runs").select("iniciado_em").order("iniciado_em",{ascending:false}).limit(1).maybeSingle();if(error)throw new Error(error.message);
+ if(!csPrecisaAtualizar(new Date(),data?.iniciado_em??null))return {executado:false};
+ const {runCSSync}=await import("./cs-sync.server");await runCSSync("agendado",null);return {executado:true};
 });

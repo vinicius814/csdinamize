@@ -15,3 +15,13 @@ export function csMetricas(rows:CSRow[],days=60,from=csDia().slice(0,7)+"-01",to
  const mrr=active.some(r=>r.valor===null)?null:active.reduce((s,r)=>s+Number(r.valor),0);
  return {clientes:clients.length,mrr,ticket:clients.length&&mrr!==null?mrr/clients.length:null,cobertura:clients.length?covered/clients.length*100:null,semContato:clients.length-covered,vencidas:active.reduce((s,r)=>s+r.atividades_vencidas,0),cancelados:canc.length,mrrCancelado:canc.some(r=>r.valor===null)?null:canc.reduce((s,r)=>s+Number(r.valor),0)};
 }
+/** Último horário de atualização (08h ou 12h em São Paulo, UTC-3 fixo) até `now`. */
+export function csUltimoHorario(now:Date):Date{
+ const slots=[11,15];const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()));
+ for(let back=0;back<3;back++){const day=new Date(d.getTime()-back*86400000);for(const h of [...slots].reverse()){const t=new Date(day.getTime()+h*3600000);if(t<=now)return t;}}
+ return d;
+}
+/** Precisa atualizar ao acessar: nenhuma tentativa desde o último horário (08h/12h). */
+export function csPrecisaAtualizar(now:Date,ultimaTentativa:string|null):boolean{
+ return !ultimaTentativa||new Date(ultimaTentativa)<csUltimoHorario(now);
+}
