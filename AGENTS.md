@@ -24,7 +24,7 @@
 - Personal AI helpers stream native Messages for classification and summaries; embeddings use the full default dimension with chunk records and owner-scoped search.
 - Routines (manhã, riscos, fechamento, semana) reuse the briefings table's existing tipo enum (manha, alerta, rodada, leitura_cs) via gerarRotina; they auto-run on the first Início visit of each period since no scheduler can be added to the database.
 - Integration credentials are per user via comCredenciais and AsyncLocalStorage; no project credentials are substituted for missing personal connections, so optional modules cannot access shared accounts.
-- Connection presence has its own user-keyed query, shared by navigation and optional CS surfaces; assistant tools are filtered and rechecked on the server.
+- Connection presence is one user-keyed query shared by nav and CS; assistant tools are rechecked server-side.
 - Telegram link codes expire and are consumed atomically by a service-role-only RPC; protected profile fields are changed only by authenticated server functions.
 
 - Administrative functions use requireAdmin and metadata-only projections; mutations and audit_log inserts are atomic in a service-role-only SQL function to preserve privacy and accountability.
@@ -36,7 +36,7 @@
 - Assistant and routine engines live in server-only core modules behind thin authenticated wrappers so web, Telegram and scheduled flows share behavior without exposing provider logic to browser bundles.
 
 - Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
-- Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
+- Daily relationship suggestions use a DB counter and profile timezone so the cap cannot be reset.
 - CS lazy sync runs on the first CS visit after each 08:00/12:00 São Paulo slot, claimed once in unique cs_sync_runs.janela so concurrency/failures never retry or replay old windows.
 - Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
 - Email status comes from SQL cs_email_status (São Paulo day ages); activity types and upgrade counts live in cs-rules so all CS surfaces agree.
