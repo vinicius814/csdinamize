@@ -214,3 +214,9 @@
 .area-rosa { border-color:var(--area-rosa); }
 .react-flow__controls-button { background:var(--card); color:var(--foreground); border-color:var(--border); }
 .react-flow__controls-button svg { fill:currentColor; }
+
+/* Kanban de onboarding: barra de rolagem horizontal visível e utilizável também no Chrome/Safari. */
+.kanban-scroll{scrollbar-width:thin;scrollbar-color:hsl(var(--muted-foreground)/.4) transparent;}
+.kanban-scroll::-webkit-scrollbar{height:10px;}
+.kanban-scroll::-webkit-scrollbar-thumb{background:hsl(var(--muted-foreground)/.35);border-radius:9999px;}
+.kanban-scroll::-webkit-scrollbar-track{background:transparent;}

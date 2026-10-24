@@ -4,13 +4,17 @@ export const CS_FIELDS = { contato:"58cd094a23bd14b9275f4c006f1b19457b3c1d63", r
 export type RiscoCor = "vermelho"|"amarelo"|"verde"|"sem_dados";
 export type OrigemContato = "campo"|"reunião"|"atividade"|"e-mail";
 export type CSRow = { deal_id:number; org_id:number|null; titulo:string; pipeline_id:number; stage_id:number; owner_id:number; owner_nome:string|null; status:string; valor:number|null; perfil_conta:string|null; ultimo_contato_efetivo:string|null; ultima_reuniao_cs:string|null; data_contratacao:string|null; stage_change_time:string|null; add_time:string|null; proxima_atividade_data:string|null; atividades_vencidas:number;
- org_nome?:string|null; ultima_atividade_concluida?:string|null; ultimo_email_recebido?:string|null; ultimo_email_enviado?:string|null; atividades_abertas?:number; contato_efetivo?:string|null; origem_contato?:OrigemContato|null; contato_dominios?:string[]; email_status?:string|null; dias_desde_envio?:number|null; risco_cor?:RiscoCor|null; risco_fatores?:string[]; dias_contato?:number|null; retorno_dias?:number|null };
+ org_nome?:string|null; ultima_atividade_concluida?:string|null; ultimo_email_recebido?:string|null; ultimo_email_enviado?:string|null; atividades_abertas?:number; contato_efetivo?:string|null; origem_contato?:OrigemContato|null; contato_dominios?:string[]; etiquetas?:number[]; email_status?:string|null; dias_desde_envio?:number|null; risco_cor?:RiscoCor|null; risco_fatores?:string[]; dias_contato?:number|null; retorno_dias?:number|null };
 export function csAtivo(r:CSRow) { return [15,16].includes(r.pipeline_id) && r.status==="open" && r.stage_id!==(r.pipeline_id===15?105:111); }
 export function csPodeVer(role:string,papel:string,own:number|null,owner:number,pipeline:number) { return [1,15,16].includes(pipeline) && (["admin","superadmin"].includes(role)||["admin","gestor"].includes(papel)||(papel==="cs"&&own===owner)); }
 export function csDia(d=new Date()) { return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(d); }
 export function csDias(data:string|null, hoje=csDia()) { return data?Math.floor((Date.parse(hoje+"T12:00:00Z")-Date.parse(data+"T12:00:00Z"))/86400000):null; }
-/** Data usada na cobertura: contato efetivo calculado (novo) ou o campo legado. */
-export function csContato(r:CSRow){ return r.contato_efetivo!==undefined?r.contato_efetivo:r.ultimo_contato_efetivo; }
+/** Etiqueta oficial de risco alto no Pipedrive ("Risco de Churn", id 709). */
+export const CS_TAG_RISCO_CHURN=709;
+/** Cobertura usa exclusivamente o campo oficial "Data do último contato efetivo" do Pipedrive. E-mails e atividades concluídas são complementares (Cliente 360) e nunca substituem o campo. */
+export function csContato(r:CSRow){ return r.ultimo_contato_efetivo; }
+/** Pendência de retorno: atividade aberta cujo assunto registra follow-up/retorno (identificador real da operação; não existe tipo ou campo dedicado no Pipedrive). */
+export const csEhRetorno=(assunto:string)=>/(follow|flw|retorno)/i.test(assunto);
 
 /** Contato efetivo = data mais recente entre campo, reunião CS, atividade concluída e e-mail enviado/recebido. Datas futuras (agendadas) nunca contam. */
 export function csContatoEfetivo(f:{campo:string|null;reuniao:string|null;atividade:string|null;emailRecebido:string|null;emailEnviado:string|null},hoje=csDia()):{data:string|null;origem:OrigemContato|null}{

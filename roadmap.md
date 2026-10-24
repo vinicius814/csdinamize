@@ -1,54 +1,9 @@
-# Munim — cadastro, administração e confiança
-- [x] Redesign: timeout da sync corrigido (gravação só do que mudou, entrada lida uma vez, limite de 60s só no papel do servidor); 4/4 syncs seguidas OK (17–20s).
-- [x] Redesign: Dashboard/Minha carteira/Carteiras CS com propósitos distintos e indicadores calculados dos mesmos dados em cache; filtros enxutos com "Mais filtros".
-- [x] Redesign: agenda Dia/Semana/Mês/Lista com painel de detalhes; Kanban de onboarding com lista, detalhes e "histórico a verificar" (>180d).
-- [x] Redesign: menu agrupado, Aprovações fora do menu, Chat do CS em breve, Ctrl+K como busca.
-- [ ] Redesign: responsáveis inativos no Pipedrive com negócio ativo ainda aparecem — o status ativo do usuário não é guardado hoje.
-- [ ] Redesign: validar telas logadas e tempos de carregamento — Supabase externo sem sessão de teste.
-- [x] Ajustes finais CS: teste corrigido (11 leituras e RPC atual), e-mail 30 dias validado em SQL, tipos reais/no-show/contato e upgrades por conclusão; sync 7502/7461 e totais por cliente/responsável conferidos. Teste com duas contas fica com o usuário.
-- [x] Central CS: camada cs_snapshot/cs_metricas_diarias/cs_sync_runs e RLS por carteira/responsável, sem remover dados.
-- [x] Central CS: sync central somente leitura, transação e atualização manual com bloqueio de 10 minutos.
-- [x] Central CS: Dashboard, Carteira, filtros combinados, menu e atribuição de papel CS no admin.
-- [x] Central CS: sync real bem-sucedido, 7502 registros lidos/7461 únicos e métricas verificadas no banco.
-- [ ] Central CS: validar painel/filtros/admin e isolamento real com duas contas — Supabase externo sem sessão autenticada disponível.
-- [x] Central CS: atualização por acesso 08h/12h com uma tentativa por janela (testada com dois acessos simultâneos).
-- [x] Central CS Parte A: contato efetivo multi-fonte, termômetro de risco, Dashboard ampliado, Clientes em risco, Cliente 360, regras em Configurações.
-- [ ] Central CS Parte A: validar telas com sessão real — Supabase externo sem sessão de navegador disponível.
-- [x] Parte 3: áreas, itens, ligações, conversas; 1 nota original e 1 item migrado, nenhuma mensagem sem tópico; RLS e bloqueio anon verificados.
-- [x] Parte 3: captura natural, Home pessoal, mapa, projetos atômicos, tópicos e memória editável implementados.
-- [x] Parte 3: autonomia, Haiku, embeddings 3072, memória semanal, limites e contagem diária; 44 testes; build OK.
-- [ ] Parte 3: validar captura/projeto/mapa com conta nova e conta existente — Supabase externo sem sessão autenticada disponível.
-- [ ] Parte 3: testar lembrete real antes da promessa — requer publicação, conta vinculada e agendador externo.
-- [x] Parte 2: catálogo pessoal, solicitações agrupadas no admin e CS opcional sem fallback; configurações existentes preservadas.
-- [x] Parte 2: Telegram com QR, código de 15 minutos, vínculo automático e desconexão implementados.
-- [x] Parte 2: webhook registrado em munim.wojtec.com.br; proteções 401 e testes verificados.
-- [ ] Parte 2: publicar alterações e testar vínculo/texto/áudio/aprovação real — requer publicação e usuário no Telegram; Supabase externo sem sessão de navegador.
-- [ ] Parte 2: entrega automática de lembretes, briefing e resumo — exige agendador externo chamando o endereço protegido já implementado.
-- [x] Parte 1: contraste central do Button verificado nos dois temas; sem correções avulsas em Conexões.
-- [x] Parte 1: cache de acesso 5 min, autorização única e último acesso em segundo plano no máximo por hora.
-- [x] Parte 1: cache cifrado persistente de integrações por usuário (5 min), atualização explícita e skeletons.
-- [x] Parte 1: 34 testes passaram; nove caminhos sem sessão voltam ao login sem erro; variantes de botão verificadas no navegador.
-- [ ] Parte 1: comparação real de troca entre telas e todas as telas nos dois temas — bloqueada por Supabase externo sem sessão autenticada; tempos sem login não comprovam melhora autenticada.
-- [x] Banco V2: perfil restrito, permissões de funções verificadas e fallback Pipedrive só superadmin.
-- [ ] Banco V2: proteção contra senhas vazadas — desativada no Supabase externo; requer ativação pelo proprietário no Auth.
-- [x] Banco V2: erros reais Google; causa diagnosticada como SERVICE_DISABLED nas três APIs do projeto 739898835576.
-- [ ] Banco V2: validar sucesso Google — bloqueado até ativação de Gmail, Calendar e Drive no Google Cloud.
-- [x] Banco V2: seleção de pipeline/campo de data em Conexões, mensagens de configuração ausente e contraste dos botões.
-- [x] Banco V2: Telegram implementado com código de vínculo único, isolamento, áudio, aprovações e callback de briefing; bot omuninbot validado e transcrição real passou.
-- [ ] Banco V2: testar conversa real — webhook registrado e alcançável; exige vínculo da conta no Telegram.
-- [ ] Banco V2: automatizar horário dos briefings — exige agendador externo autenticado; callback implementado, não há serviço de agenda disponível.
-- [x] Banco V2: 29 testes passaram; páginas privadas redirecionam para login sem erros; chamadas Telegram sem autenticação rejeitadas (401).
-- [ ] Banco V2: contraste e fluxo completo autenticado — Supabase externo sem sessão de navegador disponível.
-- [x] Diagnosticar triggers e adicionar atualizado_em às quatro tabelas incompatíveis, preservando triggers.
-- [x] Isolar falhas de último acesso e consumo sem enfraquecer autorização ou auditoria administrativa.
-- [x] Rodar novamente os 20 testes e quatro regressões de registros auxiliares: 24 testes passaram.
-- [ ] Verificar /, /conversa, /carteira, /conexoes e /admin no publicado com sessão — bloqueado: Supabase externo sem sessão disponível.
-- [x] Migrar papéis protegidos, status, aceite, auditoria e privacidade; promover a conta indicada.
-- [x] Cadastro Google/e-mail, confirmação, recuperação, espera e onboarding.
-- [x] Intranet com metadados, métricas, ações e limites auditados.
-- [x] IA: erros explícitos, responsável, atividades, cobertura exata, preferências e ideias.
-- [x] Início, configurações e navegação móvel.
-- [x] Testes de regras e validação pública desktop/celular (20 testes).
-- [ ] Validar fluxos autenticados e isolamento com duas contas — bloqueado: Supabase externo sem sessão de teste disponível.
-- [ ] Vinculação real ao Telegram no onboarding — bot e webhook configurados; falta publicação e teste autenticado.
-- [ ] Revisão definitiva dos Termos e da Privacidade — depende da revisão do responsável.
+
+# Evolução indicadores CS (24/10)
+- [x] Fase 1 mapeamento Pipedrive (campo oficial, Sem uso 104/110, etiqueta 709, retornos por assunto, changelog v1)
+- [x] Cobertura pelo campo oficial; risco 3 fatores; etiquetas sincronizadas
+- [x] Tela /retornos + link Dashboard e Cliente 360
+- [x] Kanban onboarding: setas + barra visível
+- [x] Dashboard: motivos de risco, evolução real (desde 24/10), expansão confirmada
+- [x] Upgrades: changelog incremental (40/sync), 147 eventos já
+- [ ] Pendente: completar changelog restante nas próximas syncs; teste visual com login real

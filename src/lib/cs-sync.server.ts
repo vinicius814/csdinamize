@@ -71,9 +71,40 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    const x=extra.get(deal_id),ultima_reuniao_cs=date(field(d,CS_FIELDS.reuniao)),ultimo_contato_efetivo=date(field(d,CS_FIELDS.contato));
     const ultima_atividade_concluida=[date(x?.["last_activity_date"]),contatosAtividade.get(deal_id)??null].filter((v):v is string=>v!==null).sort().at(-1)??null,ultimo_email_recebido=mail(x?.["last_incoming_mail_time"]),ultimo_email_enviado=mail(x?.["last_outgoing_mail_time"]);
    const ef=csContatoEfetivo({campo:ultimo_contato_efetivo,reuniao:ultima_reuniao_cs,atividade:ultima_atividade_concluida,emailRecebido:ultimo_email_recebido,emailEnviado:ultimo_email_enviado},today);
-   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem,contato_dominios:d["person_id"]?dominios.get(Number(d["person_id"]))??[]:[]} as CSRow;
+    const rotulos=x?.["label"];const etiquetas=(Array.isArray(rotulos)?rotulos:typeof rotulos==="string"?rotulos.split(","):[]).map(Number).filter(Number.isInteger);
+    return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem,contato_dominios:d["person_id"]?dominios.get(Number(d["person_id"]))??[]:[],etiquetas} as CSRow;
   });
-  const t1=Date.now();
+   // Upgrades: backfill único (400 dias) de atividades concluídas de upgrade/downgrade; cache preserva essas concluídas entre sincronizações.
+   try {
+    const {data:marca}=await db.from("cs_upgrade_fonte").select("deal_id").eq("deal_id",-1).maybeSingle();
+    if(!marca){
+     const vistosUp=new Set(atividades.map(a=>Number(a["id"])));
+     for(const a of await pages("/v2/activities",{done:"true",updated_since:new Date(hojeMs-400*86400000).toISOString().slice(0,19)+"Z"})){
+      if(!["upgrade","downgrade"].includes(String(a["type"]))||!deals.has(Number(a["deal_id"]))||vistosUp.has(Number(a["id"])))continue;
+      vistosUp.add(Number(a["id"]));atividades.push(a);
+     }
+     await db.from("cs_upgrade_fonte").upsert({deal_id:-1});
+    }
+    // Changelog incremental (até 40 negócios por sincronização): valores anteriores/posteriores reais do campo value, só BRL.
+    const cand=[...new Set(atividades.filter(a=>["upgrade","downgrade"].includes(String(a["type"]))&&a["done"]===true).map(a=>Number(a["deal_id"])).filter(id=>deals.has(id)))];
+    if(cand.length){
+     const {data:feitos}=await db.from("cs_upgrade_fonte").select("deal_id").in("deal_id",cand);
+     const ok=new Set((feitos??[]).map((f:RecordData)=>Number(f["deal_id"])));
+     for(const id of cand.filter(i=>!ok.has(i)).slice(0,40)){
+      try {
+       const ch=await get(`/v1/deals/${id}/changelog`,{limit:"200"});if(!Array.isArray(ch.data))throw new Error("Changelog inválido.");
+       const d=deals.get(id)!;
+       if(d["currency"]==="BRL"){
+        const eventos=(ch.data as RecordData[]).filter(c=>c["field_key"]==="value"&&Number.isFinite(Number(c["old_value"]))&&Number.isFinite(Number(c["new_value"]))&&typeof c["time"]==="string")
+         .map(c=>({deal_id:id,dia:csDia(new Date(String(c["time"]).replace(" ","T")+"Z")),pipeline_id:Number(d["pipeline_id"]),owner_id:Number(d["owner_id"]),valor_anterior:Number(c["old_value"]),valor_novo:Number(c["new_value"]),origem:"changelog"}));
+        if(eventos.length)await db.from("cs_eventos_valor").upsert(eventos,{onConflict:"deal_id,dia"});
+       }
+       await db.from("cs_upgrade_fonte").upsert({deal_id:id});
+      } catch(e){console.error("CS changelog",id,e instanceof Error?e.message:e);}
+     }
+    }
+   } catch(e){console.error("CS upgrades históricos",e instanceof Error?e.message:e);}
+   const t1=Date.now();
   const {error}=await db.rpc("cs_publicar_tudo",{run,rows:JSON.parse(JSON.stringify(rows)),atividades:atividades.map(csAtividade),lidos});console.info("CS sync tempos",{leitura_ms:t1-t0,publicacao_ms:Date.now()-t1,negocios:rows.length,atividades:atividades.length,erro:error?.message??null});if(error)throw new Error(`${error.message} (publicação após ${Date.now()-t1} ms; leitura ${t1-t0} ms)`);
   return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
  } catch(e) {

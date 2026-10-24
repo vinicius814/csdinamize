@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 type R={sem_proxima_atividade_e_atencao:boolean;analista_aguardando_dias:number;prazo_onboarding_dias:number;prazo_por_etapa_dias:number;dias_atencao:number;dias_risco:number;vencidas_atencao:number;vencidas_risco:number;considerar_sem_uso_como_risco:boolean;retorno_pendente_dias:number};
-const CAMPOS:[Exclude<keyof R,"considerar_sem_uso_como_risco"|"sem_proxima_atividade_e_atencao">,string][]=[["dias_atencao","Dias sem contato para atenção"],["dias_risco","Dias sem contato para risco"],["vencidas_atencao","Atividades vencidas para atenção"],["vencidas_risco","Atividades vencidas para risco"],["retorno_pendente_dias","Dias de retorno pendente para risco"],["analista_aguardando_dias","Dias para \"analista aguardando cliente\""],["prazo_onboarding_dias","Prazo total de onboarding (dias)"],["prazo_por_etapa_dias","Prazo por etapa de onboarding (dias)"]];
+const CAMPOS:[Exclude<keyof R,"considerar_sem_uso_como_risco"|"sem_proxima_atividade_e_atencao">,string][]=[["dias_atencao","Dias sem contato efetivo para atenção"],["dias_risco","Dias sem contato efetivo para risco alto"],["retorno_pendente_dias","Dias para e-mail \"aguardando resposta\""],["analista_aguardando_dias","Dias para \"analista aguardando cliente\""],["prazo_onboarding_dias","Prazo total de onboarding (dias)"],["prazo_por_etapa_dias","Prazo por etapa de onboarding (dias)"]];
 export function RegrasRisco() {
  const {session}=useAuth();const read=useServerFn(readRegrasCS),save=useServerFn(saveRegrasCS),qc=useQueryClient();
  const q=useQuery({queryKey:["cs-regras",session?.user.id],queryFn:()=>read()});
