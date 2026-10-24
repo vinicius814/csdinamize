@@ -91,3 +91,7 @@ export function csDonoCliente(rows:CSRow[]):number{return [...rows].sort((a,b)=>
 export const CS_ONBOARDING_STAGES:[number,string][]=[[136,"Aguardando Ficha"],[137,"Agendamento de Kick-Off"],[138,"Configurações Iniciais Pendentes"],[139,"Testes"],[148,"Treinamentos Sistema"],[140,"Aguardando Cliente Automações"],[141,"Acompanhamento Final"]];
 /** Atrasado = acima do prazo total OU do prazo por etapa. */
 export function csOnboardingAtrasado(diasTotal:number|null,diasEtapa:number|null,prazoTotal:number,prazoEtapa:number){return (diasTotal!==null&&diasTotal>prazoTotal)||(diasEtapa!==null&&diasEtapa>prazoEtapa);}
+/** Operational owner filter: only owners with at least one active (open, non-cancelled) deal in the given rows, sorted by name. */
+export function csResponsaveisAtivos(rows:CSRow[]):[number,string][]{const m=new Map<number,string>();for(const r of rows)if(csAtivo(r)&&!m.has(r.owner_id))m.set(r.owner_id,r.owner_nome??String(r.owner_id));return [...m.entries()].sort((a,b)=>a[1].localeCompare(b[1],"pt-BR"));}
+/** Onboarding projects open longer than this are flagged as legacy/incomplete history instead of counted in the average. */
+export const CS_ONBOARDING_LEGADO_DIAS=180;
