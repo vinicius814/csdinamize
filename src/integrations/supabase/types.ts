@@ -538,6 +538,39 @@ export type Database = {
           },
         ]
       }
+      cs_eventos_valor: {
+        Row: {
+          atualizado_em: string
+          created_at: string
+          deal_id: number
+          dia: string
+          owner_id: number
+          pipeline_id: number
+          valor_anterior: number
+          valor_novo: number
+        }
+        Insert: {
+          atualizado_em?: string
+          created_at?: string
+          deal_id: number
+          dia: string
+          owner_id: number
+          pipeline_id: number
+          valor_anterior: number
+          valor_novo: number
+        }
+        Update: {
+          atualizado_em?: string
+          created_at?: string
+          deal_id?: number
+          dia?: string
+          owner_id?: number
+          pipeline_id?: number
+          valor_anterior?: number
+          valor_novo?: number
+        }
+        Relationships: []
+      }
       cs_metricas_diarias: {
         Row: {
           atividades_vencidas: number
@@ -553,6 +586,7 @@ export type Database = {
           owner_id: number
           pipeline_id: number
           sem_contato_60: number
+          sem_dados_contato: number
           updated_at: string
         }
         Insert: {
@@ -569,6 +603,7 @@ export type Database = {
           owner_id: number
           pipeline_id: number
           sem_contato_60: number
+          sem_dados_contato?: number
           updated_at?: string
         }
         Update: {
@@ -585,19 +620,63 @@ export type Database = {
           owner_id?: number
           pipeline_id?: number
           sem_contato_60?: number
+          sem_dados_contato?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      cs_regras_risco: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          considerar_sem_uso_como_risco: boolean
+          created_at: string
+          dias_atencao: number
+          dias_risco: number
+          id: boolean
+          retorno_pendente_dias: number
+          vencidas_atencao: number
+          vencidas_risco: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          considerar_sem_uso_como_risco?: boolean
+          created_at?: string
+          dias_atencao?: number
+          dias_risco?: number
+          id?: boolean
+          retorno_pendente_dias?: number
+          vencidas_atencao?: number
+          vencidas_risco?: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          considerar_sem_uso_como_risco?: boolean
+          created_at?: string
+          dias_atencao?: number
+          dias_risco?: number
+          id?: boolean
+          retorno_pendente_dias?: number
+          vencidas_atencao?: number
+          vencidas_risco?: number
         }
         Relationships: []
       }
       cs_snapshot: {
         Row: {
           add_time: string | null
+          atividades_abertas: number
           atividades_vencidas: number
           atualizado_em: string
+          contato_efetivo: string | null
           created_at: string
           data_contratacao: string | null
           deal_id: number
           org_id: number | null
+          org_nome: string | null
+          origem_contato: string | null
           owner_id: number
           owner_nome: string | null
           perfil_conta: string | null
@@ -608,19 +687,26 @@ export type Database = {
           status: string
           sync_id: string
           titulo: string
+          ultima_atividade_concluida: string | null
           ultima_reuniao_cs: string | null
           ultimo_contato_efetivo: string | null
+          ultimo_email_enviado: string | null
+          ultimo_email_recebido: string | null
           updated_at: string
           valor: number | null
         }
         Insert: {
           add_time?: string | null
+          atividades_abertas?: number
           atividades_vencidas?: number
           atualizado_em?: string
+          contato_efetivo?: string | null
           created_at?: string
           data_contratacao?: string | null
           deal_id: number
           org_id?: number | null
+          org_nome?: string | null
+          origem_contato?: string | null
           owner_id: number
           owner_nome?: string | null
           perfil_conta?: string | null
@@ -631,19 +717,26 @@ export type Database = {
           status: string
           sync_id: string
           titulo: string
+          ultima_atividade_concluida?: string | null
           ultima_reuniao_cs?: string | null
           ultimo_contato_efetivo?: string | null
+          ultimo_email_enviado?: string | null
+          ultimo_email_recebido?: string | null
           updated_at?: string
           valor?: number | null
         }
         Update: {
           add_time?: string | null
+          atividades_abertas?: number
           atividades_vencidas?: number
           atualizado_em?: string
+          contato_efetivo?: string | null
           created_at?: string
           data_contratacao?: string | null
           deal_id?: number
           org_id?: number | null
+          org_nome?: string | null
+          origem_contato?: string | null
           owner_id?: number
           owner_nome?: string | null
           perfil_conta?: string | null
@@ -654,8 +747,11 @@ export type Database = {
           status?: string
           sync_id?: string
           titulo?: string
+          ultima_atividade_concluida?: string | null
           ultima_reuniao_cs?: string | null
           ultimo_contato_efetivo?: string | null
+          ultimo_email_enviado?: string | null
+          ultimo_email_recebido?: string | null
           updated_at?: string
           valor?: number | null
         }
@@ -677,6 +773,7 @@ export type Database = {
           id: string
           iniciado_em: string
           iniciado_por: string | null
+          janela: string | null
           negocios_lidos: number
           origem: string
           status: string
@@ -689,6 +786,7 @@ export type Database = {
           id?: string
           iniciado_em?: string
           iniciado_por?: string | null
+          janela?: string | null
           negocios_lidos?: number
           origem: string
           status: string
@@ -701,6 +799,7 @@ export type Database = {
           id?: string
           iniciado_em?: string
           iniciado_por?: string | null
+          janela?: string | null
           negocios_lidos?: number
           origem?: string
           status?: string
@@ -1560,6 +1659,51 @@ export type Database = {
         }
         Relationships: []
       }
+      cs_snapshot_risco: {
+        Row: {
+          add_time: string | null
+          atividades_abertas: number | null
+          atividades_vencidas: number | null
+          atualizado_em: string | null
+          contato_efetivo: string | null
+          created_at: string | null
+          data_contratacao: string | null
+          deal_id: number | null
+          dias_contato: number | null
+          org_id: number | null
+          org_nome: string | null
+          origem_contato: string | null
+          owner_id: number | null
+          owner_nome: string | null
+          perfil_conta: string | null
+          pipeline_id: number | null
+          proxima_atividade_data: string | null
+          retorno_dias: number | null
+          risco_cor: string | null
+          risco_fatores: string[] | null
+          stage_change_time: string | null
+          stage_id: number | null
+          status: string | null
+          sync_id: string | null
+          titulo: string | null
+          ultima_atividade_concluida: string | null
+          ultima_reuniao_cs: string | null
+          ultimo_contato_efetivo: string | null
+          ultimo_email_enviado: string | null
+          ultimo_email_recebido: string | null
+          updated_at: string | null
+          valor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_snapshot_sync_id_fkey"
+            columns: ["sync_id"]
+            isOneToOne: false
+            referencedRelation: "cs_sync_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       account_active: { Args: never; Returns: boolean }
@@ -1593,10 +1737,28 @@ export type Database = {
         }
         Returns: undefined
       }
+      cs_atualizar_regras: { Args: { regras: Json }; Returns: undefined }
+      cs_avaliar_risco: {
+        Args: {
+          contato: string
+          enviado: string
+          proxima: string
+          recebido: string
+          stage: number
+          vencidas: number
+        }
+        Returns: {
+          cor: string
+          dias_contato: number
+          fatores: string[]
+          retorno_dias: number
+        }[]
+      }
       cs_iniciar_sync: {
         Args: { actor?: string; source: string }
         Returns: string
       }
+      cs_iniciar_sync_janela: { Args: { janela_id: string }; Returns: string }
       cs_pode_ver: {
         Args: { owner_id: number; pipeline_id: number }
         Returns: boolean
