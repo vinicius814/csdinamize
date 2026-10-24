@@ -29,13 +29,29 @@ function Cliente360(){
  const linha=[...(det?.concluidas??[]).map(a=>({data:a.data,texto:`${a.tipo==="no_show_implementao"?"Reunião não realizada":a.reuniao?"Reunião concluída":"Atividade concluída"} · ${a.assunto}`})),...(r.ultimo_email_recebido?[{data:r.ultimo_email_recebido.slice(0,10),texto:"E-mail recebido do cliente"}]:[]),...(r.ultimo_email_enviado?[{data:r.ultimo_email_enviado.slice(0,10),texto:"E-mail enviado ao cliente"}]:[])].filter(x=>x.data).sort((a,b)=>String(b.data).localeCompare(String(a.data)));
  return <Pagina><Cabecalho titulo={r.org_nome??r.titulo} frase={`${CS_PIPELINES[r.pipeline_id as 15|16|1]} · ${r.titulo}`}/>
  <div className="mb-6 flex flex-wrap items-center gap-3"><RiscoBadge cor={r.risco_cor} fatores={r.risco_fatores}/><Button variant="outline" size="sm" asChild><Link to="/retornos" search={{q:r.org_nome??r.titulo}}>Retornos do cliente</Link></Button><Button variant="outline" size="sm" asChild><a href={`https://cs-dinamize.pipedrive.com/deal/${r.deal_id}`} target="_blank" rel="noreferrer"><ExternalLink/>Abrir no Pipedrive</a></Button></div>
- {!!r.risco_fatores?.length&&<section className="card-munim mb-6 p-4"><h2 className="mb-2 text-sm font-medium">Fatores do termômetro</h2><ul className="list-disc pl-5 text-sm text-muted-foreground">{r.risco_fatores.map(f=><li key={f}>{f}</li>)}</ul></section>}
  <dl className="card-munim mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
   <Item k="Responsável" v={r.owner_nome??"sem dados"}/><Item k="MRR" v={money(r.valor)}/><Item k="Status contratual" v={CS_STAGES[r.stage_id]??r.stage_id}/><Item k="Data de contratação" v={fmt(r.data_contratacao)}/>
-  <Item k="Perfil da conta" v={r.perfil_conta??"sem dados"}/><Item k="Último contato efetivo (campo oficial)" v={r.ultimo_contato_efetivo?`${fmt(r.ultimo_contato_efetivo)} · ${csDias(r.ultimo_contato_efetivo)} dias`:"sem dados"}/><Item k="Última interação registrada" v={r.contato_efetivo?`${fmt(r.contato_efetivo)} · ${r.origem_contato}`:"sem dados"}/>
-  <Item k="Última reunião realizada" v={realizada?fmt(realizada):"sem dados"}/><Item k="Próxima reunião agendada" v={agendada?`${fmt(agendada.data)} · ${agendada.assunto}`:det?"nenhuma agendada":"sem dados"}/>
-  <Item k="Atividades abertas" v={r.atividades_abertas??"sem dados"}/><Item k="Atividades atrasadas" v={r.atividades_vencidas}/><Item k="Retorno pendente" v={r.retorno_dias!==null&&r.retorno_dias!==undefined?`cliente aguardando há ${r.retorno_dias} dias`:"nenhum"}/><Item k="Último e-mail" v={`recebido ${fmt(r.ultimo_email_recebido)} · enviado ${fmt(r.ultimo_email_enviado)}`}/>
+  <Item k="Perfil da conta" v={r.perfil_conta??"sem dados"}/>
  </dl>
+ <div className="mb-6 grid gap-4 lg:grid-cols-2">
+  <section aria-label="Risco" className="card-munim p-5"><div className="mb-3 flex items-center justify-between gap-2"><h2 className="font-display text-lg">Risco</h2><RiscoBadge cor={r.risco_cor} fatores={r.risco_fatores}/></div>
+   <p className="mb-3 text-xs text-muted-foreground">Somente estes três critérios definem a cor do termômetro.</p>
+   <dl className="grid gap-4 sm:grid-cols-3">
+    <Item k="Último contato efetivo (campo oficial)" v={r.ultimo_contato_efetivo?`${fmt(r.ultimo_contato_efetivo)} · ${csDias(r.ultimo_contato_efetivo)} dias`:"sem dados"}/>
+    <Item k="Etapa Sem uso" v={[104,110].includes(r.stage_id)?"sim":"não"}/>
+    <Item k="Etiqueta Risco de Churn" v={(r.etiquetas??[]).includes(CS_TAG_RISCO_CHURN)?"sim":"não"}/>
+   </dl>
+   {!!r.risco_fatores?.length&&<ul className="mt-3 list-disc pl-5 text-sm text-muted-foreground">{r.risco_fatores.map(f=><li key={f}>{f}</li>)}</ul>}
+  </section>
+  <section aria-label="Acompanhamento" className="card-munim p-5"><h2 className="mb-1 font-display text-lg">Acompanhamento</h2><p className="mb-3 text-xs text-muted-foreground">Avisos operacionais; não alteram o termômetro.</p>
+   <dl className="grid gap-4 sm:grid-cols-2">
+    <Item k="Próxima atividade" v={r.proxima_atividade_data?fmt(r.proxima_atividade_data):"nenhuma agendada"}/><Item k="Atividades atrasadas" v={r.atividades_vencidas}/>
+    <Item k="Retorno pendente" v={r.retorno_dias!==null&&r.retorno_dias!==undefined?`cliente aguardando há ${r.retorno_dias} dias`:"nenhum"}/><Item k="Última reunião realizada" v={realizada?fmt(realizada):"sem dados"}/>
+    <Item k="Próxima reunião agendada" v={agendada?`${fmt(agendada.data)} · ${agendada.assunto}`:det?"nenhuma agendada":"sem dados"}/><Item k="Última interação registrada" v={r.contato_efetivo?`${fmt(r.contato_efetivo)} · ${r.origem_contato}`:"sem dados"}/>
+    <Item k="Atividades abertas" v={r.atividades_abertas??"sem dados"}/><Item k="Último e-mail" v={`recebido ${fmt(r.ultimo_email_recebido)} · enviado ${fmt(r.ultimo_email_enviado)}`}/>
+   </dl>
+  </section>
+ </div>
  {q.data.erro&&<p role="alert" className="mb-4 text-sm text-warning">Atividades e notas indisponíveis agora: {q.data.erro}</p>}
  <div className="grid gap-6 lg:grid-cols-2">
   <section><h2 className="mb-3 font-display text-lg">Atividades abertas</h2>{det?det.abertas.length?<ul className="divide-y divide-border border-y border-border">{det.abertas.map(a=><li key={a.id} className="flex justify-between gap-3 py-2 text-sm"><span className="min-w-0 truncate">{a.reuniao?"Reunião agendada · ":""}{a.assunto}</span><span className={a.data&&a.data<hoje?"text-destructive":"text-muted-foreground"}>{fmt(a.data)}</span></li>)}</ul>:<p className="text-sm text-muted-foreground">Nenhuma atividade aberta.</p>:<p className="text-sm text-muted-foreground">sem dados</p>}</section>
