@@ -21,7 +21,7 @@ import { useConnectionPresence } from "@/lib/connection-presence";
 import { MunimLogo, RavenMark } from "./RavenMark";
 import { PaletaComandos } from "./PaletaComandos";
 
-const PAPEL: Record<string, string> = { user: "Pessoal", admin: "Admin", superadmin: "Superadmin" };
+const PAPEL: Record<string, string> = { user: "CS", admin: "Admin", superadmin: "Superadmin" };
 
 function Contador({ n }: { n: number }) {
   if (!n) return null;
@@ -72,12 +72,12 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
 
 function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: () => void }) {
   const connections = useConnectionPresence();
-  const { role } = useAuth();
+  const { role, perfil } = useAuth();
   const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
-      {navVisivel(role ?? undefined,connections.data?.pipedrive).map((i) => {
+      {navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel).map((i) => {
         const ativo = i.to === "/" ? path === "/" : path.startsWith(i.to);
         return (
           <Link
@@ -168,7 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-end justify-around border-t border-border px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 md:hidden">
         {(
           [
-            { to: "/", label: "Início", icon: Home },
+            { to: "/", label: "Dashboard", icon: Home },
             { to: "/conversa", label: "Conversa", icon: MessageCircle },
           ] as const
         ).map((i) => (

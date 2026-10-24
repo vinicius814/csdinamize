@@ -12,12 +12,12 @@ import {
 import { useAuth } from "@/lib/auth";
 import { navVisivel } from "./nav";
 import {useConnectionPresence} from "@/lib/connection-presence";
-import {QuickCapture} from "./QuickCapture";
+
 
 export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAberta: (v: boolean) => void }) {
   const navigate = useNavigate();
   const connections=useConnectionPresence();
-  const { role } = useAuth();
+  const { role, perfil } = useAuth();
   const [texto, setTexto] = useState("");
 
   const fechar = () => {
@@ -31,7 +31,7 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
 
   return (
     <CommandDialog open={aberta} onOpenChange={(v) => (v ? setAberta(true) : fechar())}>
-      <div className="px-4"><QuickCapture/></div>
+      
       <CommandInput placeholder="Pergunte ou peça algo ao Munim…" value={texto} onValueChange={setTexto} />
       <CommandList>
         <CommandEmpty>
@@ -59,7 +59,7 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
           </CommandItem>}
         </CommandGroup>
         <CommandGroup heading="Ir para">
-          {navVisivel(role ?? undefined,connections.data?.pipedrive).map((i) => (
+          {navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel).map((i) => (
             <CommandItem key={i.to} onSelect={() => { fechar(); navigate({ to: i.to }); }}>
               <i.icon className="mr-2" /> {i.label}
             </CommandItem>

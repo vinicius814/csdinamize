@@ -1,0 +1,3 @@
+import {createFileRoute} from "@tanstack/react-router";
+import { CSComingSoon } from "@/components/munim/CSComingSoon";
+export const Route=createFileRoute("/_authenticated/clientes-risco")({head:()=>({meta:[{title:"Clientes em risco — Munim CS"},{name:"description",content:"Clientes em risco da central CS Dinamize."},{property:"og:title",content:"Clientes em risco — Munim CS"},{property:"og:description",content:"Clientes em risco na Central de Comando CS."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:()=> <CSComingSoon title="Clientes em risco"/>});

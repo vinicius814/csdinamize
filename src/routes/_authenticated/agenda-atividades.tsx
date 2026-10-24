@@ -1,0 +1,3 @@
+import {createFileRoute} from "@tanstack/react-router";
+import { CSComingSoon } from "@/components/munim/CSComingSoon";
+export const Route=createFileRoute("/_authenticated/agenda-atividades")({head:()=>({meta:[{title:"Agenda e atividades — Munim CS"},{name:"description",content:"Agenda e atividades da central CS Dinamize."},{property:"og:title",content:"Agenda e atividades — Munim CS"},{property:"og:description",content:"Agenda e atividades na Central de Comando CS."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:()=> <CSComingSoon title="Agenda e atividades"/>});
