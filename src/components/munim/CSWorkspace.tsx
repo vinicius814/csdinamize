@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { RefreshCw, ExternalLink, X, SlidersHorizontal, AlertTriangle, PhoneOff, Clock, Mail, UserPlus, ChevronRight, ArrowUpDown, Search } from "lucide-react";
+import { RefreshCw, ExternalLink, X, SlidersHorizontal, AlertTriangle, PhoneOff, Clock, Mail, UserPlus, ChevronRight, ArrowUpDown, Search, Filter } from "lucide-react";
 import { readCS, syncCS, autoSyncCS, historyCS, agendaCS, retornosCS, evolucaoCS } from "@/lib/cs.functions";
 import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, CS_PERIODOS, type CSPeriodo, csEhReuniao, csResponsaveisAtivos, type CSRow, type RiscoCor } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
@@ -70,7 +70,9 @@ const situacaoOk=(s:Situacao,days:number)=>(r:CSRow)=>{if(!s)return true;if(s===
 // ───────────────────────── Dashboard ─────────────────────────
 export function CSDashboard(){
  const ws=useWorkspace();const {session,perfil}=useAuth();const hist=useServerFn(historyCS),agenda=useServerFn(agendaCS);
- const [pipeline,setPipeline]=useState("15"),[periodo,setPeriodo]=useState<CSPeriodo|"custom">("mes"),[ini,setIni]=useState(""),[fim,setFim]=useState("");
+ const [filtro,setFiltro]=useState({pipeline:"15",periodo:"mes" as CSPeriodo|"custom",ini:"",fim:""}),[rascunho,setRascunho]=useState(filtro);
+ const {pipeline,periodo,ini,fim}=filtro;
+ const pendentes=rascunho.pipeline!==pipeline||rascunho.periodo!==periodo||rascunho.ini!==ini||rascunho.fim!==fim;
  const {from,to}=periodo==="custom"?{from:ini||csDia(),to:fim||csDia()}:csPeriodo(periodo);const hoje=csDia();
  const all=ws.d?.rows??[];const allowed=allowedPipes(all);const pipe=allowed.length===1?String(allowed[0]):pipeline;
  const rows=useMemo(()=>all.filter(inPipe(pipe)),[all,pipe]);
@@ -102,8 +104,9 @@ export function CSDashboard(){
   return <Pagina larga>
   <p className="text-sm text-muted-foreground">{saud}{nome?`, ${nome}`:""}.</p>
   <Topo titulo="Central de Comando" frase="Saúde da operação e o que pede decisão hoje." ws={ws}>
-   <PipelineSelect value={pipe} onChange={setPipeline} allowed={allowed}/>
-   <select aria-label="Período" className={selectStyle} value={periodo} onChange={e=>setPeriodo(e.target.value as typeof periodo)}>{CS_PERIODOS.map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="custom">Intervalo personalizado</option></select>{periodo==="custom"&&<><input type="date" aria-label="Data inicial" className={selectStyle} value={ini} max={fim||undefined} onChange={e=>setIni(e.target.value)}/><input type="date" aria-label="Data final" className={selectStyle} value={fim} min={ini||undefined} onChange={e=>setFim(e.target.value)}/></>}
+   <PipelineSelect value={rascunho.pipeline} onChange={v=>setRascunho(r=>({...r,pipeline:v}))} allowed={allowed}/>
+   <select aria-label="Período" className={selectStyle} value={rascunho.periodo} onChange={e=>setRascunho(r=>({...r,periodo:e.target.value as typeof r.periodo}))}>{CS_PERIODOS.map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="custom">Intervalo personalizado</option></select>{rascunho.periodo==="custom"&&<><input type="date" aria-label="Data inicial" className={selectStyle} value={rascunho.ini} max={rascunho.fim||undefined} onChange={e=>setRascunho(r=>({...r,ini:e.target.value}))}/><input type="date" aria-label="Data final" className={selectStyle} value={rascunho.fim} min={rascunho.ini||undefined} onChange={e=>setRascunho(r=>({...r,fim:e.target.value}))}/></>}
+   <Button size="sm" variant={pendentes?"default":"outline"} onClick={()=>setFiltro(rascunho)} disabled={!pendentes} title={pendentes?"Aplicar os filtros selecionados":"Os filtros já estão aplicados"} aria-label="Aplicar filtros"><Filter className="h-4 w-4"/>Filtrar</Button>
    <span className="text-xs text-muted-foreground">{pipe==="both"?"Ambas as carteiras":CS_PIPELINES[Number(pipe) as 15|16]} · {ws.manager?"todos os responsáveis":"seu escopo"}</span>
   </Topo>
   {!ws.d?.lastSuccess?<p className="card-munim p-6 text-sm text-muted-foreground">Dados ainda não sincronizados. Use Atualizar dados.</p>:<>
