@@ -120,6 +120,7 @@ export function CSDashboard(){
     <div><dt className="text-xs text-muted-foreground">Cancelados no período</dt><dd className="font-display text-lg">{m.cancelados}</dd></div>
     <div><dt className="text-xs text-muted-foreground">Churn de MRR</dt><dd className="font-display text-lg">{moneyK(m.mrrCancelado)}</dd></div>
     <div><dt className="text-xs text-muted-foreground">Clientes com upgrade (atividade)</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":hs("upgrades")??<span className="text-xs text-muted-foreground">coletando histórico</span>}</dd></div>
+    <div><dt className="text-xs text-muted-foreground">Expansão de MRR confirmada</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":h?.some(x=>(x as {expansaoEventos?:number}).expansaoEventos)?moneyK(h!.reduce((s,x)=>s+((x as {expansao?:number|null}).expansao??0),0)):<span className="text-xs text-muted-foreground">sem valor incremental confirmado no período</span>}</dd></div>
     <div><dt className="text-xs text-muted-foreground">Logo churn</dt><dd className="font-display text-lg">{!ws.manager?"—":history.isPending?"…":hs("logoCancelados")===null?<span className="text-xs text-muted-foreground">coletando histórico desde {h?.[0]?.historicoDesde?ddmm(h[0].historicoDesde):"a 1ª atualização"}</span>:`${hs("logoCancelados")} organizações`}</dd></div>
    </dl></section>
    {pipe==="both"&&<Bars title="Clientes por carteira" items={[15,16].map(p=>[CS_PIPELINES[p as 15|16],clientes.filter(c=>c.pipeline_id===p).length])}/>}
