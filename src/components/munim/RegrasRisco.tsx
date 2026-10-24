@@ -21,6 +21,6 @@ export function RegrasRisco() {
  return <section className="card-munim p-5"><div className="mb-4 flex items-center gap-3"><Thermometer className="h-5 w-5 text-primary"/><h2 className="font-display text-lg text-foreground">Termômetro de risco</h2></div>
  <div className="grid gap-3 sm:grid-cols-2">{CAMPOS.map(([k,label])=><label key={k} className="grid gap-1 text-xs text-muted-foreground">{label}<Input type="number" min={0} value={String(f[k])} onChange={e=>setF({...f,[k]:Number(e.target.value)})}/></label>)}
  <label className="flex items-center justify-between gap-3 text-sm sm:col-span-2"><span>Considerar etapa "Sem uso" como risco</span><Switch checked={f.considerar_sem_uso_como_risco} onCheckedChange={v=>setF({...f,considerar_sem_uso_como_risco:v})} aria-label="Considerar Sem uso como risco"/></label>
- <label className="flex items-center justify-between gap-3 text-sm sm:col-span-2"><span>"Sem próxima atividade agendada" deixa o cliente em atenção</span><Switch checked={f.sem_proxima_atividade_e_atencao} onCheckedChange={v=>setF({...f,sem_proxima_atividade_e_atencao:v})} aria-label="Sem próxima atividade gera atenção"/></label></div>
+ <p className="text-xs text-muted-foreground sm:col-span-2">"Sem próxima atividade" é aviso de acompanhamento e não altera o risco.</p></div>
  <Button className="mt-4" onClick={salvar} disabled={busy}>{busy?"Salvando…":"Salvar regras"}</Button></section>;
 }

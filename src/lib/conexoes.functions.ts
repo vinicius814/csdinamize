@@ -41,7 +41,7 @@ export const statusConexoes = createServerFn({ method: "POST" })
   .middleware([comCredenciais])
   .handler(async ({ context }) => {
     const { cachedIntegration } = await import("./integration-cache.server");
-    return cachedIntegration(context.userId, "personal-connection-status-v2", async () => {
+    return cachedIntegration(context.userId, "personal-connection-status-v3", async () => {
     const C = await import("./credenciais.server");
     const lk = process.env["LOVABLE_API_KEY"];
 
