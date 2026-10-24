@@ -1,3 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { CSWorkspace } from "@/components/munim/CSWorkspace";
-export const Route=createFileRoute("/_authenticated/carteira")({head:()=>({meta:[{title:"Minha carteira — Munim CS"},{name:"description",content:"Central de Comando de Customer Success da Dinamize: carteiras, receita e cobertura."},{property:"og:title",content:"Minha carteira — Munim CS"},{property:"og:description",content:"Dados de carteira e cobertura de Customer Success da Dinamize."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:()=> <CSWorkspace mode="carteira"/>});
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { CSMinhaCarteira, type Situacao } from "@/components/munim/CSWorkspace";
+const SIT=["risco","sem_contato","atrasadas","retorno"];
+export const Route=createFileRoute("/_authenticated/carteira")({validateSearch:(s:Record<string,unknown>):{situacao?:Situacao|undefined}=>({situacao:SIT.includes(String(s["situacao"]))?s["situacao"] as Situacao:undefined}),head:()=>({meta:[{title:"Minha carteira — Munim CS"},{name:"description",content:"Seus clientes, risco e pendências."},{property:"og:title",content:"Minha carteira — Munim CS"},{property:"og:description",content:"Seus clientes, risco e pendências."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Page});
+function Page(){const {situacao}=Route.useSearch();const navigate=useNavigate({from:Route.fullPath});return <CSMinhaCarteira situacao={situacao??""} setSituacao={s=>navigate({search:s?{situacao:s}:{}})}/>;}

@@ -6,7 +6,7 @@ import { RiscoBadge } from "@/components/munim/RiscoBadge";
 import { Pagina, Cabecalho } from "@/components/munim/PaginaVazia";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
 import { Button } from "@/components/ui/button";
-import { CS_PIPELINES, csClientes } from "@/lib/cs-rules";
+import { CS_PIPELINES, csClientes, csResponsaveisAtivos } from "@/lib/cs-rules";
 
 export const Route=createFileRoute("/_authenticated/clientes-risco")({head:()=>({meta:[{title:"Clientes em risco — Munim CS"},{name:"description",content:"Clientes em risco e em atenção da Central CS Dinamize, ordenados por MRR."},{property:"og:title",content:"Clientes em risco — Munim CS"},{property:"og:description",content:"Clientes em risco na Central de Comando CS."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:ClientesRisco});
 
@@ -15,7 +15,7 @@ function ClientesRisco(){
  if(q.isPending)return <Pagina><PageSkeleton/></Pagina>;
  if(q.error)return <Pagina><p role="alert" className="text-destructive">{q.error.message}</p></Pagina>;
  const rows=(q.data?.rows??[]).filter(r=>pipeline==="both"?[15,16].includes(r.pipeline_id):r.pipeline_id===Number(pipeline));
- const owners=[...new Map(rows.map(r=>[r.owner_id,r.owner_nome??String(r.owner_id)])).entries()];
+ const owners=csResponsaveisAtivos(rows);
  const clientes=csClientes(rows.filter(r=>!owner||r.owner_id===Number(owner))).filter(c=>c.cor==="vermelho"||c.cor==="amarelo").sort((a,b)=>(a.cor===b.cor?0:a.cor==="vermelho"?-1:1)||(b.mrr??0)-(a.mrr??0));
  return <Pagina><Cabecalho titulo="Clientes em risco" frase="Vermelhos e amarelos, por MRR em risco."/>
  <div className="mb-5 border-b border-border pb-4"><UltimaAtualizacao d={q.data}/></div>

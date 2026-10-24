@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { telegramStatus } from "@/lib/telegram.functions";
 import { useEffect, useState, type ReactNode } from "react";
-import { CheckCircle2, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,6 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import { usePendentes } from "@/lib/dados";
 import { navVisivel } from "./nav";
 import { useConnectionPresence } from "@/lib/connection-presence";
 import { MunimLogo, RavenMark } from "./RavenMark";
@@ -23,14 +22,6 @@ import { PaletaComandos } from "./PaletaComandos";
 
 const PAPEL: Record<string, string> = { user: "CS", admin: "Admin", superadmin: "Superadmin" };
 
-function Contador({ n }: { n: number }) {
-  if (!n) return null;
-  return (
-    <span className="ml-auto min-w-5 rounded-full bg-ember px-1.5 text-center text-[11px] font-semibold leading-5 text-ember-foreground">
-      {n}
-    </span>
-  );
-}
 
 function MenuUsuario({ compacto }: { compacto?: boolean }) {
   const { perfil, role, session, sair } = useAuth();
@@ -73,32 +64,31 @@ function MenuUsuario({ compacto }: { compacto?: boolean }) {
 function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: () => void }) {
   const connections = useConnectionPresence();
   const { role, perfil } = useAuth();
-  const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
+  const itens = navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel);
   return (
-    <nav className="flex flex-col gap-1">
-      {navVisivel(role ?? undefined,connections.data?.pipedrive,perfil?.papel).map((i) => {
+    <nav className="flex flex-col gap-0.5">
+      {itens.map((i, n) => {
         const ativo = i.to === "/" ? path === "/" : path.startsWith(i.to);
+        const novoGrupo = n === 0 || itens[n - 1]!.grupo !== i.grupo;
         return (
-          <Link
-            key={i.to}
-            to={i.to}
-            onClick={aoNavegar}
-            title={recolhida ? i.label : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
-              ativo
-                ? "bg-primary-soft text-primary shadow-glow-sm"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            <i.icon className="h-[18px] w-[18px] shrink-0" />
-            {!recolhida && <span>{i.label}</span>}
-            {!recolhida && i.to === "/aprovacoes" && <Contador n={pendentes?.length ?? 0} />}
-            {recolhida && i.to === "/aprovacoes" && !!pendentes?.length && (
-              <span className="absolute ml-4 -mt-4 h-2 w-2 rounded-full bg-ember" />
-            )}
-          </Link>
+          <div key={i.to}>
+            {novoGrupo && (recolhida ? n > 0 && <div className="mx-3 my-2 border-t border-border" /> : <p className="px-3 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{i.grupo}</p>)}
+            <Link
+              to={i.to}
+              onClick={aoNavegar}
+              title={recolhida ? i.label : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
+                ativo
+                  ? "bg-primary-soft text-primary shadow-glow-sm"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              )}
+            >
+              <i.icon className="h-[18px] w-[18px] shrink-0" />
+              {!recolhida && <span>{i.label}</span>}
+            </Link>
+          </div>
         );
       })}
     </nav>
@@ -109,7 +99,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [recolhida, setRecolhida] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [mais, setMais] = useState(false);
-  const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
@@ -143,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Search className="h-4 w-4 shrink-0" />
           {!recolhida && (
             <>
-              <span>Pergunte ao Munim</span>
+              <span>Buscar no Munim</span>
               <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">Ctrl K</kbd>
             </>
           )}
@@ -169,7 +158,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {(
           [
             { to: "/", label: "Dashboard", icon: Home },
-            { to: "/conversa", label: "Conversa", icon: MessageCircle },
+            { to: "/carteira", label: "Carteira", icon: Briefcase },
+            { to: "/conversa", label: "Chat do CS", icon: MessageCircle },
           ] as const
         ).map((i) => (
           <Link
@@ -185,18 +175,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         ))}
         <TelegramMic />
-        <Link
-          to="/aprovacoes"
-          className={cn(
-            "relative flex w-16 flex-col items-center gap-1 text-[11px]",
-            path.startsWith("/aprovacoes") ? "text-primary" : "text-muted-foreground",
-          )}
-        >
-          <CheckCircle2 className="h-5 w-5" />
-          Aprovações
-          {!!pendentes?.length && (
-            <span className="absolute right-3 top-0 h-2 w-2 rounded-full bg-ember" />
-          )}
+        <Link to="/agenda-atividades" className={cn("flex w-16 flex-col items-center gap-1 text-[11px]", path.startsWith("/agenda") ? "text-primary" : "text-muted-foreground")}>
+          <CalendarDays className="h-5 w-5" />
+          Agenda
         </Link>
         <button onClick={() => setMais(true)} className="flex w-16 flex-col items-center gap-1 text-[11px] text-muted-foreground">
           <Menu className="h-5 w-5" />
