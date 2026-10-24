@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 
 export const Route=createFileRoute("/_authenticated/retornos")({
  validateSearch:(s:Record<string,unknown>)=>({q:typeof s["q"]==="string"?s["q"]:""}),
- head:()=>({meta:[{title:"Retornos pendentes — Munim CS"},{name:"description",content:"Tarefas de retorno e follow-up abertas no Pipedrive, por cliente, responsável e tempo de espera."},{property:"og:title",content:"Retornos pendentes — Munim CS"},{property:"og:description",content:"Retornos pendentes da operação de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),
+ head:()=>({meta:[{title:"Retornos pendentes — Munin CS"},{name:"description",content:"Tarefas de retorno e follow-up abertas no Pipedrive, por cliente, responsável e tempo de espera."},{property:"og:title",content:"Retornos pendentes — Munin CS"},{property:"og:description",content:"Retornos pendentes da operação de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),
  component:Retornos});
 
 type Retorno={activity_id:number;deal_id:number;pipeline_id:number;tipo:string;assunto:string;dia:string|null;inicio:string|null;cliente:string;owner_nome:string|null;valor:number|null};

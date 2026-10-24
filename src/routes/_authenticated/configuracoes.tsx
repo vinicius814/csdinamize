@@ -20,10 +20,10 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Configurações — Munim" },
-      { name: "description", content: "Ajuste o Munim do seu jeito: Google, Telegram, rotina e aparência." },
-      { property: "og:title", content: "Configurações — Munim" },
-      { property: "og:description", content: "Ajuste o Munim do seu jeito." },
+      { title: "Configurações — Munin" },
+      { name: "description", content: "Ajuste o Munin do seu jeito: Google, Telegram, rotina e aparência." },
+      { property: "og:title", content: "Configurações — Munin" },
+      { property: "og:description", content: "Ajuste o Munin do seu jeito." },
     ],
   }),
   component: Configuracoes,
@@ -90,10 +90,10 @@ function Configuracoes() {
       <div className="grid gap-4">
         <Bloco icon={<span>◎</span>} titulo="Sua conta">
           <p className="text-sm">{perfil?.nome}</p><p className="mt-1 break-all text-sm text-muted-foreground">{session?.user.email}</p><p className="mt-1 text-xs text-muted-foreground">{role === "superadmin" ? "Superadmin · uso pessoal" : role === "admin" ? "Admin · uso pessoal" : "Conta pessoal"}</p>
-          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Seu Munim</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
+          <div className="mt-4 flex flex-wrap gap-3"><Button variant="outline" asChild><Link to="/conexoes">Suas conexões</Link></Button><Button variant="outline" asChild><Link to="/onboarding">Seu Munin</Link></Button><Button variant="ghost" onClick={async()=>{await qc.cancelQueries();qc.clear();await sair();navigate({to:"/auth",search:{},replace:true});}}>Sair</Button></div>
         </Bloco>
 
-        <Button variant="outline" className="justify-self-start" asChild><Link to="/memoria">O que o Munim sabe sobre você</Link></Button>
+        <Button variant="outline" className="justify-self-start" asChild><Link to="/memoria">O que o Munin sabe sobre você</Link></Button>
         <RegrasRisco/>
         <AutonomySettings/>
         <TelegramConnection/>

@@ -11,9 +11,9 @@ export const Route = createFileRoute("/_authenticated/conversa")({
   }),
   head: () => ({
     meta: [
-      { title: "Chat do CS — Munim" },
+      { title: "Chat do CS — Munin" },
       { name: "description", content: "Chat do CS: o futuro assistente de Customer Success da Dinamize. Em breve." },
-      { property: "og:title", content: "Chat do CS — Munim" },
+      { property: "og:title", content: "Chat do CS — Munin" },
       { property: "og:description", content: "Assistente de Customer Success da Dinamize, em breve." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/conversa")({
 });
 
 const FONTES = [
-  { icon: Database, titulo: "Dados do Munim e Pipedrive", texto: "Carteira, riscos, atividades e pendências, sempre dentro do seu acesso." },
+  { icon: Database, titulo: "Dados do Munin e Pipedrive", texto: "Carteira, riscos, atividades e pendências, sempre dentro do seu acesso." },
   { icon: BookOpen, titulo: "Help da Dinamize", texto: "Recursos, configurações, automações, e-mail e WhatsApp Marketing, CRM e integrações." },
   { icon: FolderOpen, titulo: "Drive do CS", texto: "Processos, rotinas, escopo de atendimento e materiais de treinamento autorizados." },
 ];

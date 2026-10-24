@@ -17,9 +17,9 @@ export const Route = createFileRoute("/_authenticated/notas")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Notas — Munim" },
+      { title: "Notas — Munin" },
       { name: "description", content: "Seu Segundo Cérebro ao vivo: as notas em Markdown do seu Google Drive." },
-      { property: "og:title", content: "Notas — Munim" },
+      { property: "og:title", content: "Notas — Munin" },
       { property: "og:description", content: "Seu Segundo Cérebro ao vivo: as notas em Markdown do seu Google Drive." },
     ],
   }),
@@ -62,7 +62,7 @@ function Notas() {
       {data?.erro||error ? null : isLoading ? (
         <PageSkeleton />
       ) : notas.length === 0 ? (
-        <EstadoVazio icon={StickyNote} titulo={termo ? "Nada encontrado" : "Nenhuma nota ainda"} texto="Peça ao Munim para anotar algo e ele guarda na pasta 01 Notas." />
+        <EstadoVazio icon={StickyNote} titulo={termo ? "Nada encontrado" : "Nenhuma nota ainda"} texto="Peça ao Munin para anotar algo e ele guarda na pasta 01 Notas." />
       ) : (
         <ul className="grid gap-2">
           {notas.map((n) => {

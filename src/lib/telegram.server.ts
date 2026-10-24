@@ -9,7 +9,7 @@ async function admin(){return (await import("@/integrations/supabase/client.serv
 async function decrypt(v:string){return (await import("./cripto.server")).decifrar(v);}
 
 /** Marks the bot as failing when Telegram reports a revoked token or a blocked bot. */
-export async function flagBot(userId:string,e:unknown){if(e instanceof TelegramError&&e.revoked){const db=await admin();await db.from("telegram_bots").update({status:"erro",ultimo_erro:e.status===401?"O token do bot foi revogado. Troque o bot no Munim.":"O bot foi bloqueado no Telegram. Desbloqueie e envie /start."}).eq("user_id",userId);}}
+export async function flagBot(userId:string,e:unknown){if(e instanceof TelegramError&&e.revoked){const db=await admin();await db.from("telegram_bots").update({status:"erro",ultimo_erro:e.status===401?"O token do bot foi revogado. Troque o bot no Munin.":"O bot foi bloqueado no Telegram. Desbloqueie e envie /start."}).eq("user_id",userId);}}
 export async function activeBot(userId:string){const db=await admin();const b=await db.from("telegram_bots").select("token_cifrado,chat_id,status").eq("user_id",userId).maybeSingle();if(b.error)throw b.error;if(!b.data||b.data.status!=="ativo"||!b.data.chat_id)return null;return {token:await decrypt(b.data.token_cifrado),chat:Number(b.data.chat_id)};}
 /** Proactive output always goes through the person's own bot; without an active bot nothing is sent. */
 export async function sendText(userId:string,text:string,keyboard?:Keyboard,deps:CallDeps=defaultDeps){
@@ -22,7 +22,7 @@ export async function saveBotToken(userId:string,token:string){
   const prev=await db.from("telegram_bots").select("token_cifrado,bot_id").eq("user_id",userId).maybeSingle();if(prev.error)throw prev.error;
   const result=await connectBot(userId,token,{...defaultDeps,encrypt:cifrar,secret:()=>randomBytes(32).toString("hex"),
     async owner(botId){const r=await db.from("telegram_bots").select("user_id").eq("bot_id",botId).maybeSingle();if(r.error)throw r.error;return r.data?.user_id??null;},
-    async save(row){const r=await db.from("telegram_bots").upsert({...row,chat_id:null,codigo_vinculo:null,expira_em:null,ultimo_erro:null,conectado_em:new Date().toISOString()},{onConflict:"user_id"});if(r.error){if(r.error.code==="23505")throw new Error("Esse bot já está conectado a outra conta do Munim.");throw r.error;}
+    async save(row){const r=await db.from("telegram_bots").upsert({...row,chat_id:null,codigo_vinculo:null,expira_em:null,ultimo_erro:null,conectado_em:new Date().toISOString()},{onConflict:"user_id"});if(r.error){if(r.error.code==="23505")throw new Error("Esse bot já está conectado a outra conta do Munin.");throw r.error;}
       const p=await db.from("profiles").update({telegram_chat_id:null,telegram_username:null}).eq("id",userId);if(p.error)throw p.error;}});
   // Replacing a different bot: release the old webhook (best effort).
   if(prev.data&&String(prev.data.bot_id)!==String(result.bot_username)){try{const old=await decrypt(prev.data.token_cifrado);if(old!==token.trim())await tgCall(old,"deleteWebhook",{});}catch{/* old token may be revoked */}}

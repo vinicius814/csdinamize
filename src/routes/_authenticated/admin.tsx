@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import {connectionRequestCounts} from "@/lib/connection-requests.functions";
 export const Route=createFileRoute("/_authenticated/admin")({
   beforeLoad:async({context})=>{const {data}=await supabase.auth.getSession();if(!data.session)throw redirect({to:"/auth",search:{}});const a=await context.queryClient.ensureQueryData(accountQueryOptions(data.session.user.id)); if(!canAdminister(a.role,a.status)) throw redirect({to:"/"});},
-  head:()=>({meta:[{title:"Administração — Munim"},{name:"description",content:"Acessos, custos e metadados de contas do Munim."},{property:"og:title",content:"Administração — Munim"},{property:"og:description",content:"Administração privada de acessos e custos."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Admin,
+  head:()=>({meta:[{title:"Administração — Munin"},{name:"description",content:"Acessos, custos e metadados de contas do Munin."},{property:"og:title",content:"Administração — Munin"},{property:"og:description",content:"Administração privada de acessos e custos."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Admin,
 });
 function Admin(){
   const readRequests=useServerFn(connectionRequestCounts);

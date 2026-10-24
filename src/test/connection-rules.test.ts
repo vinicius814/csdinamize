@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canUsePipedriveFallback, csToolAvailable, missingPipedriveSettings, profileChangesAllowed } from "@/lib/connection-rules";
 import {navVisivel} from "@/components/munim/nav";
-describe("Banco Munim V2", () => {
+describe("Banco Munin V2", () => {
   it("não oferece Pipedrive provisório a nenhum papel", () => {
     expect(canUsePipedriveFallback("superadmin")).toBe(false);
     expect(canUsePipedriveFallback("admin")).toBe(false);

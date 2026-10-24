@@ -16,7 +16,7 @@ describe("navegação por papel", () => {
     expect(labels("user")).not.toContain("Equipe");
     expect(labels("user")).not.toContain("Admin");
   });
-  it("ninguém vê Equipe (Munim é pessoal)", () => {
+  it("ninguém vê Equipe (Munin é pessoal)", () => {
     expect(labels("admin")).not.toContain("Equipe");
     expect(labels("superadmin")).not.toContain("Equipe");
   });

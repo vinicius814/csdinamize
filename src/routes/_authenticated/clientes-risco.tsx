@@ -8,7 +8,7 @@ import { PageSkeleton } from "@/components/munim/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { CS_PIPELINES, csClientes, csResponsaveisAtivos } from "@/lib/cs-rules";
 
-export const Route=createFileRoute("/_authenticated/clientes-risco")({head:()=>({meta:[{title:"Clientes em risco — Munim CS"},{name:"description",content:"Clientes em risco e em atenção da Central CS Dinamize, ordenados por MRR."},{property:"og:title",content:"Clientes em risco — Munim CS"},{property:"og:description",content:"Clientes em risco na Central de Comando CS."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:ClientesRisco});
+export const Route=createFileRoute("/_authenticated/clientes-risco")({head:()=>({meta:[{title:"Clientes em risco — Munin CS"},{name:"description",content:"Clientes em risco e em atenção da Central CS Dinamize, ordenados por MRR."},{property:"og:title",content:"Clientes em risco — Munin CS"},{property:"og:description",content:"Clientes em risco na Central de Comando CS."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:ClientesRisco});
 
 function ClientesRisco(){
  const q=useCSData();const [pipeline,setPipeline]=useState("both"),[owner,setOwner]=useState("");

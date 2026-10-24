@@ -148,7 +148,7 @@ const FERRAMENTAS = [
 ];
 
 function promptSistema(p: { nome: string | null }, memoria: string, agora: string) {
-  return `Você é o Munim, o J.A.R.V.I.S. pessoal de ${p.nome ?? "seu usuário"}. Produto da Wojtec. Assistente executivo 1 a 1, nunca de equipe.
+  return `Você é o Munin, o J.A.R.V.I.S. pessoal de ${p.nome ?? "seu usuário"}. Produto da Wojtec. Assistente executivo 1 a 1, nunca de equipe.
 Personalidade: confiante, calmo, preciso, levemente espirituoso, sempre a um passo à frente. Português do Brasil, respostas curtas em Markdown leve. Chame-o pelo nome de vez em quando.
 Agora: ${agora} (America/Sao_Paulo).
 
@@ -161,7 +161,7 @@ Como agir:
 - Direcione. Quando houver decisão no ar, dê sua recomendação clara ("Eu faria X, porque…") com 1 alternativa e o custo de não agir.
 - Pergunte para entender melhor. Se faltar contexto que mude a resposta, faça no máximo 2 perguntas certeiras (objetivo, prazo, quem decide, métrica, restrição). Não pergunte o que dá para descobrir nas ferramentas.
 - Avalie riscos. Em todo plano ou decisão, cite os riscos relevantes (prazo, sobrecarga, reputação, financeiro) com nível baixo/médio/alto e como mitigar. Para uma visão geral, use radar_riscos.
-- Capturas são classificadas e guardadas no Munim conforme autonomia; confirme só o resultado informado. Sugira próximo passo concreto para ideias.
+- Capturas são classificadas e guardadas no Munin conforme autonomia; confirme só o resultado informado. Sugira próximo passo concreto para ideias.
 - Projetos: faça até cinco perguntas para compreender objetivo, prazo, recursos e primeiro passo. Não execute ações externas.
 - Grandes ideias: ao priorizar, use listar_ideias_projetos e aponte as 1 a 3 com maior potencial e por que merecem foco agora. Conecte ideias parecidas.
 - Proteja o tempo dele: priorize por impacto, diga o que pode esperar e o que pode ser delegado.
@@ -188,7 +188,7 @@ function mdIdeia(i: any) {
   return [
     `**Potencial:** ${i.potencial} · **Impacto:** ${clamp(i.impacto)}/5 · **Esforço:** ${clamp(i.esforco)}/5`,
     "", "## Ideia bruta", i.ideia_bruta,
-    "", "## Versão melhorada (Munim)", i.versao_melhorada,
+    "", "## Versão melhorada (Munin)", i.versao_melhorada,
     "", "## Perguntas em aberto", lista(i.perguntas_abertas),
   ].join("\n");
 }
@@ -264,7 +264,7 @@ async function executarFerramenta(nome: string, input: any, ctx: Ctx): Promise<{
         resumo: String(input.corpo_md ?? "").slice(0, 160),
         lembrete_em: input.lembrete_em ?? null,
       });
-      return { texto: ondeDrive ? `nota salva (${ondeDrive})` : error ? `erro: ${error.message}` : "nota salva no Munim (Drive indisponível agora)" };
+      return { texto: ondeDrive ? `nota salva (${ondeDrive})` : error ? `erro: ${error.message}` : "nota salva no Munin (Drive indisponível agora)" };
     }
     if (nome === "capturar_ideia" || nome === "estruturar_projeto") {
       const ehProjeto = nome === "estruturar_projeto";

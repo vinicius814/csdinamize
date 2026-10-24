@@ -28,7 +28,7 @@ export function PaletaComandos({ aberta, setAberta }: { aberta: boolean; setAber
   return (
     <CommandDialog open={aberta} onOpenChange={(v) => (v ? setAberta(true) : fechar())}>
       
-      <CommandInput placeholder="Buscar no Munim: páginas e ações…" value={texto} onValueChange={setTexto} />
+      <CommandInput placeholder="Buscar no Munin: páginas e ações…" value={texto} onValueChange={setTexto} />
       <CommandList>
         <CommandEmpty>Nada encontrado.</CommandEmpty>
         <CommandGroup heading="Ações rápidas">

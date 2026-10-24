@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { navVisivel } from "./nav";
 import { useConnectionPresence } from "@/lib/connection-presence";
-import { MunimLogo, RavenMark } from "./RavenMark";
+import { MuninLogo, RavenMark } from "./RavenMark";
 import { PaletaComandos } from "./PaletaComandos";
 
 const PAPEL: Record<string, string> = { user: "CS", admin: "Admin", superadmin: "Superadmin" };
@@ -123,7 +123,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       >
         <div className="mb-6 flex items-center justify-between px-1 pt-1">
-          {recolhida ? <RavenMark className="mx-auto h-8 w-8" /> : <MunimLogo />}
+          {recolhida ? <RavenMark className="mx-auto h-8 w-8" /> : <MuninLogo />}
         </div>
         <button
           onClick={() => setPaleta(true)}
@@ -132,7 +132,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Search className="h-4 w-4 shrink-0" />
           {!recolhida && (
             <>
-              <span>Buscar no Munim</span>
+              <span>Buscar no Munin</span>
               <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">Ctrl K</kbd>
             </>
           )}

@@ -35,11 +35,11 @@ export function RavenMark({ className, glow = true }: { className?: string; glow
   );
 }
 
-export function MunimLogo({ className }: { className?: string }) {
+export function MuninLogo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <RavenMark className="h-9 w-9" />
-      <span className="font-display text-2xl font-semibold tracking-tight text-foreground">Munim</span>
+      <span className="font-display text-2xl font-semibold tracking-tight text-foreground">Munin</span>
     </span>
   );
 }

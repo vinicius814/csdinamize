@@ -23,7 +23,7 @@ export const telegramLink=createServerFn({method:"POST"}).middleware([requireAct
 });
 export const testTelegram=createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
   const {sendText}=await import("./telegram.server");
-  let ok;try{ok=await sendText(context.userId,"Teste do Munim: tudo certo por aqui.");}catch(e){throw new Error(e instanceof Error?e.message:"Envio falhou.");}
+  let ok;try{ok=await sendText(context.userId,"Teste do Munin: tudo certo por aqui.");}catch(e){throw new Error(e instanceof Error?e.message:"Envio falhou.");}
   if(!ok)throw new Error("Seu bot ainda não está ativo.");return {ok:true};
 });
 export const disconnectTelegram=createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
