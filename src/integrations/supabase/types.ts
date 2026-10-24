@@ -538,6 +538,176 @@ export type Database = {
           },
         ]
       }
+      cs_metricas_diarias: {
+        Row: {
+          atividades_vencidas: number
+          cancelados_dia: number
+          clientes_ativos: number
+          cobertura_30: number | null
+          cobertura_60: number | null
+          cobertura_90: number | null
+          created_at: string
+          dia: string
+          mrr: number | null
+          mrr_cancelado_dia: number | null
+          owner_id: number
+          pipeline_id: number
+          sem_contato_60: number
+          updated_at: string
+        }
+        Insert: {
+          atividades_vencidas: number
+          cancelados_dia: number
+          clientes_ativos: number
+          cobertura_30?: number | null
+          cobertura_60?: number | null
+          cobertura_90?: number | null
+          created_at?: string
+          dia: string
+          mrr?: number | null
+          mrr_cancelado_dia?: number | null
+          owner_id: number
+          pipeline_id: number
+          sem_contato_60: number
+          updated_at?: string
+        }
+        Update: {
+          atividades_vencidas?: number
+          cancelados_dia?: number
+          clientes_ativos?: number
+          cobertura_30?: number | null
+          cobertura_60?: number | null
+          cobertura_90?: number | null
+          created_at?: string
+          dia?: string
+          mrr?: number | null
+          mrr_cancelado_dia?: number | null
+          owner_id?: number
+          pipeline_id?: number
+          sem_contato_60?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cs_snapshot: {
+        Row: {
+          add_time: string | null
+          atividades_vencidas: number
+          atualizado_em: string
+          created_at: string
+          data_contratacao: string | null
+          deal_id: number
+          org_id: number | null
+          owner_id: number
+          owner_nome: string | null
+          perfil_conta: string | null
+          pipeline_id: number
+          proxima_atividade_data: string | null
+          stage_change_time: string | null
+          stage_id: number
+          status: string
+          sync_id: string
+          titulo: string
+          ultima_reuniao_cs: string | null
+          ultimo_contato_efetivo: string | null
+          updated_at: string
+          valor: number | null
+        }
+        Insert: {
+          add_time?: string | null
+          atividades_vencidas?: number
+          atualizado_em?: string
+          created_at?: string
+          data_contratacao?: string | null
+          deal_id: number
+          org_id?: number | null
+          owner_id: number
+          owner_nome?: string | null
+          perfil_conta?: string | null
+          pipeline_id: number
+          proxima_atividade_data?: string | null
+          stage_change_time?: string | null
+          stage_id: number
+          status: string
+          sync_id: string
+          titulo: string
+          ultima_reuniao_cs?: string | null
+          ultimo_contato_efetivo?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Update: {
+          add_time?: string | null
+          atividades_vencidas?: number
+          atualizado_em?: string
+          created_at?: string
+          data_contratacao?: string | null
+          deal_id?: number
+          org_id?: number | null
+          owner_id?: number
+          owner_nome?: string | null
+          perfil_conta?: string | null
+          pipeline_id?: number
+          proxima_atividade_data?: string | null
+          stage_change_time?: string | null
+          stage_id?: number
+          status?: string
+          sync_id?: string
+          titulo?: string
+          ultima_reuniao_cs?: string | null
+          ultimo_contato_efetivo?: string | null
+          updated_at?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cs_snapshot_sync_id_fkey"
+            columns: ["sync_id"]
+            isOneToOne: false
+            referencedRelation: "cs_sync_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cs_sync_runs: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          erro: string | null
+          id: string
+          iniciado_em: string
+          iniciado_por: string | null
+          negocios_lidos: number
+          origem: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          iniciado_por?: string | null
+          negocios_lidos?: number
+          origem: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          iniciado_por?: string | null
+          negocios_lidos?: number
+          origem?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       entradas_telegram: {
         Row: {
           arquivo: Json | null
@@ -1413,6 +1583,27 @@ export type Database = {
           ferramenta: string
           quantidade: number
         }[]
+      }
+      cs_atribuir_perfil: {
+        Args: {
+          actor: string
+          owner: number
+          papel_cs: Database["public"]["Enums"]["papel_usuario"]
+          target: string
+        }
+        Returns: undefined
+      }
+      cs_iniciar_sync: {
+        Args: { actor?: string; source: string }
+        Returns: string
+      }
+      cs_pode_ver: {
+        Args: { owner_id: number; pipeline_id: number }
+        Returns: boolean
+      }
+      cs_publicar_snapshot: {
+        Args: { lidos: number; rows: Json; run: string }
+        Returns: undefined
       }
       estruturar_projeto_pessoal: {
         Args: { etapas: Json; item: string; respostas: string[] }
