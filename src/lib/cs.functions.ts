@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireActive } from "./access.middleware";
+import { requireActive, requireAdmin } from "./access.middleware";
 import { comCredenciais } from "./credenciais.middleware";
 import { csPodeVer, csMetricas, csDia, csClientesUpgrade, csEhRetorno, type CSRow } from "./cs-rules";
 import { z } from "zod";
@@ -136,4 +136,28 @@ export const evolucaoCS=createServerFn({method:"POST"}).middleware([requireActiv
   if(r["cobertura_60"]!==null&&r["cobertura_60"]!==undefined&&c>0){g.cobPeso+=Number(r["cobertura_60"])*c;g.cobBase+=c;}
   porDia.set(k,g);}
  return {desde:(first?.dia as string|undefined)??null,serie:[...porDia.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([dia,g])=>({dia,clientes:g.clientes,mrr:g.mrr,cobertura:g.cobBase?g.cobPeso/g.cobBase:null}))};
+});
+
+const histSchemaV2=z.object({pipeline:z.enum(["15","16","both"]),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
+/** Historical cancellations and confirmed upgrades in the viewer's RLS scope. Rates only when a recorded base exists at period start. */
+export const historicoCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>histSchemaV2.parse(i)).handler(async({data,context})=>{
+ const db=context.supabase;const pipes=data.pipeline==="both"?[15,16]:[Number(data.pipeline)];
+ const {csPeriodoAnterior}=await import("./cs-historico");const ant=csPeriodoAnterior(data.from,data.to);
+ const all=async(t:string,cols:string,f:(q:any)=>any)=>{const out:any[]=[];for(let s=0;;s+=1000){const {data:r,error}=await f(db.from(t).select(cols)).range(s,s+999);if(error)throw new Error(error.message);out.push(...(r??[]));if((r?.length??0)<1000)break;}return out;};
+ const canc=(await all("cs_cancelamentos","deal_id,org_id,pipeline_id,owner_id,stage_id,dia,valor,moeda,motivo,revertido",q=>q.in("pipeline_id",pipes).gte("dia",ant.from).lte("dia",data.to).order("deal_id"))).map(c=>({...c,deal_id:Number(c.deal_id),org_id:c.org_id===null?null:Number(c.org_id),valor:num(c.valor)}));
+ const ev=(await all("cs_eventos_valor","deal_id,pipeline_id,owner_id,dia,valor_anterior,valor_novo",q=>q.in("pipeline_id",pipes).gte("dia",ant.from).lte("dia",data.to).order("deal_id"))).map(e=>({...e,deal_id:Number(e.deal_id),valor_anterior:Number(e.valor_anterior),valor_novo:Number(e.valor_novo)}));
+ const ups=(await all("cs_atividades_cache","deal_id,tipo,concluida,data_conclusao,pipeline_id",q=>q.eq("tipo","upgrade").eq("concluida",true).in("pipeline_id",pipes).gte("data_conclusao",ant.from).lte("data_conclusao",data.to).order("activity_id"))).map(a=>({...a,deal_id:Number(a.deal_id)}));
+ const {data:cr}=await db.from("cs_cancelamentos").select("dia").order("dia").limit(1).maybeSingle();
+ const {data:lastExec}=await db.from("cs_cancelamentos").select("consultado_em").order("consultado_em",{ascending:false}).limit(1).maybeSingle();
+ const {data:ve}=await db.from("cs_eventos_valor").select("dia").order("dia").limit(1).maybeSingle();
+ const {count:base}=await db.from("cs_base_diaria").select("cliente",{count:"exact",head:true}).eq("dia",data.from).in("pipeline_id",pipes);
+ const {data:mrrIni}=await db.from("cs_metricas_diarias").select("mrr,owner_id").eq("dia",data.from).in("pipeline_id",pipes);
+ const mrrBase=(mrrIni??[]).length?(mrrIni??[]).reduce((s:number,x:any)=>s+Number(x.mrr??0),0):null;
+ return {cancelamentos:canc,eventosValor:ev,atividadesUpgrade:ups,anterior:ant,
+  cancelDesde:(cr?.dia as string|undefined)??null,cancelAte:lastExec?.consultado_em?String(lastExec.consultado_em).slice(0,10):null,
+  valorDesde:(ve?.dia as string|undefined)??null,baseInicio:base&&base>0?base:null,mrrInicio:mrrBase};
+});
+/** Admin-only, explicit trigger: recovers 12 months of effective cancellations with the corporate integration (≈15 GET calls). */
+export const recuperarHistoricoCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async({context})=>{
+ const {runCSHistorico}=await import("./cs-historico.server");return runCSHistorico(context.userId,12);
 });
