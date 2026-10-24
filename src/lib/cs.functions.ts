@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireActive } from "./access.middleware";
 import { comCredenciais } from "./credenciais.middleware";
-import { csPodeVer, csMetricas, csDia, type CSRow } from "./cs-rules";
+import { csPodeVer, csMetricas, csDia, csClientesUpgrade, type CSRow } from "./cs-rules";
 import { z } from "zod";
 
 /** Value-change tracking (expansion/upgrade) started with the first sync on this date. */
@@ -56,6 +56,9 @@ export const historyCS=createServerFn({method:"POST"}).middleware([requireActive
  // Logo churn by organization within the portfolio; owner breakdown uses the base owner (deal with highest MRR).
  const baseKeys:{pipeline_id:number;cliente:string}[]=[];for(let s=0;;s+=1000){let bq=db.from("cs_base_diaria").select("pipeline_id,cliente").eq("dia",data.from).in("pipeline_id",pipes);if(owner)bq=bq.eq("owner_id",owner);const {data:bd,error:bde}=await bq.range(s,s+999);if(bde)throw new Error(bde.message);baseKeys.push(...(bd??[]));if((bd?.length??0)<1000)break;}
  const {data:canc,error:ce}=await db.from("cs_snapshot").select("deal_id,org_id,pipeline_id,stage_change_time").in("stage_id",[105,111]).in("pipeline_id",pipes).gte("stage_change_time",data.from+"T03:00:00Z").lte("stage_change_time",new Date(Date.parse(data.to+"T03:00:00Z")+86400000).toISOString());if(ce)throw new Error(ce.message);
+ const upgradeActivities:{deal_id:number;tipo:string;concluida:boolean;dia:string|null}[]=[];
+ for(let start=0;;start+=1000){let aq=db.from("cs_atividades_cache").select("deal_id,tipo,concluida,dia").eq("tipo","upgrade").eq("concluida",true).gte("dia",data.from).lte("dia",data.to).in("pipeline_id",pipes);if(owner)aq=aq.eq("owner_id",owner);const {data:ad,error:ae}=await aq.order("activity_id").range(start,start+999);if(ae)throw new Error(ae.message);upgradeActivities.push(...(ad??[]));if((ad?.length??0)<1000)break;}
+ const upgradeDeals=await readRows(db,q=>{q=q.in("pipeline_id",pipes);if(owner)q=q.eq("owner_id",owner);return q;});
  return pipes.map(pipeline=>{
   const b=(base??[]).filter(r=>r.pipeline_id===pipeline);const temBase=b.length>0;
   const evs=(ev??[]).filter(r=>r.pipeline_id===pipeline);const up=evs.filter(r=>Number(r.valor_novo)>Number(r.valor_anterior));
@@ -63,7 +66,7 @@ export const historyCS=createServerFn({method:"POST"}).middleware([requireActive
   const baseSet=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>baseSet.has(k)));
   return {pipeline,historicoDesde:first?.dia??null,valorDesde:CS_VALOR_DESDE,
    mrrInicial:temBase&&b.every(r=>r.mrr!==null)?b.reduce((s,r)=>s+Number(r.mrr),0):null,clientesIniciais:temBase?b.reduce((s,r)=>s+r.clientes_ativos,0):null,
-   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:valorDisponivel?new Set(up.map(r=>r.deal_id)).size:null,baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
+   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:csClientesUpgrade(upgradeDeals.filter(r=>r.pipeline_id===pipeline),upgradeActivities,data.from,data.to),baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
  });
 });
 

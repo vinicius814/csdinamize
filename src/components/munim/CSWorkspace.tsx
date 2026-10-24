@@ -32,7 +32,7 @@ function HistoryCards({h}:{h:H|undefined}){
  return <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
   <Card label="MRR inicial do período" value={h.mrrInicial===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:money(h.mrrInicial)}/>
   <Card label="Expansão de receita" value={h.expansao===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:money(h.expansao)}/>
-  <Card label="Clientes com upgrade" value={h.upgrades===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:h.upgrades}/>
+  <Card label="Clientes com upgrade (por atividade)" value={h.upgrades===null?<span className="text-sm text-muted-foreground">{desde(h.valorDesde)}</span>:h.upgrades}/>
   <Card label="Logo churn" value={logo===null?<span className="text-sm text-muted-foreground">{desde(h.historicoDesde)}</span>:logo} note={logo===null?undefined:`${h.logoCancelados} de ${h.baseInicial} organizações da base inicial`}/>
   {["Taxa de reversão","NRR","GRR"].map(t=><div key={t} className="min-w-0 border border-dashed border-border p-4"><p className="text-xs text-muted-foreground">{t}</p><p className="mt-2 text-sm text-muted-foreground">em breve</p></div>)}
  </div>;
