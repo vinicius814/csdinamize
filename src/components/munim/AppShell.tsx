@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { telegramStatus } from "@/lib/telegram.functions";
 import { useEffect, useState, type ReactNode } from "react";
-import { CheckCircle2, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
+import { Briefcase, CalendarDays, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +15,6 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
-import { usePendentes } from "@/lib/dados";
 import { navVisivel } from "./nav";
 import { useConnectionPresence } from "@/lib/connection-presence";
 import { MunimLogo, RavenMark } from "./RavenMark";
@@ -23,14 +22,6 @@ import { PaletaComandos } from "./PaletaComandos";
 
 const PAPEL: Record<string, string> = { user: "CS", admin: "Admin", superadmin: "Superadmin" };
 
-function Contador({ n }: { n: number }) {
-  if (!n) return null;
-  return (
-    <span className="ml-auto min-w-5 rounded-full bg-ember px-1.5 text-center text-[11px] font-semibold leading-5 text-ember-foreground">
-      {n}
-    </span>
-  );
-}
 
 function MenuUsuario({ compacto }: { compacto?: boolean }) {
   const { perfil, role, session, sair } = useAuth();
@@ -108,7 +99,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [recolhida, setRecolhida] = useState(false);
   const [paleta, setPaleta] = useState(false);
   const [mais, setMais] = useState(false);
-  const { data: pendentes } = usePendentes();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
