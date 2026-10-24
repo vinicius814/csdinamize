@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RefreshCw, ExternalLink, X, Briefcase } from "lucide-react";
-import { readCS, syncCS, metricsCS } from "@/lib/cs.functions";
+import { readCS, syncCS, metricsCS, autoSyncCS } from "@/lib/cs.functions";
 import { CS_PIPELINES, CS_STAGES, csDia, csDias, csMetricas, type CSRow } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export function CSWorkspace({mode="carteira"}:{mode?:"dashboard"|"carteira"|"ges
  const lastManual=d?.lastManual??null;
  const cooldown=!!lastManual&&Date.now()-Date.parse(lastManual)<600000;
  async function refresh(){setBusy(true);try{const result=await sync();toast.success(`Atualização concluída · ${result.negocios_lidos} negócios lidos.`);}catch(e){toast.error(e instanceof Error?e.message:"Não consegui atualizar.");}finally{setBusy(false);await qc.invalidateQueries({queryKey:["cs-data"]});}}
+ const auto=useServerFn(autoSyncCS);const autoDone=useRef(false);
+ useEffect(()=>{if(autoDone.current||!session)return;autoDone.current=true;const t=setTimeout(()=>{void qc.invalidateQueries({queryKey:["cs-data"]});},1500);auto().then(r=>{if(r.executado)void qc.invalidateQueries({queryKey:["cs-data"]});}).catch(()=>{});return ()=>clearTimeout(t);},[session]);
  function clear(){setPipeline("15");setOwner("");setStage("");setDays(60);setSearch("");setPage(0);}
  if(q.isPending)return <Pagina><PageSkeleton/></Pagina>;
  if(q.error)return <Pagina><p role="alert" className="text-destructive">{q.error.message}</p><Button variant="outline" onClick={()=>q.refetch()}>Tentar novamente</Button></Pagina>;

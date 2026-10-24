@@ -38,3 +38,4 @@
 
 - Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
 - Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
+- Central CS sync auto-runs on the first CS screen visit after each 08:00/12:00 São Paulo slot (autoSyncCS), so no external scheduler or paid relay is needed; one attempt per slot avoids retry storms.
