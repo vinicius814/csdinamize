@@ -38,4 +38,5 @@
 
 - Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
 - Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
-- Central CS sync auto-runs on the first CS screen visit after each 08:00/12:00 São Paulo slot (autoSyncCS), so no external scheduler or paid relay is needed; one attempt per slot avoids retry storms.
+- Central CS sync auto-runs on the first CS screen visit after each 08:00/12:00 São Paulo slot; each window is claimed once in cs_sync_runs.janela (unique), so concurrent tabs and failures never trigger a second attempt and old windows are never replayed.
+- Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
