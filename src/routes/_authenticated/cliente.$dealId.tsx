@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ExternalLink, ArrowLeft } from "lucide-react";
 import { cliente360 } from "@/lib/cs.functions";
 import { useAuth } from "@/lib/auth";
-import { CS_PIPELINES, CS_STAGES, csDias, csEhReuniao, csEstadoReuniao } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_STAGES, CS_TAG_RISCO_CHURN, csDias, csEhReuniao, csEstadoReuniao } from "@/lib/cs-rules";
 import { money, fmt } from "@/components/munim/CSWorkspace";
 import { RiscoBadge } from "@/components/munim/RiscoBadge";
 import { Pagina, Cabecalho } from "@/components/munim/PaginaVazia";
