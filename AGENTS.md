@@ -38,9 +38,8 @@
 
 - Project conversion uses one owner-scoped transactional RPC so generated activities and the source idea cannot diverge on failure.
 - Daily relationship suggestions use a database counter and profile timezone so dismissals and concurrent captures cannot reset the chosen cap.
-- Central CS sync auto-runs on the first CS screen visit after each 08:00/12:00 São Paulo slot; each window is claimed once in cs_sync_runs.janela (unique), so concurrent tabs and failures never trigger a second attempt and old windows are never replayed.
+- CS lazy sync runs on the first CS visit after each 08:00/12:00 São Paulo slot, claimed once in unique cs_sync_runs.janela so concurrency/failures never retry or replay old windows.
 - Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
 - Email status is calculated by the shared SQL cs_email_status function with timestamp ordering and São Paulo day ages; activity classifications and deduplicated upgrade counts share cs-rules so all CS surfaces agree.
-
 - CS screens compute indicators client-side with csMetricas over the single cached readCS result, so Dashboard, Minha carteira and Carteiras CS always agree and filters never refetch.
-- Central sync publication writes only changed snapshot rows and parses input once; service_role has a bounded 60s statement_timeout because API roles keep 3s/8s.
+- Sync publication writes only changed rows and parses input once; service_role has a bounded 60s statement_timeout (API roles keep 3s/8s).
