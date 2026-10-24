@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { CS_FIELDS, csDia, type CSRow } from "./cs-rules";
+import { CS_FIELDS, csDia, csContatoEfetivo, type CSRow } from "./cs-rules";
 import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 
 type RecordData = Record<string, any>;
 const pageSchema=z.object({success:z.literal(true),data:z.array(z.record(z.any())).nullable(),additional_data:z.object({next_cursor:z.string().nullable().optional()}).passthrough().optional()}).passthrough();
-export async function runCSSync(source:"manual"|"agendado",actor:string|null=null) {
- const {data:run,error:startError}=await db.rpc("cs_iniciar_sync",{source,...(actor?{actor}:{})});
- if(startError||!run) throw new Error(startError?.message??"Não consegui iniciar a atualização.");
+export async function runCSSync(source:"manual"|"agendado",actor:string|null=null,janela?:string) {
+ let run:string;
+ if(janela){const {data,error}=await db.rpc("cs_iniciar_sync_janela",{janela_id:janela});if(error)throw new Error(error.message);if(!data)return {id:null,status:"ignorado" as const,negocios_lidos:0,negocios_snapshot:0};run=data;}
+ else {const {data,error:startError}=await db.rpc("cs_iniciar_sync",{source,...(actor?{actor}:{})});if(startError||!data) throw new Error(startError?.message??"Não consegui iniciar a atualização.");run=data;}
  let lidos=0;
  try {
   const token=process.env["PIPEDRIVE_SYNC_TOKEN"],domain=process.env["PIPEDRIVE_SYNC_DOMAIN"];
@@ -36,7 +37,7 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    const stage=pipeline===15?105:pipeline===16?111:null;
    if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d["id"]),d);}}
   }
-  const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
+  const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),abertas=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
   // One shared read, then owner/deal scope is applied locally.
   for(const a of await pages("/v2/activities",{done:"false"})) {
    if(!owners.has(Number(a["owner_id"]))||!deals.has(Number(a["deal_id"])))continue;
@@ -52,7 +53,7 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    if(!names.has(owner_id))throw new Error("Responsável não identificado pela fonte.");
    // No implicit currency conversion: unknown BRL revenue remains unavailable.
    const value=d["currency"]!=="BRL"||d["value"]===null||d["value"]===undefined?null:z.coerce.number().finite().parse(d["value"]);
-   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo:date(field(d,CS_FIELDS.contato)),ultima_reuniao_cs:date(field(d,CS_FIELDS.reuniao)),data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
+   return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0};
   });
   const {error}=await db.rpc("cs_publicar_snapshot",{run,rows:JSON.parse(JSON.stringify(rows)),lidos});if(error)throw new Error(error.message);
   return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
