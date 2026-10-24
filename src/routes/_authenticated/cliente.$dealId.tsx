@@ -32,7 +32,7 @@ function Cliente360(){
  {!!r.risco_fatores?.length&&<section className="card-munim mb-6 p-4"><h2 className="mb-2 text-sm font-medium">Fatores do termômetro</h2><ul className="list-disc pl-5 text-sm text-muted-foreground">{r.risco_fatores.map(f=><li key={f}>{f}</li>)}</ul></section>}
  <dl className="card-munim mb-6 grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
   <Item k="Responsável" v={r.owner_nome??"sem dados"}/><Item k="MRR" v={money(r.valor)}/><Item k="Status contratual" v={CS_STAGES[r.stage_id]??r.stage_id}/><Item k="Data de contratação" v={fmt(r.data_contratacao)}/>
-  <Item k="Perfil da conta" v={r.perfil_conta??"sem dados"}/><Item k="Último contato efetivo" v={r.contato_efetivo?`${fmt(r.contato_efetivo)} · ${csDias(r.contato_efetivo)} dias · ${r.origem_contato}`:"sem dados"}/>
+  <Item k="Perfil da conta" v={r.perfil_conta??"sem dados"}/><Item k="Último contato efetivo (campo oficial)" v={r.ultimo_contato_efetivo?`${fmt(r.ultimo_contato_efetivo)} · ${csDias(r.ultimo_contato_efetivo)} dias`:"sem dados"}/><Item k="Última interação registrada" v={r.contato_efetivo?`${fmt(r.contato_efetivo)} · ${r.origem_contato}`:"sem dados"}/>
   <Item k="Última reunião realizada" v={realizada?fmt(realizada):"sem dados"}/><Item k="Próxima reunião agendada" v={agendada?`${fmt(agendada.data)} · ${agendada.assunto}`:det?"nenhuma agendada":"sem dados"}/>
   <Item k="Atividades abertas" v={r.atividades_abertas??"sem dados"}/><Item k="Atividades atrasadas" v={r.atividades_vencidas}/><Item k="Retorno pendente" v={r.retorno_dias!==null&&r.retorno_dias!==undefined?`cliente aguardando há ${r.retorno_dias} dias`:"nenhum"}/><Item k="Último e-mail" v={`recebido ${fmt(r.ultimo_email_recebido)} · enviado ${fmt(r.ultimo_email_enviado)}`}/>
  </dl>
