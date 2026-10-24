@@ -128,13 +128,14 @@ export function CSDashboard(){
   </div></section>
   {ws.manager&&<section className="mt-8"><details className="card-munim p-4">
    <summary className="cursor-pointer text-sm font-medium">Evolução e tendências<span className="ml-2 text-xs font-normal text-muted-foreground">{evo.data?.desde?`histórico real desde ${fmt(evo.data.desde)}`:""}</span></summary>
-   <div className="mt-4"><select aria-label="Período de evolução" className={selectStyle} value={evoDias} onChange={e=>setEvoDias(e.target.value as typeof evoDias)}><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 6 meses</option><option value="365">Últimos 12 meses</option><option value="ano">Ano atual</option></select></div>
-   {evo.isPending?<p className="mt-4 text-xs text-muted-foreground">Carregando…</p>:evo.error?<p className="mt-4 text-xs text-warning">Falha ao ler o histórico.</p>:(evo.data?.serie.length??0)<2?<p className="mt-4 text-xs text-muted-foreground">Histórico disponível a partir de {evo.data?.desde?fmt(evo.data.desde):"a primeira sincronização"}. Os gráficos aparecem quando houver pelo menos dois dias registrados — nenhum mês anterior é preenchido com números atuais.</p>:
+   <CSEvolucao pipe={pipe} from={from} to={to} rows={all} admin={["admin","superadmin"].includes(String(ws.d?.role??""))} receita={<>
+   <div><select aria-label="Período de evolução" className={selectStyle} value={evoDias} onChange={e=>setEvoDias(e.target.value as typeof evoDias)}><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 6 meses</option><option value="365">Últimos 12 meses</option><option value="ano">Ano atual</option></select></div>
+   {evo.isPending?<p className="mt-4 text-xs text-muted-foreground">Carregando…</p>:evo.error?<p className="mt-4 text-xs text-warning">Falha ao ler o histórico.</p>:(evo.data?.serie.length??0)<2?<p className="mt-4 text-xs text-muted-foreground">Posição de receita registrada a partir de {evo.data?.desde?fmt(evo.data.desde):"a primeira sincronização"}. Os gráficos aparecem com pelo menos dois dias registrados — nenhum mês anterior é preenchido com números atuais.</p>:
    <div className="mt-4 grid gap-4 md:grid-cols-3">
     <section><h3 className="mb-2 text-sm font-medium">Clientes ativos</h3><Linha pontos={evo.data!.serie.map(p=>p.clientes)}/></section>
     <section><h3 className="mb-2 text-sm font-medium">MRR</h3><Linha pontos={evo.data!.serie.map(p=>p.mrr)} format={n=>moneyK(n)}/></section>
     <section><h3 className="mb-2 text-sm font-medium">Cobertura 60d</h3><Linha pontos={evo.data!.serie.map(p=>p.cobertura)} format={n=>`${n.toFixed(0)}%`}/></section>
-   </div>}
+   </div>}</>}/>
   </details></section>}
   <section className="mt-8"><h2 className="mb-3 font-display text-lg">Acompanhamento</h2><div className="grid gap-4 lg:grid-cols-3">
    <section className="card-munim p-4 lg:col-span-2"><div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-medium">Próximas reuniões · 7 dias</h3><Link to="/agenda-atividades" className="text-xs text-primary hover:underline">Abrir agenda</Link></div>
