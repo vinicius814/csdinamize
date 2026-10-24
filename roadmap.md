@@ -1,4 +1,9 @@
 # Munim — cadastro, administração e confiança
+- [ ] Central CS: camada cs_snapshot/cs_metricas_diarias/cs_sync_runs e RLS por carteira/responsável, sem remover dados.
+- [ ] Central CS: sync central somente leitura, transação e atualização manual com bloqueio de 10 minutos.
+- [ ] Central CS: Dashboard, Carteira, filtros combinados, menu e atribuição de papel CS no admin.
+- [ ] Central CS: testar regras e sync real; devolver métricas do banco após cadastro dos secrets.
+- [ ] Central CS: horários 08h/12h São Paulo — callback externo depende de serviço de agenda compatível; pg_cron HTTP não suportado neste backend.
 - [x] Parte 3: áreas, itens, ligações, conversas; 1 nota original e 1 item migrado, nenhuma mensagem sem tópico; RLS e bloqueio anon verificados.
 - [x] Parte 3: captura natural, Home pessoal, mapa, projetos atômicos, tópicos e memória editável implementados.
 - [x] Parte 3: autonomia, Haiku, embeddings 3072, memória semanal, limites e contagem diária; 44 testes; build OK.
