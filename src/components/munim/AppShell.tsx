@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Search className="h-4 w-4 shrink-0" />
           {!recolhida && (
             <>
-              <span>Pergunte ao Munim</span>
+              <span>Buscar no Munim</span>
               <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">Ctrl K</kbd>
             </>
           )}
@@ -168,7 +168,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {(
           [
             { to: "/", label: "Dashboard", icon: Home },
-            { to: "/conversa", label: "Conversa", icon: MessageCircle },
+            { to: "/carteira", label: "Carteira", icon: Briefcase },
+            { to: "/conversa", label: "Chat do CS", icon: MessageCircle },
           ] as const
         ).map((i) => (
           <Link
@@ -184,18 +185,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         ))}
         <TelegramMic />
-        <Link
-          to="/aprovacoes"
-          className={cn(
-            "relative flex w-16 flex-col items-center gap-1 text-[11px]",
-            path.startsWith("/aprovacoes") ? "text-primary" : "text-muted-foreground",
-          )}
-        >
-          <CheckCircle2 className="h-5 w-5" />
-          Aprovações
-          {!!pendentes?.length && (
-            <span className="absolute right-3 top-0 h-2 w-2 rounded-full bg-ember" />
-          )}
+        <Link to="/agenda-atividades" className={cn("flex w-16 flex-col items-center gap-1 text-[11px]", path.startsWith("/agenda") ? "text-primary" : "text-muted-foreground")}>
+          <CalendarDays className="h-5 w-5" />
+          Agenda
         </Link>
         <button onClick={() => setMais(true)} className="flex w-16 flex-col items-center gap-1 text-[11px] text-muted-foreground">
           <Menu className="h-5 w-5" />
