@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { RefreshCw, ExternalLink, X, SlidersHorizontal, AlertTriangle, PhoneOff, Clock, Mail, UserPlus, ChevronRight, ArrowUpDown, Search } from "lucide-react";
 import { readCS, syncCS, autoSyncCS, historyCS, agendaCS, retornosCS, evolucaoCS } from "@/lib/cs.functions";
-import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, csEhReuniao, csResponsaveisAtivos, type CSRow, type RiscoCor } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, CS_PERIODOS, type CSPeriodo, csEhReuniao, csResponsaveisAtivos, type CSRow, type RiscoCor } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -69,8 +69,8 @@ const situacaoOk=(s:Situacao,days:number)=>(r:CSRow)=>{if(!s)return true;if(s===
 // ───────────────────────── Dashboard ─────────────────────────
 export function CSDashboard(){
  const ws=useWorkspace();const {session,perfil}=useAuth();const hist=useServerFn(historyCS),agenda=useServerFn(agendaCS);
- const [pipeline,setPipeline]=useState("15"),[periodo,setPeriodo]=useState<"mes"|"anterior"|"90d">("mes");
- const {from,to}=csPeriodo(periodo);const hoje=csDia();
+ const [pipeline,setPipeline]=useState("15"),[periodo,setPeriodo]=useState<CSPeriodo|"custom">("mes"),[ini,setIni]=useState(""),[fim,setFim]=useState("");
+ const {from,to}=periodo==="custom"?{from:ini||csDia(),to:fim||csDia()}:csPeriodo(periodo);const hoje=csDia();
  const all=ws.d?.rows??[];const allowed=allowedPipes(all);const pipe=allowed.length===1?String(allowed[0]):pipeline;
  const rows=useMemo(()=>all.filter(inPipe(pipe)),[all,pipe]);
  const m=useMemo(()=>csMetricas(rows,60,from,to),[rows,from,to]);
@@ -102,7 +102,7 @@ export function CSDashboard(){
   <p className="text-sm text-muted-foreground">{saud}{nome?`, ${nome}`:""}.</p>
   <Topo titulo="Central de Comando" frase="Saúde da operação e o que pede decisão hoje." ws={ws}>
    <PipelineSelect value={pipe} onChange={setPipeline} allowed={allowed}/>
-   <select aria-label="Período" className={selectStyle} value={periodo} onChange={e=>setPeriodo(e.target.value as typeof periodo)}><option value="mes">Mês atual</option><option value="anterior">Mês anterior</option><option value="90d">Últimos 90 dias</option></select>
+   <select aria-label="Período" className={selectStyle} value={periodo} onChange={e=>setPeriodo(e.target.value as typeof periodo)}>{CS_PERIODOS.map(([v,l])=><option key={v} value={v}>{l}</option>)}<option value="custom">Intervalo personalizado</option></select>{periodo==="custom"&&<><input type="date" aria-label="Data inicial" className={selectStyle} value={ini} max={fim||undefined} onChange={e=>setIni(e.target.value)}/><input type="date" aria-label="Data final" className={selectStyle} value={fim} min={ini||undefined} onChange={e=>setFim(e.target.value)}/></>}
    <span className="text-xs text-muted-foreground">{pipe==="both"?"Ambas as carteiras":CS_PIPELINES[Number(pipe) as 15|16]} · {ws.manager?"todos os responsáveis":"seu escopo"}</span>
   </Topo>
   {!ws.d?.lastSuccess?<p className="card-munim p-6 text-sm text-muted-foreground">Dados ainda não sincronizados. Use Atualizar dados.</p>:<>
