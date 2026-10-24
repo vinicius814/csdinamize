@@ -12,4 +12,12 @@ describe("Regras CS Dinamize",()=>{
  it("valor ausente não vira zero e sem clientes cobertura é sem dados",()=>{expect(csMetricas([row({valor:null})]).mrr).toBeNull();expect(csMetricas([]).cobertura).toBeNull();});
  it("Onboarding pipeline 1 não tem receita",()=>{expect(csMetricas([row({pipeline_id:1,valor:900})]).mrr).toBe(0);});
  it("usa exatamente os quatro campos mapeados",()=>{expect(CS_FIELDS.contato).toBe("58cd094a23bd14b9275f4c006f1b19457b3c1d63");expect(CS_FIELDS.reuniao).toBe("204c2c14aec5b6d25b2f7c856effc9224df5f055");expect(CS_FIELDS.perfil).toBe("cb951b33c9ebeba57430f1fc7a3d71c1ee30a22a");expect(CS_FIELDS.contratacao).toBe("1589ccaf1bdad020fc2aa8ba528f65a2f33b553c");});
+});import { csPeriodo as periodoNovo } from "@/lib/cs-rules";
+describe("períodos gerenciais", () => {
+  it("calcula intervalos fixos", () => {
+    expect(periodoNovo("7d","2026-10-24")).toEqual({from:"2026-10-18",to:"2026-10-24"});
+    expect(periodoNovo("ano_anterior","2026-10-24")).toEqual({from:"2025-01-01",to:"2025-12-31"});
+    expect(periodoNovo("anterior","2026-10-24")).toEqual({from:"2026-09-01",to:"2026-09-30"});
+    expect(periodoNovo("6m","2026-10-24")).toEqual({from:"2026-04-25",to:"2026-10-24"});
+  });
 });

@@ -59,11 +59,15 @@ export function csPrecisaAtualizar(now:Date,ultimaTentativa:string|null):boolean
  return !ultimaTentativa||new Date(ultimaTentativa)<csUltimoHorario(now);
 }
 /** Períodos do Dashboard em datas locais de São Paulo. */
-export function csPeriodo(p:"mes"|"anterior"|"90d",hoje=csDia()):{from:string;to:string}{
- const [y,m]=hoje.split("-").map(Number) as [number,number];
- if(p==="mes")return {from:hoje.slice(0,7)+"-01",to:hoje};
- if(p==="anterior"){const first=new Date(Date.UTC(y,m-2,1)),last=new Date(Date.UTC(y,m-1,0));return {from:first.toISOString().slice(0,10),to:last.toISOString().slice(0,10)};}
- return {from:new Date(Date.parse(hoje+"T12:00:00Z")-89*86400000).toISOString().slice(0,10),to:hoje};
+export type CSPeriodo="hoje"|"7d"|"30d"|"90d"|"6m"|"12m"|"mes"|"anterior"|"ano"|"ano_anterior";
+export const CS_PERIODOS:[CSPeriodo,string][]=[["hoje","Hoje"],["7d","Últimos 7 dias"],["30d","Últimos 30 dias"],["90d","Últimos 90 dias"],["6m","Últimos 6 meses"],["12m","Últimos 12 meses"],["mes","Mês atual"],["anterior","Mês anterior"],["ano","Ano atual"],["ano_anterior","Ano anterior"]];
+export function csPeriodo(p:CSPeriodo,hoje=csDia()):{from:string;to:string}{
+ const [y,m]=hoje.split("-").map(Number) as [number,number];const back=(d:number)=>new Date(Date.parse(hoje+"T12:00:00Z")-(d-1)*86400000).toISOString().slice(0,10);
+ const months=(n:number)=>new Date(Date.UTC(y,m-1-n,Number(hoje.slice(8))+1)).toISOString().slice(0,10);
+ switch(p){case "hoje":return {from:hoje,to:hoje};case "7d":return {from:back(7),to:hoje};case "30d":return {from:back(30),to:hoje};case "90d":return {from:back(90),to:hoje};
+ case "6m":return {from:months(6),to:hoje};case "12m":return {from:months(12),to:hoje};case "mes":return {from:hoje.slice(0,7)+"-01",to:hoje};
+ case "anterior":return {from:new Date(Date.UTC(y,m-2,1)).toISOString().slice(0,10),to:new Date(Date.UTC(y,m-1,0)).toISOString().slice(0,10)};
+ case "ano":return {from:`${y}-01-01`,to:hoje};case "ano_anterior":return {from:`${y-1}-01-01`,to:`${y-1}-12-31`};}
 }
 export type CSDealExtra={contato_dominios?:string[]};
 const PUBLICOS=new Set(["gmail.com","hotmail.com","outlook.com","yahoo.com","yahoo.com.br","uol.com.br","bol.com.br","terra.com.br","live.com","icloud.com","msn.com","outlook.com.br","hotmail.com.br"]);

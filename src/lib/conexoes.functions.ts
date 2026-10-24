@@ -3,7 +3,8 @@ import { getRequest } from "@tanstack/react-start/server";
 import { comCredenciais } from "@/lib/credenciais.middleware";
 import { providerError } from "./provider-error";
 
-export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean };
+import { estadoConexao, ROTULO_ESTADO, type EstadoConexao } from "./connection-rules";
+export type StatusConexao = { ok: boolean; detalhe: string; proprio?: boolean | undefined; estado?: EstadoConexao | undefined; conta?: string | null | undefined; verificadoEm?: string | undefined; leitura?: string | null | undefined; tecnico?: string | null | undefined };
 export type ServicoGoogle = "google_mail" | "google_calendar" | "google_drive";
 
 const GW = "https://connector-gateway.lovable.dev";
@@ -27,8 +28,8 @@ const CLIENTE_ENV: Record<ServicoGoogle, string> = {
 };
 const PROVA: Record<ServicoGoogle, string> = {
   google_mail: "/gmail/v1/users/me/profile",
-  google_calendar: "/calendar/v3/users/me/calendarList?maxResults=1",
-  google_drive: "/drive/v3/about?fields=user",
+  google_calendar: "/calendar/v3/calendars/primary",
+  google_drive: "/drive/v3/about?fields=user(emailAddress)",
 };
 
 function validarServico(i: { servico: string }): { servico: ServicoGoogle } {
@@ -40,26 +41,25 @@ export const statusConexoes = createServerFn({ method: "POST" })
   .middleware([comCredenciais])
   .handler(async ({ context }) => {
     const { cachedIntegration } = await import("./integration-cache.server");
-    return cachedIntegration(context.userId, "personal-connection-status-v2", async () => {
+    return cachedIntegration(context.userId, "personal-connection-status-v3", async () => {
     const C = await import("./credenciais.server");
     const lk = process.env["LOVABLE_API_KEY"];
 
     const ia: StatusConexao = lk ? { ok: true, detalhe: "Cérebro online e pronto para pensar." } : { ok: false, detalhe: "Cérebro sem chave configurada." };
 
     // Pipedrive
-    let pipedrive: StatusConexao = { ok: false, detalhe: "Pipedrive não conectado." };
+    const agora = new Date().toISOString();
+    let pipedrive: StatusConexao = { ok: false, estado: "desconectado", detalhe: "Minha conta Pipedrive não conectada.", verificadoEm: agora };
     const pd = await C.pipedriveAtual();
-    try {
-      let r: Response | null = null;
-      if (pd) r = await fetch(`https://${pd.dominio}.pipedrive.com/api/v1/users/me?api_token=${encodeURIComponent(pd.token)}`);
-      if (r) {
-        if (r.ok) {
-          const j = (await r.json()) as { data?: { name?: string; company_name?: string } };
-          pipedrive = { ok: true, proprio: true, detalhe: `${j.data?.name ?? "Você"}${j.data?.company_name ? ` · ${j.data.company_name}` : ""}.` };
-        } else pipedrive = { ok: false, proprio: !!pd, detalhe: `HTTP ${r.status}: ${providerError(await r.text())}` };
-      }
+    if (pd) try {
+      const r = await fetch(`https://${pd.dominio}.pipedrive.com/api/v1/users/me`, { headers: { "x-api-token": pd.token } });
+      const estado = estadoConexao(true, r.status);
+      if (r.ok) {
+        const j = (await r.json()) as { data?: { name?: string; email?: string; company_name?: string } };
+        pipedrive = { ok: true, proprio: true, estado, conta: j.data?.email ?? null, detalhe: `${j.data?.name ?? "Você"}${j.data?.company_name ? ` · ${j.data.company_name}` : ""}.`, verificadoEm: agora };
+      } else pipedrive = { ok: false, proprio: true, estado, detalhe: estado === "erro_autenticacao" ? "Reconexão necessária. O Pipedrive não aceitou o seu token pessoal (revogado ou trocado). Os dados das carteiras continuam vindo da integração corporativa." : ROTULO_ESTADO[estado] + ".", tecnico: `HTTP ${r.status}: ${providerError(await r.text())}`, verificadoEm: agora };
     } catch(e) {
-      pipedrive = { ok: false, proprio:!!pd, detalhe: `Falha de rede: ${e instanceof Error?e.message:"Sem resposta do Pipedrive"}` };
+      pipedrive = { ok: false, proprio: true, estado: "erro", detalhe: "Não consegui falar com o Pipedrive agora.", tecnico: e instanceof Error ? e.message : null, verificadoEm: agora };
     }
 
     // Google, serviço a serviço
@@ -71,18 +71,33 @@ export const statusConexoes = createServerFn({ method: "POST" })
         catch (e) { servicos[s] = {ok: false, proprio: true, detalhe: `Falha ao carregar conexão: ${e instanceof Error ? e.message : "erro desconhecido"}`}; return; }
         const usar = chave;
         if (!usar || !lk) {
-          servicos[s] = { ok: false, proprio:!!chave, detalhe: chave ? "Cérebro sem chave de acesso configurada." : "Não conectado." };
+          servicos[s] = { ok: false, proprio:!!chave, estado: chave ? "aguardando" : "desconectado", detalhe: chave ? "Verificação indisponível." : "Não conectado." };
           return;
         }
         try {
-          const r = await fetch(`${GW}/${s}${PROVA[s]}`, { headers: { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": usar } });
-          if (r.ok) servicos[s] = { ok: true, proprio: true, detalhe: "Conectado com a sua conta." };
-          else {
+          const h = { Authorization: `Bearer ${lk}`, "X-Connection-Api-Key": usar };
+          const r = await fetch(`${GW}/${s}${PROVA[s]}`, { headers: h });
+          const estado = estadoConexao(true, r.status);
+          if (r.ok) {
+            const j = (await r.json()) as { emailAddress?: string; id?: string; user?: { emailAddress?: string } };
+            const conta = j.emailAddress ?? j.user?.emailAddress ?? j.id ?? null;
+            let leitura: string | null = null;
+            const desde = new Date(Date.now() - 30 * 864e5).toISOString();
+            const LEIT: Record<ServicoGoogle, [string, (x: any) => string]> = {
+              google_mail: ["/gmail/v1/users/me/messages?maxResults=100&q=newer_than:30d", x => `${x.messages?.length ?? 0}${x.nextPageToken ? "+" : ""} mensagens lidas nos últimos 30 dias`],
+              google_calendar: [`/calendar/v3/calendars/primary/events?singleEvents=true&maxResults=250&timeMin=${encodeURIComponent(desde)}`, x => `${x.items?.length ?? 0} eventos desde 30 dias atrás`],
+              google_drive: ["/drive/v3/files?pageSize=1&fields=files(id)", x => (x.files?.length ? "Leitura de arquivos autorizada" : "Leitura autorizada, nenhum arquivo")],
+            };
+            const lr = await fetch(`${GW}/${s}${LEIT[s][0]}`, { headers: h }).catch(() => null);
+            if (lr?.ok) leitura = LEIT[s][1](await lr.json());
+            else leitura = lr ? `Leitura falhou (${ROTULO_ESTADO[estadoConexao(true, lr.status)]})` : "Leitura sem resposta";
+            servicos[s] = { ok: !!lr?.ok, proprio: true, estado: lr?.ok ? "validado" : estadoConexao(true, lr?.status ?? 500), conta, leitura, detalhe: lr?.ok ? "Conta validada e lendo dados." : "Conta autenticada, mas a leitura falhou.", verificadoEm: new Date().toISOString() };
+          } else {
             const message = providerError(await r.text());
             console.error(`${s} HTTP ${r.status}: ${message}`);
-            servicos[s] = { ok: false, proprio: !!chave, detalhe: `HTTP ${r.status}: ${message}` };
+            servicos[s] = { ok: false, proprio: true, estado, detalhe: `${ROTULO_ESTADO[estado]}. Reconecte sua conta.`, tecnico: `HTTP ${r.status}: ${message}`, verificadoEm: new Date().toISOString() };
           }
-        } catch (e) { servicos[s] = {ok: false, proprio: !!chave, detalhe: `Falha de rede: ${e instanceof Error ? e.message : "sem resposta"}`}; }
+        } catch (e) { servicos[s] = {ok: false, proprio: !!chave, estado: "erro", detalhe: "Não consegui falar com o Google agora.", tecnico: e instanceof Error ? e.message : null}; }
       }),
     );
     const todos = Object.values(servicos);
@@ -181,4 +196,24 @@ export const desconectarPipedrive = createServerFn({ method: "POST" })
     const C = await import("./credenciais.server");
     await C.apagarPipedrive(context.userId);
     return { ok: true };
+  });
+
+/** Estado da integração corporativa (fonte das carteiras). Só administração; nunca expõe o token. */
+export const statusCorporativo = createServerFn({ method: "POST" })
+  .middleware([comCredenciais])
+  .handler(async ({ context }) => {
+    const { isAdmin } = await import("./access");
+    if (!isAdmin(context.role)) return null;
+    const token = process.env["PIPEDRIVE_SYNC_TOKEN"], dominio = process.env["PIPEDRIVE_SYNC_DOMAIN"];
+    const agora = new Date().toISOString();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: ult } = await supabaseAdmin.from("cs_sync_runs").select("concluido_em").eq("status", "sucesso").order("concluido_em", { ascending: false }).limit(1).maybeSingle();
+    const base = { dominio: dominio ?? null, ultimaLeitura: ult?.concluido_em ?? null, verificadoEm: agora };
+    if (!token || !dominio) return { ...base, estado: "desconectado" as EstadoConexao, conta: null, tecnico: null };
+    try {
+      const r = await fetch(`https://${dominio}.pipedrive.com/api/v1/users/me`, { headers: { "x-api-token": token } });
+      if (!r.ok) return { ...base, estado: estadoConexao(true, r.status), conta: null, tecnico: `HTTP ${r.status}: ${providerError(await r.text())}` };
+      const j = (await r.json()) as { data?: { name?: string; email?: string } };
+      return { ...base, estado: "validado" as EstadoConexao, conta: j.data?.name ?? j.data?.email ?? null, tecnico: null };
+    } catch (e) { return { ...base, estado: "erro" as EstadoConexao, conta: null, tecnico: e instanceof Error ? e.message : null }; }
   });

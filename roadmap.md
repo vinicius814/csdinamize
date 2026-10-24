@@ -7,3 +7,11 @@
 - [x] Dashboard: motivos de risco, evolução real (desde 24/10), expansão confirmada
 - [x] Upgrades: changelog incremental (40/sync), 147 eventos já
 - [ ] Pendente: completar changelog restante nas próximas syncs; teste visual com login real
+
+# Correção das integrações (24/10)
+- [x] Pipedrive 401: token pessoal revogado; corporativo OK; estados reais e Reconectar
+- [x] Conexões: card corporativo (admin) separado de "Minha conta"; Google com conta + leitura real
+- [x] Risco: sem próxima atividade não altera cor
+- [x] Períodos: 10 opções + intervalo personalizado
+- [ ] Cliente 360: separar Risco x Acompanhamento; filtro de origem na Agenda
+- [ ] Cancelamentos retroativos (mapear pipeline/etapas) e upgrades retroativos completos (changelog incremental)
