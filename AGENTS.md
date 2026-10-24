@@ -10,6 +10,9 @@
 <!-- LOVABLE:END -->
 
 ## Rules
+- CS product screens read the central snapshot through authenticated functions and cs_pode_ver RLS; personal integrations remain isolated because sync credentials must never substitute for a personal connection.
+- Central CS sync reads only Pipedrive GET endpoints and publishes snapshot plus daily metrics in one service-role transaction with persistent single-run/manual cooldown claims; incomplete reads never replace prior data.
+- CS profile role controls business-data scope only; user_roles remains the sole intranet authorization source and CS assignments are server-only and atomically audited.
 - AuthProvider holds session, display profile and server-validated role; user_roles is the sole authorization source so editable profile data cannot grant access.
 - Product screens live under _authenticated; auth, recovery and legal pages are public. accountState gates approval/acceptance/onboarding and requireActive enforces account status on every integration call.
 - App chrome (sidebar, mobile bottom bar, Ctrl+K palette) lives in src/components/munim/AppShell.tsx, mounted by the _authenticated layout; nav items and role visibility are defined once in src/components/munim/nav.ts.
