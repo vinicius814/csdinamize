@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { useCSData, UltimaAtualizacao, fmt, selectStyle } from "@/components/munim/CSWorkspace";
 import { Pagina, Cabecalho } from "@/components/munim/PaginaVazia";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
-import { CS_ONBOARDING_STAGES, CS_PIPELINES, CS_ONBOARDING_LEGADO_DIAS, csDia, csDias, csOnboardingAtrasado, csResponsaveisAtivos } from "@/lib/cs-rules";
+import { CS_ONBOARDING_STAGES, CS_PIPELINES, CS_ONBOARDING_LEGADO_DIAS, csDia, csDias, csOnboardingAtrasado } from "@/lib/cs-rules";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
@@ -19,7 +19,7 @@ function Onboarding(){
  const pt=regras.data?.regras?.prazo_onboarding_dias??30,pe=regras.data?.regras?.prazo_por_etapa_dias??10;const hoje=csDia();
  const all=cs.data?.rows??[];const destino=new Map(all.filter(r=>[15,16].includes(r.pipeline_id)&&r.org_id).map(r=>[r.org_id,r.pipeline_id]));
  const proj=all.filter(r=>r.pipeline_id===1&&r.status==="open").map(r=>{const inicio=r.data_contratacao??(r.add_time?csDia(new Date(r.add_time)):null);const total=csDias(inicio,hoje),etapa=r.stage_change_time?csDias(csDia(new Date(r.stage_change_time)),hoje):null;return {r,inicio,total,etapa,legado:total!==null&&total>CS_ONBOARDING_LEGADO_DIAS,atrasado:csOnboardingAtrasado(total,etapa,pt,pe)};});
- const owners=[...new Map(proj.map(p=>[p.r.owner_id,p.r.owner_nome??String(p.r.owner_id)])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"pt-BR"));void csResponsaveisAtivos;
+ const owners=[...new Map(proj.map(p=>[p.r.owner_id,p.r.owner_nome??String(p.r.owner_id)])).entries()].sort((a,b)=>a[1].localeCompare(b[1],"pt-BR"));
  const vis=proj.filter(p=>(!owner||p.r.owner_id===Number(owner))&&(!stage||p.r.stage_id===Number(stage))&&(!atrasados||p.atrasado));
  const ativos=vis.filter(p=>p.r.stage_id!==12);const media=ativos.filter(p=>p.total!==null&&!p.legado);const legados=ativos.filter(p=>p.legado).length;
  const status=(p:typeof vis[number])=>p.legado?<span className="text-warning">Histórico a verificar</span>:p.atrasado?<span className="text-destructive">Atrasado</span>:<span className="text-success">No prazo</span>;
