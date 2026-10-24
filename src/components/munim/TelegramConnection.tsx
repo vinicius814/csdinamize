@@ -33,7 +33,7 @@ export function TelegramConnection(){
     <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><a href={`https://t.me/${d.bot}`} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4"/>Abrir meu bot</a></Button><Button variant="outline" disabled={ping.isPending} onClick={()=>ping.mutate()}><Send className="h-4 w-4"/>Enviar mensagem de teste</Button><Button variant="outline" onClick={()=>setTrocar(true)}><Repeat className="h-4 w-4"/>Trocar bot</Button><Button variant="outline" disabled={off.isPending} onClick={()=>off.mutate()}><Unplug className="h-4 w-4"/>Desconectar</Button></div>
   </>:<>
     {d.status==="erro"&&d.ultimo_erro&&<p role="alert" className="text-sm text-warning">{d.ultimo_erro}</p>}
-    <p className="text-sm text-muted-foreground">Seu Munim no Telegram usa um bot só seu. Leva uns dois minutos.</p>
+    <p className="text-sm text-muted-foreground">Seu Munin no Telegram usa um bot só seu. Leva uns dois minutos.</p>
     <Passo n={1} titulo="Crie seu bot" ativo={step===1}>
       <Button className="self-start" asChild><a href="https://t.me/BotFather" target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4"/>Abrir o BotFather</a></Button>
       <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground"><li>Envie <code>/newbot</code>.</li><li>Nome do bot: <strong className="text-foreground">{sug.nome}</strong></li><li>Usuário (precisa terminar em “bot”): <strong className="text-foreground">{sug.usuario}</strong> <Button size="sm" variant="ghost" onClick={()=>copy(sug.usuario)} aria-label="Copiar usuário sugerido"><Copy className="h-3 w-3"/></Button></li></ol>

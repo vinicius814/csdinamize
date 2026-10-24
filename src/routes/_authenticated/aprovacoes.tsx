@@ -14,10 +14,10 @@ export const Route = createFileRoute("/_authenticated/aprovacoes")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Aprovações — Munim" },
-      { name: "description", content: "As ações que o Munim preparou para você aprovar: atividades, notas, rascunhos e eventos." },
-      { property: "og:title", content: "Aprovações — Munim" },
-      { property: "og:description", content: "As ações que o Munim preparou para você aprovar." },
+      { title: "Aprovações — Munin" },
+      { name: "description", content: "As ações que o Munin preparou para você aprovar: atividades, notas, rascunhos e eventos." },
+      { property: "og:title", content: "Aprovações — Munin" },
+      { property: "og:description", content: "As ações que o Munin preparou para você aprovar." },
     ],
   }),
   component: Aprovacoes,
@@ -66,7 +66,7 @@ function Aprovacoes() {
       </div>
       {isLoading ? <PageSkeleton /> : lista.length === 0 ? (
         aba === "pendentes" ? (
-          <EstadoVazio icon={CheckCircle2} titulo="Nada esperando por você" texto="Quando o Munim preparar algo, aparece aqui para você aprovar com um toque." />
+          <EstadoVazio icon={CheckCircle2} titulo="Nada esperando por você" texto="Quando o Munin preparar algo, aparece aqui para você aprovar com um toque." />
         ) : (
           <EstadoVazio icon={History} titulo="Sem histórico ainda" texto="Suas decisões ficam guardadas aqui." />
         )

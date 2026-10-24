@@ -25,7 +25,7 @@ export function splitResposta(texto: string, keyboard?: Keyboard): Resposta[] {
 export function botSuggestions(nome: string | null | undefined) {
   const first = (nome ?? "").trim().split(/\s+/)[0] ?? "";
   const slug = first.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "") || "meu";
-  return { nome: `Munim de ${first || "você"}`, usuario: `${slug}_munim_bot` };
+  return { nome: `Munin de ${first || "você"}`, usuario: `${slug}_munim_bot` };
 }
 
 export class TelegramError extends Error {
@@ -71,10 +71,10 @@ export async function connectBot(userId: string, rawToken: string, d: ConnectDep
   }
   if (!me.is_bot || !me.username) throw new Error("Esse token não é de um bot.");
   const owner = await d.owner(me.id);
-  if (owner && owner !== userId) throw new Error("Esse bot já está conectado a outra conta do Munim. Crie um bot só seu no BotFather.");
+  if (owner && owner !== userId) throw new Error("Esse bot já está conectado a outra conta do Munin. Crie um bot só seu no BotFather.");
   const webhook_secret = d.secret();
   await tgCall(token, "setWebhook", { url: `${WEBHOOK_BASE}/${me.id}`, secret_token: webhook_secret, allowed_updates: ["message", "callback_query"], drop_pending_updates: true }, d);
-  await tgCall(token, "setMyCommands", { commands: [{ command: "start", description: "Começar ou vincular" }, { command: "ajuda", description: "Como usar o Munim" }] }, d);
+  await tgCall(token, "setMyCommands", { commands: [{ command: "start", description: "Começar ou vincular" }, { command: "ajuda", description: "Como usar o Munin" }] }, d);
   await d.save({ user_id: userId, bot_id: me.id, bot_username: me.username, bot_nome: me.first_name, token_cifrado: d.encrypt(token), webhook_secret, status: "pendente_vinculo" });
   return { bot_username: me.username, bot_nome: me.first_name };
 }

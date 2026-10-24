@@ -16,10 +16,10 @@ import { PageSkeleton } from "@/components/munim/PageSkeleton";
 export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
     meta: [
-      { title: "Conexões — Munim" },
-      { name: "description", content: "Os sistemas que o Munim usa para agir por você: IA, CRM, agenda, e-mail e Telegram." },
-      { property: "og:title", content: "Conexões — Munim" },
-      { property: "og:description", content: "Conecte suas ferramentas ao Munim em poucos cliques." },
+      { title: "Conexões — Munin" },
+      { name: "description", content: "Os sistemas que o Munin usa para agir por você: IA, CRM, agenda, e-mail e Telegram." },
+      { property: "og:title", content: "Conexões — Munin" },
+      { property: "og:description", content: "Conecte suas ferramentas ao Munin em poucos cliques." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

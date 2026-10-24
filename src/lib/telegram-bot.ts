@@ -32,9 +32,9 @@ export function documentoSuportado(mime: string | null, nome: string | null) {
 }
 
 export const MSG = {
-  linked: "Pronto! Este chat agora é seu Munim. Pode escrever, mandar áudio, foto ou PDF.",
-  unlinked: "Este bot ainda não está vinculado. Abra o Munim em https://munim.wojtec.com.br/conexoes e toque em \"Abrir meu bot\".",
-  notPrivate: "Vincule o Munim numa conversa privada com o bot, não em grupo.",
+  linked: "Pronto! Este chat agora é seu Munin. Pode escrever, mandar áudio, foto ou PDF.",
+  unlinked: "Este bot ainda não está vinculado. Abra o Munin em https://munim.wojtec.com.br/conexoes e toque em \"Abrir meu bot\".",
+  notPrivate: "Vincule o Munin numa conversa privada com o bot, não em grupo.",
   inactive: "Sua conta ainda não está liberada.",
   extraction: "Não consegui ler esse conteúdo. Reenvie o arquivo ou escreva a mensagem.",
   unsupported: "Ainda não leio esse formato. Mande texto, áudio, foto ou documento PDF/texto.",

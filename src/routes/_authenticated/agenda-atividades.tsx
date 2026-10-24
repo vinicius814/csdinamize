@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { CS_PIPELINES, csDia, csEhReuniao, csEstadoReuniao, csClientes, csResponsaveisAtivos, csFiltrarOrigem, type CSOrigemAgenda } from "@/lib/cs-rules";
 
-export const Route=createFileRoute("/_authenticated/agenda-atividades")({head:()=>({meta:[{title:"Agenda e atividades — Munim CS"},{name:"description",content:"Calendário de reuniões e atividades do Pipedrive por dia, semana e mês, com pendências de e-mail."},{property:"og:title",content:"Agenda e atividades — Munim CS"},{property:"og:description",content:"Agenda visual e pendências de e-mail de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Agenda});
+export const Route=createFileRoute("/_authenticated/agenda-atividades")({head:()=>({meta:[{title:"Agenda e atividades — Munin CS"},{name:"description",content:"Calendário de reuniões e atividades do Pipedrive por dia, semana e mês, com pendências de e-mail."},{property:"og:title",content:"Agenda e atividades — Munin CS"},{property:"og:description",content:"Agenda visual e pendências de e-mail de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Agenda});
 
 type Vista="dia"|"semana"|"mes"|"lista";
 type Ev={id:string;fonte:"pipedrive"|"google";titulo:string;tipo:string;dia:string;inicio:string|null;fim:string|null;deal_id:number|null;owner_id:number|null;pipeline_id:number|null;situacao:string;cor:string;concluida:boolean};

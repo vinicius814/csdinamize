@@ -3,7 +3,7 @@ import { RavenMark } from "./RavenMark";
 
 export type EstadoNucleo = "repouso" | "ouvindo" | "pensando" | "urgente";
 
-/** O núcleo do Munim: orbe com o corvo no centro e anel de luz azul. */
+/** O núcleo do Munin: orbe com o corvo no centro e anel de luz azul. */
 export function Nucleo({
   estado = "repouso",
   tamanho = 160,
@@ -18,7 +18,7 @@ export function Nucleo({
       className={cn("relative grid place-items-center", className)}
       style={{ width: tamanho, height: tamanho }}
       role="img"
-      aria-label={`Munim — ${estado}`}
+      aria-label={`Munin — ${estado}`}
     >
       {/* halo */}
       <div className="absolute inset-0 rounded-full bg-primary-soft blur-2xl" />
