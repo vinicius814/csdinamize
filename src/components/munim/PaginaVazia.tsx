@@ -23,6 +23,6 @@ export function EstadoVazio({ icon: Icon, titulo, texto, acao }: { icon: LucideI
   );
 }
 
-export function Pagina({ children }: { children: ReactNode }) {
-  return <div className="mx-auto w-full max-w-5xl px-5 py-8 md:px-10 md:py-12 animate-in fade-in duration-200">{children}</div>;
+export function Pagina({ children, larga }: { children: ReactNode; larga?: boolean }) {
+  return <div className={`mx-auto w-full ${larga ? "max-w-7xl" : "max-w-5xl"} px-5 py-8 md:px-10 md:py-12 animate-in fade-in duration-200`}>{children}</div>;
 }
