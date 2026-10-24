@@ -35,7 +35,7 @@
 - Scheduled Telegram delivery (daily, reminders, end-of-day) needs an external authenticated scheduler callback; persistent per-user claims prevent replay; failed sends need inspection.
 - Assistant and routine engines live in server-only core modules behind thin authenticated wrappers so web, Telegram and scheduled flows share behavior without exposing provider logic to browser bundles.
 
-- Project conversion is one owner-scoped transactional RPC so activities and source idea never diverge.
+- Project conversion is one owner-scoped transactional RPC (activities and idea never diverge).
 - Daily relationship suggestions use a DB counter and profile timezone so the cap cannot be reset.
 - CS lazy sync runs on the first CS visit after each 08:00/12:00 São Paulo slot, claimed once in unique cs_sync_runs.janela so concurrency/failures never retry or replay old windows.
 - Risk colors are computed only in SQL (cs_avaliar_risco via the security-invoker view cs_snapshot_risco) so every screen shares one rule set; Cliente 360 reads Pipedrive on demand (read-only, 10-min encrypted per-user cache) only after RLS confirms the viewer can see the deal.
