@@ -1,3 +1,4 @@
+import { RegrasRisco } from "@/components/munim/RegrasRisco";
 import {AutonomySettings} from "@/components/munim/AutonomySettings";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
@@ -93,6 +94,7 @@ function Configuracoes() {
         </Bloco>
 
         <Button variant="outline" className="justify-self-start" asChild><Link to="/memoria">O que o Munim sabe sobre você</Link></Button>
+        <RegrasRisco/>
         <AutonomySettings/>
         <TelegramConnection/>
 
