@@ -4,7 +4,7 @@ export const CS_FIELDS = { contato:"58cd094a23bd14b9275f4c006f1b19457b3c1d63", r
 export type RiscoCor = "vermelho"|"amarelo"|"verde"|"sem_dados";
 export type OrigemContato = "campo"|"reunião"|"atividade"|"e-mail";
 export type CSRow = { deal_id:number; org_id:number|null; titulo:string; pipeline_id:number; stage_id:number; owner_id:number; owner_nome:string|null; status:string; valor:number|null; perfil_conta:string|null; ultimo_contato_efetivo:string|null; ultima_reuniao_cs:string|null; data_contratacao:string|null; stage_change_time:string|null; add_time:string|null; proxima_atividade_data:string|null; atividades_vencidas:number;
- org_nome?:string|null; ultima_atividade_concluida?:string|null; ultimo_email_recebido?:string|null; ultimo_email_enviado?:string|null; atividades_abertas?:number; contato_efetivo?:string|null; origem_contato?:OrigemContato|null; risco_cor?:RiscoCor|null; risco_fatores?:string[]; dias_contato?:number|null; retorno_dias?:number|null };
+ org_nome?:string|null; ultima_atividade_concluida?:string|null; ultimo_email_recebido?:string|null; ultimo_email_enviado?:string|null; atividades_abertas?:number; contato_efetivo?:string|null; origem_contato?:OrigemContato|null; contato_dominios?:string[]; email_status?:string|null; dias_desde_envio?:number|null; risco_cor?:RiscoCor|null; risco_fatores?:string[]; dias_contato?:number|null; retorno_dias?:number|null };
 export function csAtivo(r:CSRow) { return [15,16].includes(r.pipeline_id) && r.status==="open" && r.stage_id!==(r.pipeline_id===15?105:111); }
 export function csPodeVer(role:string,papel:string,own:number|null,owner:number,pipeline:number) { return [1,15,16].includes(pipeline) && (["admin","superadmin"].includes(role)||["admin","gestor"].includes(papel)||(papel==="cs"&&own===owner)); }
 export function csDia(d=new Date()) { return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(d); }
@@ -61,3 +61,21 @@ export function csPeriodo(p:"mes"|"anterior"|"90d",hoje=csDia()):{from:string;to
  if(p==="anterior"){const first=new Date(Date.UTC(y,m-2,1)),last=new Date(Date.UTC(y,m-1,0));return {from:first.toISOString().slice(0,10),to:last.toISOString().slice(0,10)};}
  return {from:new Date(Date.parse(hoje+"T12:00:00Z")-89*86400000).toISOString().slice(0,10),to:hoje};
 }
+export type CSDealExtra={contato_dominios?:string[]};
+const PUBLICOS=new Set(["gmail.com","hotmail.com","outlook.com","yahoo.com","yahoo.com.br","uol.com.br","bol.com.br","terra.com.br","live.com","icloud.com","msn.com","outlook.com.br","hotmail.com.br"]);
+const PROPRIOS=/(^|\.)(dinamize\.com|dinamize\.com\.br|dinamize\.net|crmcontent\.com|crmcontent\.com\.br|pipedrivemail\.com)$/;
+/** Domínio corporativo do e-mail; públicos (gmail, hotmail, outlook, yahoo, uol, bol, terra) e da própria Dinamize não servem para associar cliente. */
+export function csDominioCorporativo(email:string):string|null{const m=/^[^@\s]+@([^@\s]+\.[^@\s]+)$/.exec(email.trim().toLowerCase());if(!m)return null;const d=m[1]!;const base=d.split(".")[0]!;if(PUBLICOS.has(d)||["gmail","hotmail","outlook","yahoo","uol","bol","terra"].includes(base)||PROPRIOS.test(d))return null;return d;}
+/** Metadados mínimos de uma atividade (sem descrição/notas). due_time do Pipedrive é UTC. */
+export function csAtividade(a:Record<string,any>){const dia=typeof a["due_date"]==="string"?a["due_date"]:null;const t=typeof a["due_time"]==="string"&&a["due_time"]?a["due_time"]:null;const inicio=dia&&t?new Date(`${dia}T${t.length===5?t+":00":t}Z`).toISOString():null;
+ const dur=typeof a["duration"]==="string"&&/^\d{1,2}:\d{2}/.test(a["duration"])?a["duration"].split(":").map(Number):null;const fim=inicio&&dur?new Date(Date.parse(inicio)+(dur[0]!*60+dur[1]!)*60000).toISOString():null;
+ return {activity_id:Number(a["id"]),deal_id:Number(a["deal_id"]),owner_id:Number(a["owner_id"]),tipo:String(a["type"]??"task"),assunto:String(a["subject"]??"Atividade").slice(0,200),inicio,dia,fim,concluida:a["done"]===true};}
+export type ReuniaoEstado="realizada"|"agendada"|"encerrada_nao_confirmada";
+/** Reunião só é realizada quando concluída; horário passado sem conclusão nunca vira realizada. */
+export function csEstadoReuniao(a:{concluida:boolean;inicio:string|null;fim:string|null;dia:string|null},agora=new Date()):ReuniaoEstado{if(a.concluida)return "realizada";const fimMs=a.fim?Date.parse(a.fim):a.inicio?Date.parse(a.inicio):a.dia?Date.parse(a.dia+"T23:59:59-03:00"):NaN;return fimMs<agora.getTime()?"encerrada_nao_confirmada":"agendada";}
+export const csEhReuniao=(tipo:string)=>/meeting|reuni/i.test(tipo);
+/** Dono do cliente (para quebra por responsável): responsável do negócio de maior MRR. */
+export function csDonoCliente(rows:CSRow[]):number{return [...rows].sort((a,b)=>(b.valor??-1)-(a.valor??-1))[0]!.owner_id;}
+export const CS_ONBOARDING_STAGES:[number,string][]=[[136,"Aguardando Ficha"],[137,"Agendamento de Kick-Off"],[138,"Configurações Iniciais Pendentes"],[139,"Testes"],[148,"Treinamentos Sistema"],[140,"Aguardando Cliente Automações"],[141,"Acompanhamento Final"]];
+/** Atrasado = acima do prazo total OU do prazo por etapa. */
+export function csOnboardingAtrasado(diasTotal:number|null,diasEtapa:number|null,prazoTotal:number,prazoEtapa:number){return (diasTotal!==null&&diasTotal>prazoTotal)||(diasEtapa!==null&&diasEtapa>prazoEtapa);}
