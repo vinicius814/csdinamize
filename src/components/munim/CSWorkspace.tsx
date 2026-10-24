@@ -18,10 +18,10 @@ export const fmt=(v:string|null|undefined)=>v?new Date(v.slice(0,10)+"T12:00:00Z
 const ddmm=(v:string)=>v.slice(8,10)+"/"+v.slice(5,7);
 export const selectStyle="h-10 max-w-full rounded-md border border-input bg-background px-3 text-sm";
 type M=ReturnType<typeof csMetricas>;
-function Card({label,value,note}:{label:string;value:React.ReactNode;note?:string}){return <div className="card-munim min-w-0 p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words font-display text-xl">{value}</p>{note&&<p className="mt-1 text-xs text-muted-foreground">{note}</p>}</div>;}
+function Card({label,value,note}:{label:string;value:React.ReactNode;note?:string|undefined}){return <div className="card-munim min-w-0 p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-2 break-words font-display text-xl">{value}</p>{note&&<p className="mt-1 text-xs text-muted-foreground">{note}</p>}</div>;}
 function Cards({metrics,days,available,dashboard,onboarding}:{metrics:M|undefined;days:number;available:boolean;dashboard:boolean;onboarding:number}) {
  const m=metrics??csMetricas([]);const v=(x:React.ReactNode)=>available?x:"sem dados";
- const base:[string,React.ReactNode,string?][]=[["Clientes ativos",m.clientes],["MRR",money(m.mrr)],["Ticket médio",money(m.ticket)],[`Cobertura ${days}d`,m.cobertura===null?"sem dados":`${m.cobertura.toFixed(1)}%`,m.semDados?`${m.semDados} sem dados de contato`:undefined],["Sem contato efetivo",m.semContato],["Clientes em risco",m.emRisco],["MRR em risco",money(m.mrrRisco)],["Atividades atrasadas",m.vencidas],["Cancelados no período",m.cancelados],["Churn de MRR",money(m.mrrCancelado)]];
+ const base:[string,React.ReactNode,(string|undefined)?][]=[["Clientes ativos",m.clientes],["MRR",money(m.mrr)],["Ticket médio",money(m.ticket)],[`Cobertura ${days}d`,m.cobertura===null?"sem dados":`${m.cobertura.toFixed(1)}%`,m.semDados?`${m.semDados} sem dados de contato`:undefined],["Sem contato efetivo",m.semContato],["Clientes em risco",m.emRisco],["MRR em risco",money(m.mrrRisco)],["Atividades atrasadas",m.vencidas],["Cancelados no período",m.cancelados],["Churn de MRR",money(m.mrrCancelado)]];
  if(dashboard)base.push(["Projetos de onboarding",onboarding]);
  return <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{base.map(([label,value,note])=><Card key={label} label={label} value={v(value)} note={available?note:undefined}/>)}</div>;
 }
