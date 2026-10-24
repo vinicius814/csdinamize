@@ -9,6 +9,8 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
 import { CSFinancialAudit } from "./CSFinancialAudit";
+import { readCSAudit } from "@/lib/cs-audit.functions";
+import { csAuditSummary, csAuditClientKey } from "@/lib/cs-audit";
 
 type Aba = "cancelamentos" | "upgrades" | "receita" | "carteiras";
 const brl = (v: number | null) => v === null ? "sem dados" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -38,12 +40,22 @@ export function CSEvolucao({ pipe, owner, from, to, rows, admin, receita }: { pi
   const nome = (owner: number) => rows.find(r => r.owner_id === owner)?.owner_nome ?? `Responsável ${owner}`;
   const recuperar = async () => { setRodando(true); try { const r = await rec(); toast.success(`${r.registros} cancelamentos efetivos recuperados desde ${dd(r.desde)} (${r.consultas} consultas).`); await qc.invalidateQueries({ queryKey: ["cs-historico"] }); } catch (e) { toast.error(e instanceof Error ? e.message : "Falha na recuperação."); } finally { setRodando(false); } };
   const d = q.data;
+  const auditRead = useServerFn(readCSAudit);
+  const auditQuery = useQuery({queryKey:["cs-audit",session?.user.id,from,to,undefined],staleTime:300_000,queryFn:()=>auditRead({data:{from,to}})});
+  const audit = csAuditSummary(auditQuery.data??[],{pipeline:pipe,owner,from,to});
   const abas: [Aba, string][] = [["cancelamentos", "Cancelamentos"], ["upgrades", "Upgrades"], ["receita", "Receita"], ["carteiras", "Carteiras"]];
   const corpo = () => {
     if (aba === "receita") return receita;
     if (q.isPending) return <p className="text-xs text-muted-foreground">Carregando…</p>;
     if (q.error || !d) return <p className="text-xs text-warning">Falha ao ler o histórico.</p>;
-    return <CSFinancialAudit pipeline={pipe} owner={owner} from={from} to={to} admin={admin}/>;
+    const chosen = aba === "cancelamentos" ? audit.cancellations : audit.expansion;
+    const months = [...new Set(chosen.map(e=>e.dia.slice(0,7)))].sort();
+    const ownerTotals = (xs: typeof chosen, value: (e: typeof chosen[number])=>number) => [...xs.reduce((m,e)=>m.set(e.owner_nome??String(e.owner_id),(m.get(e.owner_nome??String(e.owner_id))??0)+value(e)),new Map<string,number>()).entries()];
+    return <><CSFinancialAudit pipeline={pipe} owner={owner} from={from} to={to} admin={admin}/><div className="mt-5 grid gap-6 lg:grid-cols-2">
+      {aba==="carteiras" ? <><Lista titulo="Expansão confirmada por responsável" itens={ownerTotals(audit.expansion,e=>Number(e.mrr_posterior)-Number(e.mrr_anterior))} format={n=>brl(n)}/><Lista titulo="MRR perdido confirmado por responsável" itens={ownerTotals(audit.cancellations,e=>Number(e.mrr_perdido))} format={n=>brl(n)}/></> : <>
+      <section><h4 className="mb-2 text-xs font-medium text-muted-foreground">Clientes confirmados por mês</h4><Colunas itens={months.map(m=>[mesLabel(m),new Set(chosen.filter(e=>e.dia.startsWith(m)).map(csAuditClientKey)).size])}/></section>
+      <section><h4 className="mb-2 text-xs font-medium text-muted-foreground">MRR comprovado por mês</h4><Colunas itens={months.map(m=>[mesLabel(m),chosen.filter(e=>e.dia.startsWith(m)).reduce((n,e)=>n+(e.tipo==="cancelamento"?Number(e.mrr_perdido):Number(e.mrr_posterior)-Number(e.mrr_anterior)),0)])} format={n=>brl(n)}/></section></>}
+    </div></>;
 
   };
   return <div className="mt-4">
