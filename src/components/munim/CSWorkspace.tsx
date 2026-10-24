@@ -94,7 +94,8 @@ export function CSDashboard(){
    {icon:AlertTriangle,label:"Clientes com risco alto",n:m.emRisco,to:"/clientes-risco"},
    {icon:PhoneOff,label:"Sem contato há mais de 60 dias",n:m.semContato,to:base,search:{situacao:"sem_contato"}},
    {icon:Clock,label:"Clientes com atividades atrasadas",n:comAtraso,to:base,search:{situacao:"atrasadas"}},
-   {icon:Mail,label:"Retornos pendentes",n:retornos,to:base,search:{situacao:"retorno"}},
+   {icon:Mail,label:"Retornos pendentes",n:rets.data?.length??0,to:"/retornos"},
+   {icon:Mail,label:"E-mails aguardando resposta",n:retornos,to:base,search:{situacao:"retorno"}},
    {icon:UserPlus,label:"Onboardings em andamento",n:onb.length,to:"/onboarding-cs"}];
   return <Pagina larga>
   <p className="text-sm text-muted-foreground">{saud}{nome?`, ${nome}`:""}.</p>
@@ -109,7 +110,7 @@ export function CSDashboard(){
    <Kpi label="Cobertura 60d" value={pct(m.cobertura)} note={m.semDados?`${m.semDados} sem dados de contato`:undefined}/><Kpi label="Clientes em risco" value={m.emRisco} tone="risco" note={`${m.atencao} em atenção`}/><Kpi label="MRR em risco" value={moneyK(m.mrrRisco)} tone="risco"/>
   </section>
   <section className="mt-8"><h2 className="mb-3 font-display text-lg">Precisa da sua atenção</h2>
-   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">{att.map(a=><Link key={a.label} to={a.to as "/carteira"} search={a.search as never} className="card-munim group flex items-center gap-3 p-3.5 transition-colors hover:border-primary/50"><a.icon className={`h-5 w-5 shrink-0 ${a.n?"text-warning":"text-muted-foreground"}`}/><div className="min-w-0 flex-1"><p className="font-display text-xl tabular-nums">{a.n}</p><p className="truncate text-xs text-muted-foreground" title={a.label}>{a.label}</p></div><ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary"/></Link>)}</div>
+   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">{att.map(a=><Link key={a.label} to={a.to as "/carteira"} search={a.search as never} className="card-munim group flex items-center gap-3 p-3.5 transition-colors hover:border-primary/50"><a.icon className={`h-5 w-5 shrink-0 ${a.n?"text-warning":"text-muted-foreground"}`}/><div className="min-w-0 flex-1"><p className="font-display text-xl tabular-nums">{a.n}</p><p className="truncate text-xs text-muted-foreground" title={a.label}>{a.label}</p></div><ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary"/></Link>)}</div>
   </section>
   <section className="mt-8"><h2 className="mb-3 font-display text-lg">Saúde da operação</h2><div className="grid gap-4 lg:grid-cols-3">
    <Bars title="Distribuição de risco" items={(["vermelho","amarelo","verde","sem_dados"] as RiscoCor[]).map(c=>[RISCO_LABEL[c],clientes.filter(x=>x.cor===c).length])} link={<Link to="/clientes-risco" className="text-xs text-primary hover:underline">Ver lista</Link>}/>
