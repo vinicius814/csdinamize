@@ -1,0 +1,1 @@
+ALTER FUNCTION public.cs_pode_ver(integer,integer) SECURITY INVOKER;
