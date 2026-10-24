@@ -538,6 +538,120 @@ export type Database = {
           },
         ]
       }
+      cs_atividades_cache: {
+        Row: {
+          activity_id: number
+          assunto: string
+          atualizado_em: string
+          concluida: boolean
+          created_at: string
+          deal_id: number
+          dia: string | null
+          fim: string | null
+          inicio: string | null
+          owner_id: number
+          pipeline_id: number
+          sync_id: string
+          tipo: string
+        }
+        Insert: {
+          activity_id: number
+          assunto: string
+          atualizado_em?: string
+          concluida: boolean
+          created_at?: string
+          deal_id: number
+          dia?: string | null
+          fim?: string | null
+          inicio?: string | null
+          owner_id: number
+          pipeline_id: number
+          sync_id: string
+          tipo: string
+        }
+        Update: {
+          activity_id?: number
+          assunto?: string
+          atualizado_em?: string
+          concluida?: boolean
+          created_at?: string
+          deal_id?: number
+          dia?: string | null
+          fim?: string | null
+          inicio?: string | null
+          owner_id?: number
+          pipeline_id?: number
+          sync_id?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      cs_base_diaria: {
+        Row: {
+          atualizado_em: string
+          cliente: string
+          created_at: string
+          dia: string
+          mrr: number | null
+          owner_id: number
+          pipeline_id: number
+        }
+        Insert: {
+          atualizado_em?: string
+          cliente: string
+          created_at?: string
+          dia: string
+          mrr?: number | null
+          owner_id: number
+          pipeline_id: number
+        }
+        Update: {
+          atualizado_em?: string
+          cliente?: string
+          created_at?: string
+          dia?: string
+          mrr?: number | null
+          owner_id?: number
+          pipeline_id?: number
+        }
+        Relationships: []
+      }
+      cs_eventos_onboarding: {
+        Row: {
+          atualizado_em: string
+          created_at: string
+          deal_id: number
+          entrou_em: string | null
+          etapa_saida: number | null
+          org_id: number | null
+          owner_id: number
+          pipeline_id: number
+          saiu_em: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          created_at?: string
+          deal_id: number
+          entrou_em?: string | null
+          etapa_saida?: number | null
+          org_id?: number | null
+          owner_id: number
+          pipeline_id?: number
+          saiu_em?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          created_at?: string
+          deal_id?: number
+          entrou_em?: string | null
+          etapa_saida?: number | null
+          org_id?: number | null
+          owner_id?: number
+          pipeline_id?: number
+          saiu_em?: string | null
+        }
+        Relationships: []
+      }
       cs_eventos_valor: {
         Row: {
           atualizado_em: string
@@ -627,6 +741,7 @@ export type Database = {
       }
       cs_regras_risco: {
         Row: {
+          analista_aguardando_dias: number
           atualizado_em: string
           atualizado_por: string | null
           considerar_sem_uso_como_risco: boolean
@@ -634,11 +749,15 @@ export type Database = {
           dias_atencao: number
           dias_risco: number
           id: boolean
+          prazo_onboarding_dias: number
+          prazo_por_etapa_dias: number
           retorno_pendente_dias: number
+          sem_proxima_atividade_e_atencao: boolean
           vencidas_atencao: number
           vencidas_risco: number
         }
         Insert: {
+          analista_aguardando_dias?: number
           atualizado_em?: string
           atualizado_por?: string | null
           considerar_sem_uso_como_risco?: boolean
@@ -646,11 +765,15 @@ export type Database = {
           dias_atencao?: number
           dias_risco?: number
           id?: boolean
+          prazo_onboarding_dias?: number
+          prazo_por_etapa_dias?: number
           retorno_pendente_dias?: number
+          sem_proxima_atividade_e_atencao?: boolean
           vencidas_atencao?: number
           vencidas_risco?: number
         }
         Update: {
+          analista_aguardando_dias?: number
           atualizado_em?: string
           atualizado_por?: string | null
           considerar_sem_uso_como_risco?: boolean
@@ -658,7 +781,10 @@ export type Database = {
           dias_atencao?: number
           dias_risco?: number
           id?: boolean
+          prazo_onboarding_dias?: number
+          prazo_por_etapa_dias?: number
           retorno_pendente_dias?: number
+          sem_proxima_atividade_e_atencao?: boolean
           vencidas_atencao?: number
           vencidas_risco?: number
         }
@@ -670,6 +796,7 @@ export type Database = {
           atividades_abertas: number
           atividades_vencidas: number
           atualizado_em: string
+          contato_dominios: string[]
           contato_efetivo: string | null
           created_at: string
           data_contratacao: string | null
@@ -700,6 +827,7 @@ export type Database = {
           atividades_abertas?: number
           atividades_vencidas?: number
           atualizado_em?: string
+          contato_dominios?: string[]
           contato_efetivo?: string | null
           created_at?: string
           data_contratacao?: string | null
@@ -730,6 +858,7 @@ export type Database = {
           atividades_abertas?: number
           atividades_vencidas?: number
           atualizado_em?: string
+          contato_dominios?: string[]
           contato_efetivo?: string | null
           created_at?: string
           data_contratacao?: string | null
@@ -1670,6 +1799,8 @@ export type Database = {
           data_contratacao: string | null
           deal_id: number | null
           dias_contato: number | null
+          dias_desde_envio: number | null
+          email_status: string | null
           org_id: number | null
           org_nome: string | null
           origem_contato: string | null
@@ -1769,6 +1900,10 @@ export type Database = {
       }
       cs_publicar_snapshot: {
         Args: { lidos: number; rows: Json; run: string }
+        Returns: undefined
+      }
+      cs_publicar_tudo: {
+        Args: { atividades: Json; lidos: number; rows: Json; run: string }
         Returns: undefined
       }
       estruturar_projeto_pessoal: {
