@@ -8,7 +8,7 @@ describe("tipos reais de atividade CS",()=>{
  it("upgrade concluído deduplica organização por carteira e exclui downgrade/aberto/fora do período",()=>{
  const base:CSRow={deal_id:1,org_id:10,titulo:"Cliente",pipeline_id:15,stage_id:103,owner_id:1,owner_nome:null,status:"open",valor:100,perfil_conta:null,ultimo_contato_efetivo:null,ultima_reuniao_cs:null,data_contratacao:null,stage_change_time:null,add_time:null,proxima_atividade_data:null,atividades_vencidas:0};
  const rows=[base,{...base,deal_id:2},{...base,deal_id:3,pipeline_id:16},{...base,deal_id:4,org_id:null},{...base,deal_id:5,org_id:20},{...base,deal_id:6,org_id:30},{...base,deal_id:7,org_id:40}];
- const acts=rows.map(r=>({deal_id:r.deal_id,tipo:r.deal_id===5?"downgrade":"upgrade",concluida:r.deal_id!==6,dia:r.deal_id===7?"2026-09-30":"2026-10-10"}));
+ const acts=rows.map(r=>({deal_id:r.deal_id,tipo:r.deal_id===5?"downgrade":"upgrade",concluida:r.deal_id!==6,data_conclusao:r.deal_id===7?"2026-09-30":"2026-10-10"}));
  expect(csClientesUpgrade(rows,acts,"2026-10-01","2026-10-24")).toBe(3);
  });
 });

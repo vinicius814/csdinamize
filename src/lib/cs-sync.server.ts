@@ -53,7 +53,7 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    if(due>=today&&(!nextActivities.has(id)||due<String(nextActivities.get(id))))nextActivities.set(id,due);
   }
   // Completed activities of the last 30 days (incremental window by update_time).
-  for(const a of await pages("/v2/activities",{done:"true",updated_since:new Date(hojeMs-31*86400000).toISOString().slice(0,19)+"Z"})){if(!deals.has(Number(a["deal_id"]))||!owners.has(Number(a["owner_id"])))continue;const due=a["due_date"] as string|null;if(due&&due>=desde&&due<=today)atividades.push(a);}
+   for(const a of await pages("/v2/activities",{done:"true",updated_since:new Date(hojeMs-31*86400000).toISOString().slice(0,19)+"Z"})){if(!deals.has(Number(a["deal_id"]))||!owners.has(Number(a["owner_id"])))continue;const due=a["due_date"] as string|null,conclusao=csDataAtividadeConcluida(a,today);if((due&&due>=desde&&due<=today)||(conclusao&&conclusao>=desde&&conclusao<=today))atividades.push(a);}
   // Contact e-mail domains (corporate only) for optional calendar matching; batched person read.
   const personIds=[...new Set([...deals.values()].filter(d=>d["status"]==="open"&&d["person_id"]).map(d=>Number(d["person_id"])))];const dominios=new Map<number,string[]>();
   for(let i=0;i<personIds.length;i+=100){const b=await get("/v2/persons",{ids:personIds.slice(i,i+100).join(","),limit:"100"});if(!Array.isArray(b.data))throw new Error("Leitura de contatos inválida.");for(const p of b.data)dominios.set(Number(p["id"]),[...new Set(((p["emails"]??[]) as RecordData[]).map(e=>csDominioCorporativo(String(e["value"]??""))).filter((x):x is string=>!!x))]);}
