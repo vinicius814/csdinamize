@@ -47,7 +47,7 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
     const old = number(c.old_value), next = number(c.new_value);
     if (old === null || next === null || next <= old) continue;
     const e = base("expansao", c.time, `${c.field_key}:${date(c.time).toISOString()}:${old}:${next}`, `Histórico ${c.field_key}`);
-    const currency = at(c.field_key === "mrr" ? "mrr_currency" : "currency", c.time, deal[c.field_key === "mrr" ? "mrr_currency" : "currency"] ?? deal["currency"]);
+    const currency = at(c.field_key === "mrr" ? "mrr_currency" : "currency", c.time, deal[c.field_key === "mrr" ? "mrr_currency" : "currency"]);
     if (c.field_key === "mrr" && currency === "BRL" && complete) {
       e.mrr_anterior = old; e.mrr_posterior = next; e.motivo = "Aumento do campo oficial MRR em BRL, com anterior e posterior.";
     } else {
@@ -63,20 +63,15 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
     if (reverted || !((e.pipeline_id === 15 && stage === 105) || (e.pipeline_id === 16 && stage === 111))) {
       e.estado = "excluido"; e.motivo = reverted ? "Perda revertida posteriormente." : "Perda comercial fora da etapa de cancelamento.";
     } else {
-      const mrr = number(at("mrr", c.time, deal["mrr"]));
-      const currency = at("mrr_currency", c.time, deal["mrr_currency"] ?? deal["currency"]);
-      const lostTime = at("lost_time", c.time, deal["lost_time"]);
       // Lost status is operational evidence, not proof of an effective financial cancellation.
       e.estado = "pendente"; e.motivo = "Perda registrada no CRM; efetivação financeira e MRR perdido não comprovados.";
       e.valor_anterior = number(at("value", c.time, deal["value"]));
-      if (complete && mrr !== null && mrr > 0 && currency === "BRL" && typeof lostTime === "string" && csDia(date(lostTime)) === e.dia) {
-        e.estado = "confirmado"; e.mrr_perdido = mrr; e.motivo = "Perda efetiva registrada: status lost, etapa oficial, lost_time e MRR em BRL no instante da perda.";
-      }
       const reason = at("lost_reason", c.time, deal["lost_reason"]);
       if (typeof reason === "string" && reason) e.motivo += ` Motivo: ${reason}`;
     }
     events.push(e);
   }
+  if(events.some(e=>[15,16].includes(e.pipeline_id)&&e.owner_id<=0)) throw new Error("Responsável histórico indisponível; lote não publicado.");
   return [...new Map(events.filter(e => [15, 16].includes(e.pipeline_id)).map(e => [e.evento_id, e])).values()];
 }
 export const csAuditClientKey = (e: AuditEvent) => `${e.pipeline_id}:${e.org_id === null ? "deal:" + e.deal_id : "org:" + e.org_id}`;

@@ -1,8 +1,11 @@
 
 # Auditoria financeira CS (24/10)
-- [ ] Confrontar upgrades, valores e cancelamentos com Pipedrive real
-- [ ] Corrigir filtros e adicionar detalhamento reconciliável
-- [ ] Testes completos, compilação e relatório de conferência
+- [x] Confrontar 188 negócios candidatos, valores e cancelamentos com Pipedrive real
+- [x] Corrigir filtros e adicionar detalhamento reconciliável
+- [x] Testes completos e compilação
+- [ ] Efetivação financeira: depende de fonte oficial; MRR nativo ausente nos 188 negócios
+- [ ] Conferência autenticada das listagens: sessão do Supabase externo indisponível
+- [ ] Certificar histórico completo além dos candidatos disponíveis: depende de inventário histórico completo da fonte
 
 # Evolução indicadores CS (24/10)
 - [x] Fase 1 mapeamento Pipedrive (campo oficial, Sem uso 104/110, etiqueta 709, retornos por assunto, changelog v1)

@@ -24,9 +24,12 @@ export async function runCSAudit(from: string, to: string) {
       if ((data?.length ?? 0) < 1000) break;
     }
   }
-  const { data: existing, error: exError } = await (db as any).from("cs_auditoria_eventos").select("deal_id,atualizado_em").gte("dia", from).lte("dia", to);
-  if (exError) throw new Error(exError.message);
-  const fresh = new Set((existing ?? []).filter((e: any) => candidates.has(Number(e.deal_id)) && Date.now() - Date.parse(e.atualizado_em) < 86400000).map((e: any) => Number(e.deal_id)));
+  const existing: {deal_id:number;verificado_em:string}[]=[];
+  for(let start=0;;start+=1000){
+    const {data,error}=await db.from("cs_auditoria_progresso").select("deal_id,verificado_em").eq("desde",from).eq("ate",to).order("deal_id").range(start,start+999);
+    if(error)throw new Error(error.message); existing.push(...(data??[]));if((data?.length??0)<1000)break;
+  }
+  const fresh = new Set(existing.filter(e => candidates.has(Number(e.deal_id)) && Date.now() - Date.parse(e.verificado_em) < 86400000).map(e => Number(e.deal_id)));
   const ids = [...candidates].filter(id => !fresh.has(id)).slice(0, 25);
   const users = await get("/v1/users"), owners = new Map<number, string>((users.data ?? []).map((u: any) => [Number(u.id), String(u.name)]));
   const result: AuditEvent[] = [];
@@ -41,19 +44,14 @@ export async function runCSAudit(from: string, to: string) {
       if (!cursor) break;
       if (seen.has(cursor)) throw new Error("Histórico repetido; lote não publicado."); seen.add(cursor);
     }
-    const acts: Record<string, any>[] = []; let activityCursor: string | null = null; const activitySeen = new Set<string>();
-    for (let page = 0; ; page++) {
-      if (page >= 100) throw new Error("Atividades incompletas; lote não publicado.");
-      const b = await get("/v2/activities", { deal_id: String(id), limit: "500", ...(activityCursor ? { cursor: activityCursor } : {}) });
-      if (!Array.isArray(b.data) && b.data !== null) throw new Error("Atividades inválidas; lote não publicado.");
-      acts.push(...(b.data ?? [])); activityCursor = b.additional_data?.next_cursor ?? null; if (!activityCursor) break;
-      if (activitySeen.has(activityCursor)) throw new Error("Atividades repetidas; lote não publicado."); activitySeen.add(activityCursor);
-    }
+    const acts: Record<string, any>[] = [], activityIds:number[]=[];
+    for(let start=0;;start+=1000){const {data,error}=await db.from("cs_atividades_cache").select("activity_id").eq("deal_id",id).eq("tipo","upgrade").order("activity_id").range(start,start+999);if(error)throw new Error(error.message);activityIds.push(...(data??[]).map(a=>Number(a.activity_id)));if((data?.length??0)<1000)break;}
+    for(let start=0;start<activityIds.length;start+=100){const requested=activityIds.slice(start,start+100);const b=await get("/v2/activities",{ids:requested.join(","),limit:"500"});if(!Array.isArray(b.data)||requested.some(x=>!b.data.some((a:any)=>Number(a.id)===x&&Number(a.deal_id)===id)))throw new Error("Atividades candidatas incompletas; lote não publicado.");acts.push(...b.data);}
     result.push(...csAuditDeal(deal, changes, acts, owners, true).filter(e => e.dia >= from && e.dia <= to));
   }
-  if (result.length) {
+  if (ids.length) {
     const unique = [...new Map(result.map(e => [e.evento_id, e])).values()];
-    const { error } = await (db as any).from("cs_auditoria_eventos").upsert(unique, { onConflict: "evento_id" });
+    const { error } = await db.rpc("cs_publicar_auditoria", {eventos:JSON.parse(JSON.stringify(unique)),negocios:ids,desde:from,ate:to});
     if (error) throw new Error(error.message);
   }
   return { verificados: ids.length, restantes: candidates.size - fresh.size - ids.length, eventos: result.length, consultas: calls };

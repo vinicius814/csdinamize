@@ -16,7 +16,9 @@ describe("auditoria reconciliável CS", () => {
   it("transferência usa responsável histórico e não ator", () => { const events = map(deal, [{ field_key: "user_id", time: "2026-10-20 12:00:00", old_value: 7, new_value: 8 }]); expect(events[0]?.owner_id).toBe(7); expect(csAuditSummary(events, { ...filter, owner: 8 }).upgradeClients).toBe(0); });
   it("transferência entre pipelines respeita instante do evento", () => { const events = map({ ...deal, pipeline_id: 16 }, [{ field_key: "pipeline_id", time: "2026-10-20 12:00:00", old_value: 15, new_value: 16 }]); expect(events[0]?.pipeline_id).toBe(15); });
   const lost = { field_key: "status", time: "2026-10-10 12:00:00", old_value: "open", new_value: "lost" };
-  it("perda efetiva com MRR e lost_time confirma cancelamento", () => expect(csAuditSummary(map(deal, [lost]), filter).mrrLost).toBe(200));
+  it("status, etapa, MRR e lost_time não comprovam efetivação financeira", () => {const s=csAuditSummary(map(deal,[lost]),filter);expect(s.mrrLost).toBeNull();expect(s.pending.filter(e=>e.tipo==="cancelamento")).toHaveLength(1);});
+  it("moeda do negócio não substitui moeda MRR",()=>{const s=csAuditSummary(map({...deal,mrr_currency:undefined} as unknown as typeof deal,[{field_key:"mrr",time:"2026-10-09T12:00:00Z",old_value:100,new_value:200}]),filter);expect(s.mrrExpansion).toBeNull();});
+  it("responsável histórico ausente impede publicação",()=>expect(()=>map({...deal,owner_id:0})).toThrow("Responsável histórico indisponível"));
   it("solicitação aberta não é cancelamento", () => expect(csAuditSummary(map({ ...deal, status: "open" }, []), filter).cancelledClients).toBe(0));
   it("cancelamento revertido excluído", () => expect(csAuditSummary(map(deal, [lost, { field_key: "status", time: "2026-10-11 12:00:00", old_value: "lost", new_value: "open" }]), filter).cancelledClients).toBe(0));
   it("sem MRR perdido fica pendente", () => expect(csAuditSummary(map({ ...deal, mrr: null } as unknown as typeof deal, [lost]), filter).cancelledClients).toBe(0));
