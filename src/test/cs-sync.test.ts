@@ -6,8 +6,8 @@ afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();vi.clearAllMocks();});
 describe("Sincronização central CS",()=>{
  it("publica somente após todas as leituras, sem escritas Pipedrive",async()=>{
   vi.stubEnv("PIPEDRIVE_SYNC_TOKEN","test-only");vi.stubEnv("PIPEDRIVE_SYNC_DOMAIN","cs-dinamize");rpc.mockResolvedValueOnce({data:"run",error:null}).mockResolvedValue({error:null});
-  const get=vi.fn(async(input:URL,init:RequestInit)=>{expect(init.method).toBeUndefined();const isUsers=input.pathname.endsWith("users");return Response.json({success:true,data:isUsers?[{id:17273704,name:"CS"}]:[],additional_data:{next_cursor:null}});});vi.stubGlobal("fetch",get);
-  const result=await runCSSync("agendado");expect(result.status).toBe("sucesso");expect(get).toHaveBeenCalledTimes(7);expect(rpc).toHaveBeenLastCalledWith("cs_publicar_snapshot",{run:"run",rows:[],lidos:0});
+  const get=vi.fn(async(input:URL,init:RequestInit)=>{expect(init.method).toBeUndefined();const isUsers=input.pathname.endsWith("users");return Response.json({success:true,data:isUsers?[{id:17273704,name:"CS"}]:[],additional_data:{next_cursor:null,pagination:{more_items_in_collection:false}}});});vi.stubGlobal("fetch",get);
+  const result=await runCSSync("agendado");expect(result.status).toBe("sucesso");expect(get).toHaveBeenCalledTimes(10);expect(rpc).toHaveBeenLastCalledWith("cs_publicar_snapshot",{run:"run",rows:[],lidos:0});
  });
  it("paginação incompleta preserva snapshot e registra falha",async()=>{
   vi.stubEnv("PIPEDRIVE_SYNC_TOKEN","test-only");vi.stubEnv("PIPEDRIVE_SYNC_DOMAIN","cs-dinamize");rpc.mockResolvedValue({data:"run",error:null});vi.stubGlobal("fetch",vi.fn(async(input:URL)=>Response.json({success:true,data:input.pathname.endsWith("users")?[{id:1,name:"CS"}]:[]})));
