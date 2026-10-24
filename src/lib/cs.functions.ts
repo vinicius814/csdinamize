@@ -66,7 +66,7 @@ export const historyCS=createServerFn({method:"POST"}).middleware([requireActive
   const baseSet=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>baseSet.has(k)));
   return {pipeline,historicoDesde:first?.dia??null,valorDesde:CS_VALOR_DESDE,
    mrrInicial:temBase&&b.every(r=>r.mrr!==null)?b.reduce((s,r)=>s+Number(r.mrr),0):null,clientesIniciais:temBase?b.reduce((s,r)=>s+r.clientes_ativos,0):null,
-   expansao:valorDisponivel?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):null,upgrades:csClientesUpgrade(upgradeDeals.filter(r=>r.pipeline_id===pipeline),upgradeActivities,data.from,data.to),baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
+   expansao:up.length?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):(valorDisponivel?0:null),expansaoEventos:up.length,upgrades:csClientesUpgrade(upgradeDeals.filter(r=>r.pipeline_id===pipeline),upgradeActivities,data.from,data.to),baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
  });
 });
 
@@ -110,4 +110,30 @@ export const googleAgendaCS=createServerFn({method:"POST"}).middleware([comCrede
  const dom=new Map<string,Set<number>>();
  for(let s=0;;s+=1000){const {data:r,error}=await context.supabase.from("cs_snapshot").select("deal_id,contato_dominios").eq("status","open").range(s,s+999);if(error)throw new Error(error.message);for(const x of r??[])for(const d of x.contato_dominios??[]){if(!dom.has(d))dom.set(d,new Set());dom.get(d)!.add(Number(x.deal_id));}if((r?.length??0)<1000)break;}
  return {conectado:true as const,eventos:evs.map(e=>{const ds=[...new Set((e.convidados as string[]).map((c:string)=>csDominioCorporativo(c)).filter((x:string|null):x is string=>!!x))];const deals=new Set(ds.flatMap(d=>[...(dom.get(d)??[])]));return {titulo:String(e.titulo),inicio:String(e.inicio??""),fim:String(e.fim??""),dia_todo:!!e.dia_todo,deal_id:deals.size===1?[...deals][0]!:null};})};
+});
+
+/** Retornos pendentes: atividades abertas do Pipedrive cujo assunto registra follow-up/retorno (csEhRetorno), no escopo visível do usuário via RLS. Somente leitura. */
+export const retornosCS=createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
+ const db=context.supabase;const acts:Record<string,unknown>[]=[];
+ for(let s=0;;s+=1000){const {data,error}=await db.from("cs_atividades_cache").select("activity_id,deal_id,pipeline_id,owner_id,tipo,assunto,dia,inicio").eq("concluida",false).or("assunto.ilike.%follow%,assunto.ilike.%flw%,assunto.ilike.%retorno%").order("activity_id").range(s,s+999);if(error)throw new Error(error.message);acts.push(...(data??[]));if((data?.length??0)<1000)break;}
+ const filtradas=acts.filter(a=>csEhRetorno(String(a["assunto"]??"")));
+ const ids=[...new Set(filtradas.map(a=>Number(a["deal_id"])))];
+ const deals=new Map<number,Record<string,unknown>>();
+ for(let i=0;i<ids.length;i+=200){const {data,error}=await db.from("cs_snapshot").select("deal_id,titulo,org_nome,owner_nome,valor").in("deal_id",ids.slice(i,i+200));if(error)throw new Error(error.message);for(const d of data??[])deals.set(Number(d.deal_id),d);}
+ return filtradas.filter(a=>deals.has(Number(a["deal_id"]))).map(a=>{const d=deals.get(Number(a["deal_id"]))!;return {activity_id:Number(a["activity_id"]),deal_id:Number(a["deal_id"]),pipeline_id:Number(a["pipeline_id"]),tipo:String(a["tipo"]),assunto:String(a["assunto"]),dia:a["dia"] as string|null,inicio:a["inicio"] as string|null,cliente:(d["org_nome"] as string|null)??(d["titulo"] as string),owner_nome:d["owner_nome"] as string|null,valor:d["valor"]===null||d["valor"]===undefined?null:Number(d["valor"])};});
+});
+
+const evoSchema=z.object({pipeline:z.enum(["15","16","both"]),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
+/** Série histórica real de cs_metricas_diarias (preenchida a cada sincronização), agregada por dia e carteira. */
+export const evolucaoCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>evoSchema.parse(i)).handler(async({data,context})=>{
+ const db=context.supabase;const pipes=data.pipeline==="both"?[15,16]:[Number(data.pipeline)];
+ const {data:first,error:fe}=await db.from("cs_metricas_diarias").select("dia").order("dia").limit(1).maybeSingle();if(fe)throw new Error(fe.message);
+ const rows:Record<string,unknown>[]=[];
+ for(let s=0;;s+=1000){const {data:r,error}=await db.from("cs_metricas_diarias").select("dia,pipeline_id,clientes_ativos,mrr,cobertura_60").gte("dia",data.from).lte("dia",data.to).in("pipeline_id",pipes).order("dia").range(s,s+999);if(error)throw new Error(error.message);rows.push(...(r??[]));if((r?.length??0)<1000)break;}
+ const porDia=new Map<string,{clientes:number;mrr:number|null;cobPeso:number;cobBase:number}>();
+ for(const r of rows){const k=String(r["dia"]);const g=porDia.get(k)??{clientes:0,mrr:0,cobPeso:0,cobBase:0};const c=Number(r["clientes_ativos"]);g.clientes+=c;
+  if(r["mrr"]===null||r["mrr"]===undefined)g.mrr=null;else if(g.mrr!==null)g.mrr+=Number(r["mrr"]);
+  if(r["cobertura_60"]!==null&&r["cobertura_60"]!==undefined&&c>0){g.cobPeso+=Number(r["cobertura_60"])*c;g.cobBase+=c;}
+  porDia.set(k,g);}
+ return {desde:(first?.dia as string|undefined)??null,serie:[...porDia.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([dia,g])=>({dia,clientes:g.clientes,mrr:g.mrr,cobertura:g.cobBase?g.cobPeso/g.cobBase:null}))};
 });
