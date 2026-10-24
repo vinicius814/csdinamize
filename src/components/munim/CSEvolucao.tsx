@@ -43,7 +43,7 @@ export function CSEvolucao({ pipe, owner, from, to, rows, admin, receita }: { pi
     if (aba === "receita") return receita;
     if (q.isPending) return <p className="text-xs text-muted-foreground">Carregando…</p>;
     if (q.error || !d) return <p className="text-xs text-warning">Falha ao ler o histórico.</p>;
-    if (aba !== "receita") return <CSFinancialAudit pipeline={pipe} owner={owner} from={from} to={to} admin={admin}/>;
+    return <CSFinancialAudit pipeline={pipe} owner={owner} from={from} to={to} admin={admin}/>;
 
   };
   return <div className="mt-4">
