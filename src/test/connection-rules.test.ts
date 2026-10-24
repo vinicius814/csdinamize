@@ -17,4 +17,9 @@ describe("Banco Munim V2", () => {
     for (const key of ["nome", "fuso", "horario_briefing", "alertas_ativos"]) expect(profileChangesAllowed({[key]: "a"}, {[key]: "b"})).toBe(true);
     for (const key of ["papel", "pipedrive_user_id", "telegram_chat_id", "google_conectado", "telegram_codigo", "email"]) expect(profileChangesAllowed({[key]: "a"}, {[key]: "b"})).toBe(false);
   });
+});import { estadoConexao } from "@/lib/connection-rules";
+describe("estado das conexões", () => {
+  it("registro sem verificação não é validado", () => { expect(estadoConexao(true, null)).toBe("aguardando"); });
+  it("401 pede reconexão e 403 é permissão", () => { expect(estadoConexao(true, 401)).toBe("erro_autenticacao"); expect(estadoConexao(true, 403)).toBe("sem_permissao"); });
+  it("sem conexão é desconectado; 200 validado", () => { expect(estadoConexao(false, 200)).toBe("desconectado"); expect(estadoConexao(true, 200)).toBe("validado"); });
 });
