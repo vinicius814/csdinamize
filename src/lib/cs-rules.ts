@@ -40,10 +40,12 @@ export function csMetricas(rows:CSRow[],days=60,from=csDia().slice(0,7)+"-01",to
  const clients=csClientes(rows);
  const comData=clients.filter(c=>c.contato!==null);
  const covered=comData.filter(c=>{const n=csDias(c.contato,today);return n!==null&&n>=0&&n<=days;}).length;
+ // Cobertura (definição gerencial): clientes com contato efetivo no período ÷ todos os clientes da carteira.
+ // Clientes sem data de contato entram no denominador e são informados à parte (semDados).
  const active=rows.filter(csAtivo), canc=rows.filter(r=>[105,111].includes(r.stage_id)&&r.stage_change_time&&csDia(new Date(r.stage_change_time))>=from&&csDia(new Date(r.stage_change_time))<=to);
  const mrr=active.some(r=>r.valor===null)?null:active.reduce((s,r)=>s+Number(r.valor),0);
  const risco=clients.filter(c=>c.cor==="vermelho");
- return {clientes:clients.length,mrr,ticket:clients.length&&mrr!==null?mrr/clients.length:null,cobertura:comData.length?covered/comData.length*100:null,semContato:comData.length-covered,semDados:clients.length-comData.length,vencidas:active.reduce((s,r)=>s+r.atividades_vencidas,0),cancelados:canc.length,mrrCancelado:canc.some(r=>r.valor===null)?null:canc.reduce((s,r)=>s+Number(r.valor),0),
+ return {clientes:clients.length,mrr,ticket:clients.length&&mrr!==null?mrr/clients.length:null,cobertura:clients.length?covered/clients.length*100:null,cobertos:covered,semContato:comData.length-covered,semDados:clients.length-comData.length,vencidas:active.reduce((s,r)=>s+r.atividades_vencidas,0),cancelados:canc.length,mrrCancelado:canc.some(r=>r.valor===null)?null:canc.reduce((s,r)=>s+Number(r.valor),0),
   emRisco:risco.length,atencao:clients.filter(c=>c.cor==="amarelo").length,verdes:clients.filter(c=>c.cor==="verde").length,mrrRisco:risco.some(c=>c.mrr===null)?null:risco.reduce((s,c)=>s+Number(c.mrr),0)};
 }
 /** Último horário de atualização (08h ou 12h em São Paulo, UTC-3 fixo) até `now`. */
@@ -106,3 +108,19 @@ export const CS_ONBOARDING_LEGADO_DIAS=180;
 export type CSOrigemAgenda="todas"|"pipedrive"|"google";
 /** Agenda source filter: Google events never appear under Pipedrive and vice versa. */
 export function csFiltrarOrigem<T extends {fonte:"pipedrive"|"google"}>(evs:T[],origem:CSOrigemAgenda):T[]{return origem==="todas"?evs:evs.filter(e=>e.fonte===origem);}
+
+/** Rótulos oficiais do campo "Perfil da Conta" (Pipedrive cs-dinamize, opções do campo enum). */
+export const CS_PERFIL_CONTA:Record<string,string>={"37":"Perfil D","492":"Perfil C","32":"Perfil B","33":"Perfil A","34":"Estratégicos","36":"Partners","216":"Revendas","217":"Permutas","255":"Pré-Pagos","359":"Ações Sociais"};
+export const csPerfilConta=(v:string|null|undefined)=>v?(CS_PERFIL_CONTA[v.trim()]??`Código ${v}`):null;
+/** Treinamento realizado: atividade concluída cujo assunto registra o treinamento em si. Agendamento, cobrança, contato sobre e pós-treinamento não contam. */
+export function csEhTreinamento(assunto:string){const a=assunto.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();return /\btreinamento/.test(a)&&!/(agend|cobrar|contato|pos[ -]?trein|sobre trein|para trein|remarc|cancel)/.test(a);}
+/** Classificações gerenciais da planilha de gestão (independentes do termômetro de risco). */
+export const CS_FAIXAS_CHURN:[number,string,number][]=[[1,"Saudável",100],[2,"Atenção leve",95],[3,"Moderado",85],[4,"Atenção",70],[5,"Crítico",55],[Infinity,"Piso",40]];
+export function csClassificarChurn(pct:number|null):{status:string;teto:number}|null{if(pct===null||!Number.isFinite(pct))return null;const f=CS_FAIXAS_CHURN.find(([lim])=>pct<=lim)!;return {status:f[1],teto:f[2]};}
+export function csClassificarCobertura(pct:number|null):string|null{if(pct===null||!Number.isFinite(pct))return null;return pct>=80?"Saudável":pct>=70?"Atenção":pct>=60?"Alerta":"Crítico";}
+/** Meses (YYYY-MM) entre duas datas, inclusive. */
+export function csMeses(from:string,to:string):string[]{const out:string[]=[];let [y,m]=from.slice(0,7).split("-").map(Number) as [number,number];const [ty,tm]=to.slice(0,7).split("-").map(Number) as [number,number];while(y<ty||(y===ty&&m<=tm)){out.push(`${y}-${String(m).padStart(2,"0")}`);m++;if(m>12){m=1;y++;}}return out;}
+/** Último dia do mês (YYYY-MM-DD). */
+export const csFimMes=(mes:string)=>{const [y,m]=mes.split("-").map(Number) as [number,number];return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10);};
+/** Intervalo personalizado: as duas datas são obrigatórias e válidas; início não pode ser depois do fim. */
+export function csValidarIntervalo(ini:string,fim:string):string|null{const ok=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+"T12:00:00Z"));if(!ini||!fim)return "Informe a data inicial e a data final.";if(!ok(ini)||!ok(fim))return "Data inválida.";if(ini>fim)return "A data inicial é posterior à final.";return null;}

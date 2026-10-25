@@ -18,6 +18,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAgendaAtividadesRouteImport } from './routes/_authenticated/agenda-atividades'
+import { Route as AuthenticatedAnaliseGerencialRouteImport } from './routes/_authenticated/analise-gerencial'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
 import { Route as AuthenticatedCarteirasCsRouteImport } from './routes/_authenticated/carteiras-cs'
@@ -82,6 +83,12 @@ const AuthenticatedAgendaAtividadesRoute =
   AuthenticatedAgendaAtividadesRouteImport.update({
     id: '/agenda-atividades',
     path: '/agenda-atividades',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAnaliseGerencialRoute =
+  AuthenticatedAnaliseGerencialRouteImport.update({
+    id: '/analise-gerencial',
+    path: '/analise-gerencial',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
@@ -202,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
+  '/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
@@ -231,6 +239,7 @@ export interface FileRoutesByTo {
   '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
+  '/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
@@ -263,6 +272,7 @@ export interface FileRoutesById {
   '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
+  '/_authenticated/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
   '/_authenticated/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin'
     | '/agenda-atividades'
+    | '/analise-gerencial'
     | '/aprovacoes'
     | '/carteira'
     | '/carteiras-cs'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/admin'
     | '/agenda-atividades'
+    | '/analise-gerencial'
     | '/aprovacoes'
     | '/carteira'
     | '/carteiras-cs'
@@ -356,6 +368,7 @@ export interface FileRouteTypes {
     | '/termos'
     | '/_authenticated/admin'
     | '/_authenticated/agenda-atividades'
+    | '/_authenticated/analise-gerencial'
     | '/_authenticated/aprovacoes'
     | '/_authenticated/carteira'
     | '/_authenticated/carteiras-cs'
@@ -456,6 +469,13 @@ declare module '@tanstack/react-router' {
       path: '/agenda-atividades'
       fullPath: '/agenda-atividades'
       preLoaderRoute: typeof AuthenticatedAgendaAtividadesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analise-gerencial': {
+      id: '/_authenticated/analise-gerencial'
+      path: '/analise-gerencial'
+      fullPath: '/analise-gerencial'
+      preLoaderRoute: typeof AuthenticatedAnaliseGerencialRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/aprovacoes': {
@@ -604,6 +624,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAgendaAtividadesRoute: typeof AuthenticatedAgendaAtividadesRoute
+  AuthenticatedAnaliseGerencialRoute: typeof AuthenticatedAnaliseGerencialRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
   AuthenticatedCarteirasCsRoute: typeof AuthenticatedCarteirasCsRoute
@@ -625,6 +646,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAgendaAtividadesRoute: AuthenticatedAgendaAtividadesRoute,
+  AuthenticatedAnaliseGerencialRoute: AuthenticatedAnaliseGerencialRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
   AuthenticatedCarteirasCsRoute: AuthenticatedCarteirasCsRoute,

@@ -1,11 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireActive, requireAdmin } from "./access.middleware";
 import { comCredenciais } from "./credenciais.middleware";
-import { csPodeVer, csMetricas, csDia, csClientesUpgrade, csEhRetorno, type CSRow } from "./cs-rules";
+import { csPodeVer, csDia, csEhRetorno, type CSRow } from "./cs-rules";
 import { z } from "zod";
 
-/** Value-change tracking (expansion/upgrade) started with the first sync on this date. */
-export const CS_VALOR_DESDE = "2026-10-24";
 type Db = any;
 const num=(v:unknown)=>v===null||v===undefined?null:Number(v);
 function normalize(r:any):CSRow{return {...r,valor:num(r.valor),risco_fatores:r.risco_fatores??[]};}
@@ -14,14 +12,6 @@ async function readRows(db:Db,apply:(q:any)=>any=q=>q):Promise<CSRow[]>{
  for(let start=0;;start+=1000){const {data,error}=await apply(db.from("cs_snapshot_risco").select("*")).order("deal_id").range(start,start+999);if(error)throw new Error(error.message);rows.push(...(data??[]).map(normalize));if((data?.length??0)<1000)break;}
  return rows;
 }
-const filterSchema=z.object({pipeline:z.enum(["15","16","both"]),owner:z.number().int().positive().nullable(),stage:z.number().int().positive().nullable(),days:z.union([z.literal(30),z.literal(60),z.literal(90)]),search:z.string().max(200),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),mine:z.boolean(),risco:z.enum(["","vermelho","amarelo","verde","sem_dados"]).default("")});
-export const metricsCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(input=>filterSchema.parse(input)).handler(async({data,context})=>{
- const db=context.supabase;const {data:p,error}=await db.from("profiles").select("pipedrive_user_id").eq("id",context.userId).single();if(error)throw new Error(error.message);
- const all=await readRows(db,q=>{q=q.in("pipeline_id",data.pipeline==="both"?[15,16]:[Number(data.pipeline)]);if(data.mine&&p.pipedrive_user_id)q=q.eq("owner_id",p.pipedrive_user_id);if(data.owner)q=q.eq("owner_id",data.owner);if(data.stage)q=q.eq("stage_id",data.stage);return q;});
- const rows=all.filter(r=>(!data.search||`${r.titulo} ${r.org_nome??""} ${r.owner_nome??""}`.toLowerCase().includes(data.search.toLowerCase()))&&(!data.risco||r.risco_cor===data.risco||!["open"].includes(r.status)||[105,111].includes(r.stage_id)));
- return [15,16].map(pipeline=>({pipeline,metrics:csMetricas(rows.filter(r=>r.pipeline_id===pipeline),data.days,data.from,data.to,csDia())}));
-});
-
 export const readCS = createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
  const db=context.supabase;
  const {data:perfil,error:pError}=await db.from("profiles").select("papel,pipedrive_user_id").eq("id",context.userId).single();if(pError)throw new Error(pError.message);
@@ -41,33 +31,6 @@ export const autoSyncCS = createServerFn({method:"POST"}).middleware([requireAct
  const {data,error}=await db.from("cs_sync_runs").select("iniciado_em").order("iniciado_em",{ascending:false}).limit(1).maybeSingle();if(error)throw new Error(error.message);
  if(!csPrecisaAtualizar(now,data?.iniciado_em??null))return {executado:false};
  const {runCSSync}=await import("./cs-sync.server");const r=await runCSSync("agendado",null,csJanela(now));return {executado:r.status==="sucesso"};
-});
-
-const histSchema=z.object({pipeline:z.enum(["15","16","both"]),owner:z.number().int().positive().nullable(),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),mine:z.boolean()});
-export const historyCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>histSchema.parse(i)).handler(async({data,context})=>{
- const db=context.supabase;const {data:p,error:pe}=await db.from("profiles").select("pipedrive_user_id").eq("id",context.userId).single();if(pe)throw new Error(pe.message);
- const pipes=data.pipeline==="both"?[15,16]:[Number(data.pipeline)];
- const owner=data.owner??(data.mine?p.pipedrive_user_id:null);
- const {data:first,error:fe}=await db.from("cs_metricas_diarias").select("dia").order("dia").limit(1).maybeSingle();if(fe)throw new Error(fe.message);
- let q=db.from("cs_metricas_diarias").select("pipeline_id,clientes_ativos,mrr").eq("dia",data.from).in("pipeline_id",pipes);if(owner)q=q.eq("owner_id",owner);
- const {data:base,error:be}=await q;if(be)throw new Error(be.message);
- let e=db.from("cs_eventos_valor").select("deal_id,pipeline_id,valor_anterior,valor_novo,dia").gte("dia",data.from).lte("dia",data.to).in("pipeline_id",pipes);if(owner)e=e.eq("owner_id",owner);
- const {data:ev,error:ee}=await e;if(ee)throw new Error(ee.message);
- // Logo churn by organization within the portfolio; owner breakdown uses the base owner (deal with highest MRR).
- const baseKeys:{pipeline_id:number;cliente:string}[]=[];for(let s=0;;s+=1000){let bq=db.from("cs_base_diaria").select("pipeline_id,cliente").eq("dia",data.from).in("pipeline_id",pipes);if(owner)bq=bq.eq("owner_id",owner);const {data:bd,error:bde}=await bq.range(s,s+999);if(bde)throw new Error(bde.message);baseKeys.push(...(bd??[]));if((bd?.length??0)<1000)break;}
- const {data:canc,error:ce}=await db.from("cs_snapshot").select("deal_id,org_id,pipeline_id,stage_change_time").in("stage_id",[105,111]).in("pipeline_id",pipes).gte("stage_change_time",data.from+"T03:00:00Z").lte("stage_change_time",new Date(Date.parse(data.to+"T03:00:00Z")+86400000).toISOString());if(ce)throw new Error(ce.message);
- const upgradeActivities:{deal_id:number;tipo:string;concluida:boolean;data_conclusao:string|null}[]=[];
- for(let start=0;;start+=1000){let aq=db.from("cs_atividades_cache").select("deal_id,tipo,concluida,data_conclusao").eq("tipo","upgrade").eq("concluida",true).gte("data_conclusao",data.from).lte("data_conclusao",data.to).in("pipeline_id",pipes);if(owner)aq=aq.eq("owner_id",owner);const {data:ad,error:ae}=await aq.order("activity_id").range(start,start+999);if(ae)throw new Error(ae.message);upgradeActivities.push(...(ad??[]));if((ad?.length??0)<1000)break;}
- const upgradeDeals=await readRows(db,q=>{q=q.in("pipeline_id",pipes);if(owner)q=q.eq("owner_id",owner);return q;});
- return pipes.map(pipeline=>{
-  const b=(base??[]).filter(r=>r.pipeline_id===pipeline);const temBase=b.length>0;
-  const evs=(ev??[]).filter(r=>r.pipeline_id===pipeline);const up=evs.filter(r=>Number(r.valor_novo)>Number(r.valor_anterior));
-  const valorDisponivel=data.from>=CS_VALOR_DESDE;
-  const baseSet=new Set(baseKeys.filter(k=>k.pipeline_id===pipeline).map(k=>k.cliente));const churned=new Set((canc??[]).filter(c=>c.pipeline_id===pipeline).map(c=>c.org_id===null?"deal:"+c.deal_id:"org:"+c.org_id).filter(k=>baseSet.has(k)));
-  return {pipeline,historicoDesde:first?.dia??null,valorDesde:CS_VALOR_DESDE,
-   mrrInicial:temBase&&b.every(r=>r.mrr!==null)?b.reduce((s,r)=>s+Number(r.mrr),0):null,clientesIniciais:temBase?b.reduce((s,r)=>s+r.clientes_ativos,0):null,
-   expansao:up.length?up.reduce((s,r)=>s+Number(r.valor_novo)-Number(r.valor_anterior),0):(valorDisponivel?0:null),expansaoEventos:up.length,upgrades:csClientesUpgrade(upgradeDeals.filter(r=>r.pipeline_id===pipeline),upgradeActivities,data.from,data.to),baseInicial:baseSet.size||null,logoChurn:baseSet.size?churned.size/baseSet.size*100:null,logoCancelados:baseSet.size?churned.size:null};
- });
 });
 
 const regrasSchema=z.object({sem_proxima_atividade_e_atencao:z.boolean(),analista_aguardando_dias:z.number().int().min(1).max(90),prazo_onboarding_dias:z.number().int().min(1).max(365),prazo_por_etapa_dias:z.number().int().min(1).max(365),dias_atencao:z.number().int().min(1).max(365),dias_risco:z.number().int().min(1).max(365),vencidas_atencao:z.number().int().min(1).max(100),vencidas_risco:z.number().int().min(1).max(100),considerar_sem_uso_como_risco:z.boolean(),retorno_pendente_dias:z.number().int().min(0).max(60)}).refine(r=>r.dias_risco>r.dias_atencao,"Dias para risco deve ser maior que dias para atenção.").refine(r=>r.vencidas_risco>=r.vencidas_atencao,"Vencidas para risco deve ser igual ou maior que para atenção.");
@@ -119,45 +82,27 @@ export const retornosCS=createServerFn({method:"POST"}).middleware([requireActiv
  const filtradas=acts.filter(a=>csEhRetorno(String(a["assunto"]??"")));
  const ids=[...new Set(filtradas.map(a=>Number(a["deal_id"])))];
  const deals=new Map<number,Record<string,unknown>>();
- for(let i=0;i<ids.length;i+=200){const {data,error}=await db.from("cs_snapshot").select("deal_id,titulo,org_nome,owner_nome,valor").in("deal_id",ids.slice(i,i+200));if(error)throw new Error(error.message);for(const d of data??[])deals.set(Number(d.deal_id),d);}
- return filtradas.filter(a=>deals.has(Number(a["deal_id"]))).map(a=>{const d=deals.get(Number(a["deal_id"]))!;return {activity_id:Number(a["activity_id"]),deal_id:Number(a["deal_id"]),pipeline_id:Number(a["pipeline_id"]),tipo:String(a["tipo"]),assunto:String(a["assunto"]),dia:a["dia"] as string|null,inicio:a["inicio"] as string|null,cliente:(d["org_nome"] as string|null)??(d["titulo"] as string),owner_nome:d["owner_nome"] as string|null,valor:d["valor"]===null||d["valor"]===undefined?null:Number(d["valor"])};});
+ for(let i=0;i<ids.length;i+=200){const {data,error}=await db.from("cs_snapshot").select("deal_id,titulo,org_nome,owner_id,owner_nome,valor").in("deal_id",ids.slice(i,i+200));if(error)throw new Error(error.message);for(const d of data??[])deals.set(Number(d.deal_id),d);}
+ return filtradas.filter(a=>deals.has(Number(a["deal_id"]))).map(a=>{const d=deals.get(Number(a["deal_id"]))!;return {activity_id:Number(a["activity_id"]),deal_id:Number(a["deal_id"]),pipeline_id:Number(a["pipeline_id"]),owner_id:Number(d["owner_id"]),tipo:String(a["tipo"]),assunto:String(a["assunto"]),dia:a["dia"] as string|null,inicio:a["inicio"] as string|null,cliente:(d["org_nome"] as string|null)??(d["titulo"] as string),owner_nome:d["owner_nome"] as string|null,valor:d["valor"]===null||d["valor"]===undefined?null:Number(d["valor"])};});
 });
 
-const evoSchema=z.object({pipeline:z.enum(["15","16","both"]),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
-/** Série histórica real de cs_metricas_diarias (preenchida a cada sincronização), agregada por dia e carteira. */
-export const evolucaoCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>evoSchema.parse(i)).handler(async({data,context})=>{
- const db=context.supabase;const pipes=data.pipeline==="both"?[15,16]:[Number(data.pipeline)];
- const {data:first,error:fe}=await db.from("cs_metricas_diarias").select("dia").order("dia").limit(1).maybeSingle();if(fe)throw new Error(fe.message);
- const rows:Record<string,unknown>[]=[];
- for(let s=0;;s+=1000){const {data:r,error}=await db.from("cs_metricas_diarias").select("dia,pipeline_id,clientes_ativos,mrr,cobertura_60").gte("dia",data.from).lte("dia",data.to).in("pipeline_id",pipes).order("dia").range(s,s+999);if(error)throw new Error(error.message);rows.push(...(r??[]));if((r?.length??0)<1000)break;}
- const porDia=new Map<string,{clientes:number;mrr:number|null;cobPeso:number;cobBase:number}>();
- for(const r of rows){const k=String(r["dia"]);const g=porDia.get(k)??{clientes:0,mrr:0,cobPeso:0,cobBase:0};const c=Number(r["clientes_ativos"]);g.clientes+=c;
-  if(r["mrr"]===null||r["mrr"]===undefined)g.mrr=null;else if(g.mrr!==null)g.mrr+=Number(r["mrr"]);
-  if(r["cobertura_60"]!==null&&r["cobertura_60"]!==undefined&&c>0){g.cobPeso+=Number(r["cobertura_60"])*c;g.cobBase+=c;}
-  porDia.set(k,g);}
- return {desde:(first?.dia as string|undefined)??null,serie:[...porDia.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([dia,g])=>({dia,clientes:g.clientes,mrr:g.mrr,cobertura:g.cobBase?g.cobPeso/g.cobBase:null}))};
-});
-
-const histSchemaV2=z.object({pipeline:z.enum(["15","16","both"]),from:z.string().regex(/^\d{4}-\d{2}-\d{2}$/),to:z.string().regex(/^\d{4}-\d{2}-\d{2}$/)});
-/** Historical cancellations and confirmed upgrades in the viewer's RLS scope. Rates only when a recorded base exists at period start. */
-export const historicoCS=createServerFn({method:"POST"}).middleware([requireActive]).inputValidator(i=>histSchemaV2.parse(i)).handler(async({data,context})=>{
- const db=context.supabase;const pipes=data.pipeline==="both"?[15,16]:[Number(data.pipeline)];
- const {csPeriodoAnterior}=await import("./cs-historico");const ant=csPeriodoAnterior(data.from,data.to);
- const all=async(t:string,cols:string,f:(q:any)=>any)=>{const out:any[]=[];for(let s=0;;s+=1000){const {data:r,error}=await f((db as any).from(t).select(cols)).range(s,s+999);if(error)throw new Error(error.message);out.push(...(r??[]));if((r?.length??0)<1000)break;}return out;};
- const canc=(await all("cs_cancelamentos","deal_id,org_id,pipeline_id,owner_id,stage_id,dia,valor,moeda,motivo,revertido",q=>q.in("pipeline_id",pipes).gte("dia",ant.from).lte("dia",data.to).order("deal_id"))).map(c=>({...c,deal_id:Number(c.deal_id),org_id:c.org_id===null?null:Number(c.org_id),valor:num(c.valor)}));
- const ev=(await all("cs_eventos_valor","deal_id,pipeline_id,owner_id,dia,valor_anterior,valor_novo",q=>q.in("pipeline_id",pipes).gte("dia",ant.from).lte("dia",data.to).order("deal_id"))).map(e=>({...e,deal_id:Number(e.deal_id),valor_anterior:Number(e.valor_anterior),valor_novo:Number(e.valor_novo)}));
- const ups=(await all("cs_atividades_cache","deal_id,tipo,concluida,data_conclusao,pipeline_id",q=>q.eq("tipo","upgrade").eq("concluida",true).in("pipeline_id",pipes).gte("data_conclusao",ant.from).lte("data_conclusao",data.to).order("activity_id"))).map(a=>({...a,deal_id:Number(a.deal_id)}));
- const {data:cr}=await db.from("cs_cancelamentos").select("dia").order("dia").limit(1).maybeSingle();
- const {data:lastExec}=await db.from("cs_cancelamentos").select("consultado_em").order("consultado_em",{ascending:false}).limit(1).maybeSingle();
- const {data:ve}=await db.from("cs_eventos_valor").select("dia").order("dia").limit(1).maybeSingle();
- const {count:base}=await db.from("cs_base_diaria").select("cliente",{count:"exact",head:true}).eq("dia",data.from).in("pipeline_id",pipes);
- const {data:mrrIni}=await db.from("cs_metricas_diarias").select("mrr,owner_id").eq("dia",data.from).in("pipeline_id",pipes);
- const mrrBase=(mrrIni??[]).length?(mrrIni??[]).reduce((s:number,x:any)=>s+Number(x.mrr??0),0):null;
- return {cancelamentos:canc,eventosValor:ev,atividadesUpgrade:ups,anterior:ant,
-  cancelDesde:(cr?.dia as string|undefined)??null,cancelAte:lastExec?.consultado_em?String(lastExec.consultado_em).slice(0,10):null,
-  valorDesde:(ve?.dia as string|undefined)??null,baseInicio:base&&base>0?base:null,mrrInicio:mrrBase};
-});
-/** Admin-only, explicit trigger: recovers 12 months of effective cancellations with the corporate integration (≈15 GET calls). */
+/** Admin-only, explicit trigger: recupera 36 meses de cancelamentos efetivos pela lista de perdidos (data de perda), sem changelog por negócio. */
 export const recuperarHistoricoCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async({context})=>{
- const {runCSHistorico}=await import("./cs-historico.server");return runCSHistorico(context.userId,12);
+ const {runCSHistorico}=await import("./cs-historico.server");return runCSHistorico(context.userId,36);
+});
+/** Admin: atividades concluídas desde 01/01 do ano anterior, em lotes retomáveis (treinamentos e produtividade mensais). */
+export const recuperarAtividadesCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async({context})=>{
+ const {runAtividadesHistoricas}=await import("./cs-recuperacao.server");return runAtividadesHistoricas(context.userId,`${Number(csDia().slice(0,4))-1}-01-01`);
+});
+/** Admin: reconstrói a entrada real no Onboarding dos projetos abertos (changelog oficial), em lotes. */
+export const reconstruirOnboardingCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async()=>{
+ const {runEntradasOnboarding}=await import("./cs-recuperacao.server");return runEntradasOnboarding();
+});
+
+/** Entradas no Onboarding (escopo RLS). entrada_origem preenchida = data reconstruída do histórico oficial; vazia = estimativa (contratação/criação). */
+type EntradaOnb={deal_id:number;entrou_em:string|null;entrada_origem:string|null};
+export const onboardingEntradasCS=createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context}):Promise<EntradaOnb[]>=>{
+ const {data,error}=await (context.supabase as any).from("cs_eventos_onboarding").select("deal_id,entrou_em,entrada_origem").is("saiu_em",null);
+ if(error)return [];
+ return (data??[]).map((r:any)=>({deal_id:Number(r.deal_id),entrou_em:r.entrou_em as string|null,entrada_origem:r.entrada_origem as string|null}));
 });

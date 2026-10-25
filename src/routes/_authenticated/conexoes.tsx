@@ -5,10 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Cabecalho, Pagina } from "@/components/munim/PaginaVazia";
 import { statusConexoes } from "@/lib/conexoes.functions";
 import { ConexoesPessoais } from "@/components/munim/ConexoesPessoais";
-import { Button } from "@/components/ui/button";
-import { TelegramConnection } from "@/components/munim/TelegramConnection";
 import {ConnectionRequest} from "@/components/munim/ConnectionRequest";
-import { toast } from "sonner";
 import { RefreshIntegrations } from "@/components/munim/RefreshIntegrations";
 import { useAuth } from "@/lib/auth";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
@@ -17,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
     meta: [
       { title: "Conexões — Munin" },
-      { name: "description", content: "Os sistemas que o Munin usa para agir por você: IA, CRM, agenda, e-mail e Telegram." },
+      { name: "description", content: "A integração corporativa da Central CS e as suas contas pessoais (agenda e e-mail)." },
       { property: "og:title", content: "Conexões — Munin" },
       { property: "og:description", content: "Conecte suas ferramentas ao Munin em poucos cliques." },
       { property: "og:type", content: "website" },
@@ -30,5 +27,5 @@ export const Route = createFileRoute("/_authenticated/conexoes")({
 function Conexoes() {
   const {session}=useAuth();const read=useServerFn(statusConexoes);
   const q=useQuery({queryKey:["conexoes",session?.user.id],queryFn:()=>read()});
-  return <Pagina><Cabecalho titulo="Conexões" frase="Suas ferramentas, suas contas."/><div className="mb-4 flex justify-end"><RefreshIntegrations/></div>{q.error&&<p role="alert" className="mb-4 text-warning">{q.error.message}</p>}<ConexoesPessoais servicos={q.data?.servicos} pipedrive={q.data?.pipedrive} pipedriveDominio={q.data?.pipedriveDominio}/><div className="grid gap-4 sm:grid-cols-2"><TelegramConnection/>{["WhatsApp","Microsoft Outlook/365","Notion","Slack","Trello","Todoist"].map(name=><section key={name} className="card-munim flex flex-col gap-3 p-5"><h2 className="font-display text-lg">{name}</h2><span className="text-xs text-muted-foreground">Em breve</span><Button variant="outline" disabled className="self-start">Conectar</Button></section>)}<ConnectionRequest/></div></Pagina>;
+  return <Pagina><Cabecalho titulo="Conexões" frase="Suas ferramentas, suas contas."/><div className="mb-4 flex justify-end"><RefreshIntegrations/></div>{q.error&&<p role="alert" className="mb-4 text-warning">{q.error.message}</p>}<ConexoesPessoais servicos={q.data?.servicos} pipedrive={q.data?.pipedrive} pipedriveDominio={q.data?.pipedriveDominio}/><div className="mt-4 grid gap-4 sm:grid-cols-2"><ConnectionRequest/></div></Pagina>;
 }

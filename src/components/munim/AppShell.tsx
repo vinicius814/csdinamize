@@ -1,9 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { telegramStatus } from "@/lib/telegram.functions";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
-import { Briefcase, CalendarDays, ChevronsLeft, Home, LogOut, Menu, MessageCircle, Mic, Search } from "lucide-react";
+import { AlertTriangle, Briefcase, CalendarDays, ChevronsLeft, Home, LogOut, Menu, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,7 +75,7 @@ function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: (
             <Link
               to={i.to}
               onClick={aoNavegar}
-              title={recolhida ? i.label : undefined}
+              title={recolhida ? i.label : i.indisponivel ? "Função indisponível no momento" : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
                 ativo
@@ -86,7 +84,8 @@ function ListaNav({ recolhida, aoNavegar }: { recolhida?: boolean; aoNavegar?: (
               )}
             >
               <i.icon className="h-[18px] w-[18px] shrink-0" />
-              {!recolhida && <span>{i.label}</span>}
+              {!recolhida && <span className="flex-1">{i.label}</span>}
+              {!recolhida && i.indisponivel && <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">indisponível</span>}
             </Link>
           </div>
         );
@@ -132,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Search className="h-4 w-4 shrink-0" />
           {!recolhida && (
             <>
-              <span>Buscar no Munin</span>
+              <span>Buscar clientes e páginas</span>
               <kbd className="ml-auto rounded border border-border px-1.5 text-[10px]">Ctrl K</kbd>
             </>
           )}
@@ -159,7 +158,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           [
             { to: "/", label: "Dashboard", icon: Home },
             { to: "/carteira", label: "Carteira", icon: Briefcase },
-            { to: "/conversa", label: "Chat do CS", icon: MessageCircle },
+            { to: "/clientes-risco", label: "Riscos", icon: AlertTriangle },
           ] as const
         ).map((i) => (
           <Link
@@ -174,7 +173,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             {i.label}
           </Link>
         ))}
-        <TelegramMic />
         <Link to="/agenda-atividades" className={cn("flex w-16 flex-col items-center gap-1 text-[11px]", path.startsWith("/agenda") ? "text-primary" : "text-muted-foreground")}>
           <CalendarDays className="h-5 w-5" />
           Agenda
@@ -197,24 +195,5 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <PaletaComandos aberta={paleta} setAberta={setPaleta} />
     </div>
-  );
-}
-
-function TelegramMic() {
-  const { session } = useAuth();
-  const read = useServerFn(telegramStatus);
-  const q = useQuery({ queryKey: ["telegram-status", session?.user.id], queryFn: () => read(), staleTime: 300_000, enabled: !!session });
-  const bot = q.data?.connected ? q.data.bot : null;
-  return (
-    <a
-      href={bot ? `https://t.me/${bot}` : "/conexoes#telegram"}
-      target={bot ? "_blank" : undefined}
-      rel="noreferrer"
-      className="-mt-6 flex w-20 flex-col items-center gap-1 text-center text-[10px] leading-tight text-muted-foreground"
-      aria-label="Áudio e arquivos pelo Telegram"
-    >
-      <span className="grid h-14 w-14 place-items-center rounded-full bg-primary text-primary-foreground shadow-glow"><Mic className="h-6 w-6" /></span>
-      Áudio e arquivos pelo Telegram
-    </a>
   );
 }

@@ -13,7 +13,6 @@ import { useAuth } from "@/lib/auth";
 import { useTema } from "@/lib/tema";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
-import {TelegramConnection} from "@/components/munim/TelegramConnection";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   head: () => ({
@@ -21,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { title: "Configurações — Munin" },
-      { name: "description", content: "Ajuste o Munin do seu jeito: Google, Telegram, rotina e aparência." },
+      { name: "description", content: "Ajuste o Munin do seu jeito: conexões, regras de risco, rotina e aparência." },
       { property: "og:title", content: "Configurações — Munin" },
       { property: "og:description", content: "Ajuste o Munin do seu jeito." },
     ],
@@ -96,7 +95,6 @@ function Configuracoes() {
         <Button variant="outline" className="justify-self-start" asChild><Link to="/memoria">O que o Munin sabe sobre você</Link></Button>
         <RegrasRisco/>
         <AutonomySettings/>
-        <TelegramConnection/>
 
         <Bloco icon={<Clock className="h-5 w-5" />} titulo="Rotina">
           {isPending ? <Skeleton className="h-32 w-full" /> : <div className="flex flex-col gap-4">

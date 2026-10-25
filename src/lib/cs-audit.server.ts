@@ -2,7 +2,8 @@ import { supabaseAdmin as db } from "@/integrations/supabase/client.server";
 import { csAuditDeal, type AuditEvent, type Change } from "./cs-audit";
 
 /** Explicit incremental audit only; never changes lazy sync, personal connections, or Pipedrive data. */
-export async function runCSAudit(from: string, to: string) {
+export async function runCSAudit(from: string, to: string, amplo = false) {
+  const t0 = Date.now();
   const token = process.env["PIPEDRIVE_SYNC_TOKEN"], domain = process.env["PIPEDRIVE_SYNC_DOMAIN"];
   if (!token || domain !== "cs-dinamize") throw new Error("Conexão corporativa indisponível.");
   let calls = 0;
@@ -24,16 +25,28 @@ export async function runCSAudit(from: string, to: string) {
       if ((data?.length ?? 0) < 1000) break;
     }
   }
+  // Carga histórica ampla (sob demanda): todos os negócios de CS e Perfil D presentes no snapshot central, em lotes com checkpoint.
+  if (amplo) {
+    for (let start = 0; ; start += 1000) {
+      const { data, error } = await (db as any).from("cs_snapshot").select("deal_id").in("pipeline_id", [15, 16]).order("deal_id").range(start, start + 999);
+      if (error) throw new Error(error.message);
+      for (const row of data ?? []) candidates.add(Number(row.deal_id));
+      if ((data?.length ?? 0) < 1000) break;
+    }
+  }
   const existing: {deal_id:number;verificado_em:string}[]=[];
   for(let start=0;;start+=1000){
     const {data,error}=await db.from("cs_auditoria_progresso").select("deal_id,verificado_em").eq("desde",from).eq("ate",to).order("deal_id").range(start,start+999);
     if(error)throw new Error(error.message); existing.push(...(data??[]));if((data?.length??0)<1000)break;
   }
-  const fresh = new Set(existing.filter(e => candidates.has(Number(e.deal_id)) && Date.now() - Date.parse(e.verificado_em) < 86400000).map(e => Number(e.deal_id)));
-  const ids = [...candidates].filter(id => !fresh.has(id)).slice(0, 25);
+  // Checkpoint: no modo amplo, negócio já verificado para o mesmo intervalo não é relido (histórico anterior à verificação não muda).
+  const fresh = new Set(existing.filter(e => candidates.has(Number(e.deal_id)) && (amplo || Date.now() - Date.parse(e.verificado_em) < 86400000)).map(e => Number(e.deal_id)));
+  const ids = [...candidates].filter(id => !fresh.has(id)).slice(0, amplo ? 40 : 25);
   const users = await get("/v1/users"), owners = new Map<number, string>((users.data ?? []).map((u: any) => [Number(u.id), String(u.name)]));
   const result: AuditEvent[] = [];
+  const feitos: number[] = [];
   for (const id of ids) {
+    if (Date.now() - t0 > 45_000) break; // orçamento de tempo por lote; o restante fica para o próximo lote
     const deal = (await get(`/v2/deals/${id}`)).data;
     const changes: Change[] = []; let cursor: string | null = null; const seen = new Set<string>();
     for (let page = 0; ; page++) {
@@ -48,11 +61,12 @@ export async function runCSAudit(from: string, to: string) {
     for(let start=0;;start+=1000){const {data,error}=await db.from("cs_atividades_cache").select("activity_id").eq("deal_id",id).eq("tipo","upgrade").order("activity_id").range(start,start+999);if(error)throw new Error(error.message);activityIds.push(...(data??[]).map(a=>Number(a.activity_id)));if((data?.length??0)<1000)break;}
     for(let start=0;start<activityIds.length;start+=100){const requested=activityIds.slice(start,start+100);const b=await get("/v2/activities",{ids:requested.join(","),limit:"500"});if(!Array.isArray(b.data)||requested.some(x=>!b.data.some((a:any)=>Number(a.id)===x&&Number(a.deal_id)===id)))throw new Error("Atividades candidatas incompletas; lote não publicado.");acts.push(...b.data);}
     result.push(...csAuditDeal(deal, changes, acts, owners, true).filter(e => e.dia >= from && e.dia <= to));
+    feitos.push(id);
   }
-  if (ids.length) {
+  if (feitos.length) {
     const unique = [...new Map(result.map(e => [e.evento_id, e])).values()];
-    const { error } = await db.rpc("cs_publicar_auditoria", {eventos:JSON.parse(JSON.stringify(unique)),negocios:ids,desde:from,ate:to});
+    const { error } = await db.rpc("cs_publicar_auditoria", {eventos:JSON.parse(JSON.stringify(unique)),negocios:feitos,desde:from,ate:to});
     if (error) throw new Error(error.message);
   }
-  return { verificados: ids.length, restantes: candidates.size - fresh.size - ids.length, eventos: result.length, consultas: calls };
+  return { verificados: feitos.length, restantes: candidates.size - fresh.size - feitos.length, eventos: result.length, consultas: calls, ms: Date.now() - t0 };
 }

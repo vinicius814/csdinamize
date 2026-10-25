@@ -6,9 +6,16 @@ type RecordData = Record<string, any>;
 const pageSchema=z.object({success:z.literal(true),data:z.array(z.record(z.any())).nullable(),additional_data:z.object({next_cursor:z.string().nullable().optional()}).passthrough().optional()}).passthrough();
 export async function runCSSync(source:"manual"|"agendado",actor:string|null=null,janela?:string) {
  let run:string;
- if(janela){const {data,error}=await db.rpc("cs_iniciar_sync_janela",{janela_id:janela});if(error)throw new Error(error.message);if(!data)return {id:null,status:"ignorado" as const,negocios_lidos:0,negocios_snapshot:0};run=data;}
+ if(janela){const {data,error}=await db.rpc("cs_iniciar_sync_janela",{janela_id:janela});if(error)throw new Error(error.message);if(!data)return {id:null,status:"ignorado" as const,negocios_lidos:0,lidos_api:0,reaproveitados:0,modo:"incremental" as "completo"|"incremental",negocios_snapshot:0,fases:{} as Record<string,number|string>};run=data;}
  else {const {data,error:startError}=await db.rpc("cs_iniciar_sync",{source,...(actor?{actor}:{})});if(startError||!data) throw new Error(startError?.message??"Não consegui iniciar a atualização.");run=data;}
- let lidos=0;const t0=Date.now();
+ let lidos=0;const t0=Date.now();const fases:Record<string,number|string>={};let marca=t0;const fase=(k:string)=>{const n=Date.now();fases[k]=n-marca;marca=n;};
+ // Modo: incremental relê só os cancelados alterados desde a última leitura bem-sucedida (com 1 dia de folga) e reaproveita os demais do snapshot.
+ // Leitura completa ao menos a cada 7 dias (remove excluídos/movidos que a leitura incremental não enxerga).
+ let modo:"completo"|"incremental"="completo",desdeIncremental:string|null=null;
+ try{const {data:ultimaCompleta}=await (db as any).from("cs_sync_runs").select("iniciado_em").eq("status","sucesso").eq("modo","completo").order("iniciado_em",{ascending:false}).limit(1).maybeSingle();
+  const {data:ultimaOk}=await db.from("cs_sync_runs").select("iniciado_em").eq("status","sucesso").order("iniciado_em",{ascending:false}).limit(1).maybeSingle();
+  if(ultimaCompleta&&ultimaOk&&Date.now()-Date.parse(String(ultimaCompleta.iniciado_em))<7*86400000){modo="incremental";desdeIncremental=new Date(Date.parse(String(ultimaOk.iniciado_em))-86400000).toISOString().slice(0,19)+"Z";}
+ }catch{modo="completo";}
  try {
   const token=process.env["PIPEDRIVE_SYNC_TOKEN"],domain=process.env["PIPEDRIVE_SYNC_DOMAIN"];
   if(!token||!domain) throw new Error("Configure PIPEDRIVE_SYNC_TOKEN e PIPEDRIVE_SYNC_DOMAIN.");
@@ -35,12 +42,14 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
    const found=await pages("/v2/deals",{pipeline_id:String(pipeline),status:"open",custom_fields});lidos+=found.length;
    for(const d of found) {if(Number(d["pipeline_id"])!==pipeline||d["status"]!=="open")throw new Error("Filtro de carteira não respeitado pela fonte.");deals.set(Number(d["id"]),d);}
    const stage=pipeline===15?105:pipeline===16?111:null;
-   if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");deals.set(Number(d["id"]),d);}}
+   if(stage){const cancelled=await pages("/v2/deals",{pipeline_id:String(pipeline),stage_id:String(stage),custom_fields,...(modo==="incremental"&&desdeIncremental?{updated_since:desdeIncremental}:{})});lidos+=cancelled.length;for(const d of cancelled){if(Number(d["pipeline_id"])!==pipeline||Number(d["stage_id"])!==stage)throw new Error("Filtro de cancelamento não respeitado pela fonte.");if(!deals.has(Number(d["id"])))deals.set(Number(d["id"]),d);}}
   }
+  fase("negocios_ms");
   // Complementary v1 read (same pipelines, paginated): last done activity date and linked e-mail times.
   const extra=new Map<number,RecordData>();
   for(const pipeline of [1,15,16]){let start=0;for(let n=0;;n++){if(n>1000)throw new Error("Limite de páginas excedido; snapshot preservado.");const body=await get(`/v1/pipelines/${pipeline}/deals`,{everyone:"1",limit:"500",start:String(start)});if(body.data!==null&&!Array.isArray(body.data))throw new Error("Leitura complementar inválida.");for(const d of body.data??[])extra.set(Number(d["id"]),d);const pg=body.additional_data?.pagination;if(!pg||typeof pg.more_items_in_collection!=="boolean")throw new Error("Paginação incompleta do Pipedrive.");if(!pg.more_items_in_collection)break;start=Number(pg.next_start);}}
   for(const [id,d] of deals)if(d["status"]==="open"&&!extra.has(id))throw new Error("Leitura complementar incompleta; snapshot preservado.");
+  fase("complementar_ms");
   const owners=new Set([...deals.values()].map(d=>Number(d["owner_id"])));const counts=new Map<number,number>(),abertas=new Map<number,number>(),nextActivities=new Map<number,string>();const today=csDia();
   // One shared read, then owner/deal scope is applied locally.
  const atividades:RecordData[]=[];const hojeMs=Date.parse(today+"T12:00:00Z"),desde=new Date(hojeMs-30*86400000).toISOString().slice(0,10),ate=new Date(hojeMs+14*86400000).toISOString().slice(0,10);
@@ -54,9 +63,11 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
   }
   // Completed activities of the last 30 days (incremental window by update_time).
    for(const a of await pages("/v2/activities",{done:"true",updated_since:new Date(hojeMs-31*86400000).toISOString().slice(0,19)+"Z"})){if(!deals.has(Number(a["deal_id"]))||!owners.has(Number(a["owner_id"])))continue;const due=a["due_date"] as string|null,conclusao=csDataAtividadeConcluida(a,today);if((due&&due>=desde&&due<=today)||(conclusao&&conclusao>=desde&&conclusao<=today))atividades.push(a);}
+  fase("atividades_ms");
   // Contact e-mail domains (corporate only) for optional calendar matching; batched person read.
   const personIds=[...new Set([...deals.values()].filter(d=>d["status"]==="open"&&d["person_id"]).map(d=>Number(d["person_id"])))];const dominios=new Map<number,string[]>();
   for(let i=0;i<personIds.length;i+=100){const b=await get("/v2/persons",{ids:personIds.slice(i,i+100).join(","),limit:"100"});if(!Array.isArray(b.data))throw new Error("Leitura de contatos inválida.");for(const p of b.data)dominios.set(Number(p["id"]),[...new Set(((p["emails"]??[]) as RecordData[]).map(e=>csDominioCorporativo(String(e["value"]??""))).filter((x):x is string=>!!x))]);}
+  fase("contatos_ms");
   const idSchema=z.coerce.number().int().positive();
   const date=(v:any):string|null=>{const value=v&&typeof v==="object"?v.value:v;return typeof value==="string"&&/^\d{4}-\d{2}-\d{2}/.test(value)?value.slice(0,10):null;};
   const field=(d:RecordData,k:string)=>{if(!d["custom_fields"]||!(k in d["custom_fields"]))return null;const v=d["custom_fields"][k];return v&&typeof v==="object"?v.value:v;};
@@ -74,6 +85,17 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
     const rotulos=x?.["label"];const etiquetas=(Array.isArray(rotulos)?rotulos:typeof rotulos==="string"?rotulos.split(","):[]).map(Number).filter(Number.isInteger);
     return {deal_id,org_id:d["org_id"]===null?null:idSchema.parse(d["org_id"]),org_nome:typeof x?.["org_name"]==="string"?x["org_name"]:null,titulo:z.string().min(1).parse(d["title"]),pipeline_id:Number(d["pipeline_id"]),stage_id:Number(d["stage_id"]),owner_id,owner_nome:names.get(owner_id)??null,status:d["status"],valor:value,perfil_conta:field(d,CS_FIELDS.perfil)?.toString()??null,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao:date(field(d,CS_FIELDS.contratacao)),stage_change_time:d["stage_change_time"]??null,add_time:d["add_time"]??null,proxima_atividade_data:nextActivities.get(deal_id)??null,atividades_vencidas:counts.get(deal_id)??0,atividades_abertas:abertas.get(deal_id)??0,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo:ef.data,origem_contato:ef.origem,contato_dominios:d["person_id"]?dominios.get(Number(d["person_id"]))??[]:[],etiquetas} as CSRow;
   });
+   fase("transformacao_ms");
+   // Leitura incremental: cancelados não alterados desde a última leitura são reaproveitados do snapshot (mesmos campos já publicados).
+   let reaproveitados=0;
+   if(modo==="incremental"){
+    const vistos=new Set(rows.map(r=>r.deal_id));
+    for(let start=0;;start+=1000){const {data,error}=await db.from("cs_snapshot").select("deal_id,org_id,org_nome,titulo,pipeline_id,stage_id,owner_id,owner_nome,status,valor,perfil_conta,ultimo_contato_efetivo,ultima_reuniao_cs,data_contratacao,stage_change_time,add_time,proxima_atividade_data,atividades_vencidas,atividades_abertas,ultima_atividade_concluida,ultimo_email_recebido,ultimo_email_enviado,contato_efetivo,origem_contato,contato_dominios,etiquetas").in("pipeline_id",[15,16]).in("stage_id",[105,111]).neq("status","open").order("deal_id").range(start,start+999);
+     if(error)throw new Error(`Reaproveitamento do snapshot: ${error.message}`);
+     for(const r of (data??[]) as unknown as CSRow[])if(!vistos.has(Number(r.deal_id))){rows.push({...r,deal_id:Number(r.deal_id),valor:r.valor===null?null:Number(r.valor)});vistos.add(Number(r.deal_id));reaproveitados++;}
+     if((data?.length??0)<1000)break;}
+   }
+   fase("reaproveitamento_ms");
    // Upgrades: backfill único (400 dias) de atividades concluídas de upgrade/downgrade; cache preserva essas concluídas entre sincronizações.
    try {
     const {data:marca}=await db.from("cs_upgrade_fonte").select("deal_id").eq("deal_id",-1).maybeSingle();
@@ -104,9 +126,14 @@ export async function runCSSync(source:"manual"|"agendado",actor:string|null=nul
      }
     }
    } catch(e){console.error("CS upgrades históricos",e instanceof Error?e.message:e);}
-   const t1=Date.now();
-  const {error}=await db.rpc("cs_publicar_tudo",{run,rows:JSON.parse(JSON.stringify(rows)),atividades:atividades.map(csAtividade),lidos});console.info("CS sync tempos",{leitura_ms:t1-t0,publicacao_ms:Date.now()-t1,negocios:rows.length,atividades:atividades.length,erro:error?.message??null});if(error)throw new Error(`${error.message} (publicação após ${Date.now()-t1} ms; leitura ${t1-t0} ms)`);
-  return {id:run,status:"sucesso" as const,negocios_lidos:lidos,negocios_snapshot:rows.length};
+   fase("upgrades_ms");
+   const t1=Date.now();const lidosApi=lidos;
+  const {error}=await db.rpc("cs_publicar_tudo",{run,rows:JSON.parse(JSON.stringify(rows)),atividades:atividades.map(csAtividade),lidos:lidosApi+reaproveitados});fase("publicacao_ms");
+  Object.assign(fases,{lidos_api:lidosApi,reaproveitados,snapshot:rows.length,atividades:atividades.length,total_ms:Date.now()-t0});
+  console.info("CS sync tempos",{modo,...fases,erro:error?.message??null});if(error)throw new Error(`${error.message} (publicação após ${Date.now()-t1} ms; leitura ${t1-t0} ms)`);
+  // Telemetria opcional: nunca falha a atualização.
+  try{await (db as any).from("cs_sync_runs").update({modo,fases}).eq("id",run);}catch{/* coluna ausente antes da migração */}
+  return {id:run,status:"sucesso" as const,negocios_lidos:lidosApi+reaproveitados,lidos_api:lidosApi,reaproveitados,modo,negocios_snapshot:rows.length,fases};
  } catch(e) {
   const erro=e instanceof Error?e.message:"Não consegui concluir a leitura central.";
   await db.from("cs_sync_runs").update({status:lidos?"parcial":"falha",concluido_em:new Date().toISOString(),negocios_lidos:lidos,erro}).eq("id",run).eq("status","executando");
