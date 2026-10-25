@@ -84,6 +84,8 @@ export async function runConfirmarCancelamentos() {
     const u = new URL(`https://${domain}.pipedrive.com/api${path}`); for (const [k, v] of Object.entries(q)) u.searchParams.set(k, v);
     consultas++;
     const r = await fetch(u, { headers: { "x-api-token": token! }, signal: AbortSignal.timeout(60000) });
+    // Negócio excluído no Pipedrive: não trava a fila; o registro fica como "sem_historico".
+    if (r.status === 404 || r.status === 410) return { success: true, data: null, additional_data: null };
     if (!r.ok) { const body = await r.text(); console.error("CS confirmação", r.status, body); throw new Error(`Pipedrive ${r.status}: leitura não concluída.`); }
     const b = await r.json(); if (b.success !== true) throw new Error("Pipedrive recusou a leitura."); return b;
   }

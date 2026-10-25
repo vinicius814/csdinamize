@@ -17,6 +17,7 @@ import { navVisivel } from "./nav";
 import { useConnectionPresence } from "@/lib/connection-presence";
 import { MuninLogo, RavenMark } from "./RavenMark";
 import { PaletaComandos } from "./PaletaComandos";
+import { CargasAutomaticas } from "./CargasAutomaticas";
 
 const PAPEL: Record<string, string> = { user: "CS", admin: "Admin", superadmin: "Superadmin" };
 
@@ -194,6 +195,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sheet>
 
       <PaletaComandos aberta={paleta} setAberta={setPaleta} />
+      <CargasAutomaticas />
     </div>
   );
 }

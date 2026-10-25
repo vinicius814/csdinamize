@@ -119,3 +119,31 @@ export const onboardingEntradasCS=createServerFn({method:"POST"}).middleware([re
 export const confirmarCancelamentosCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async()=>{
  const {runConfirmarCancelamentos}=await import("./cs-historico.server");return runConfirmarCancelamentos();
 });
+
+/**
+ * Admin: executa a PRÓXIMA etapa pendente das cargas históricas (uma por chamada, cada uma com orçamento de ~45s).
+ * Ordem: cancelamentos dos últimos 3 anos → confirmação de entrada/responsável → atividades concluídas → entradas do Onboarding.
+ * Somente leitura no Pipedrive; não concorre com a atualização de dados em andamento.
+ */
+export const proximaCargaCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async({context})=>{
+ const {supabaseAdmin:db}=await import("@/integrations/supabase/client.server");
+ const hoje=csDia();const limite=new Date(Date.parse(hoje+"T12:00:00Z")-35*30.44*86400000).toISOString().slice(0,10);
+ const {data:sync}=await db.from("cs_sync_runs").select("status,iniciado_em").order("iniciado_em",{ascending:false}).limit(1).maybeSingle();
+ if(sync?.status==="executando"&&Date.now()-Date.parse(sync.iniciado_em)<10*60_000)return {etapa:"aguardando",pendente:true,detalhe:"Atualização de dados em andamento."};
+ const {data:execs,error}=await (db as any).from("cs_historico_execucoes").select("tipo,status,desde").order("iniciado_em",{ascending:false}).limit(100);if(error)throw new Error(error.message);
+ const ex=(execs??[]) as {tipo:string;status:string;desde:string}[];
+ if(!ex.some(e=>e.tipo==="cancelamentos"&&e.status==="sucesso"&&e.desde<=limite)){
+  const {runCSHistorico}=await import("./cs-historico.server");const r=await runCSHistorico(context.userId,36);
+  return {etapa:"cancelamentos",pendente:true,detalhe:`${r.registros} cancelamentos recuperados desde ${r.desde}.`};
+ }
+ const {count:conf}=await (db as any).from("cs_cancelamentos").select("deal_id",{count:"exact",head:true}).eq("revertido",false).or("data_origem.is.null,data_origem.in.(etapa,perda)");
+ if(conf){const {runConfirmarCancelamentos}=await import("./cs-historico.server");const r=await runConfirmarCancelamentos();
+  return {etapa:"confirmacao",pendente:true,detalhe:`${r.feitos} cancelamentos confirmados; ${r.restantes} restantes.`};}
+ const desdeAt=`${Number(hoje.slice(0,4))-1}-01-01`;
+ if(!ex.some(e=>e.tipo==="atividades"&&e.status==="sucesso"&&e.desde===desdeAt)){const {runAtividadesHistoricas}=await import("./cs-recuperacao.server");const r=await runAtividadesHistoricas(context.userId,desdeAt);
+  return {etapa:"atividades",pendente:true,detalhe:`${r.gravadas} atividades concluídas gravadas${r.concluido?" (concluído)":""}.`};}
+ const {count:onb}=await (db as any).from("cs_eventos_onboarding").select("deal_id",{count:"exact",head:true}).is("saiu_em",null).is("entrada_origem",null);
+ if(onb){const {runEntradasOnboarding}=await import("./cs-recuperacao.server");const r=await runEntradasOnboarding();
+  return {etapa:"onboarding",pendente:true,detalhe:`${r.feitos} entradas de Onboarding reconstruídas; ${r.restantes} restantes.`};}
+ return {etapa:"concluido",pendente:false,detalhe:"Cargas históricas em dia."};
+});

@@ -11,6 +11,7 @@ function cliente() {
     const u = new URL(`https://${domain}.pipedrive.com/api${path}`); for (const [k, v] of Object.entries(q)) u.searchParams.set(k, v);
     chamadas++;
     const r = await fetch(u, { headers: { "x-api-token": String(token) }, signal: AbortSignal.timeout(60_000) });
+    if ((r.status === 404 || r.status === 410) && path.startsWith("/v")) { if (/\/deals\/\d+/.test(path)) return { success: true, data: null, additional_data: null }; }
     if (!r.ok) { const body = await r.text(); console.error("CS recuperação", r.status, body); throw new Error(`Pipedrive ${r.status}: leitura não concluída.`); }
     const b = await r.json(); if (b.success !== true) throw new Error("Pipedrive recusou a leitura."); return b;
   }
@@ -57,7 +58,7 @@ export async function runEntradasOnboarding() {
   let feitos = 0;
   for (const { deal_id } of abertos ?? []) {
     if (Date.now() - t0 > 40_000) break;
-    const deal = (await api.get(`/v2/deals/${deal_id}`)).data;
+    const deal = (await api.get(`/v2/deals/${deal_id}`)).data ?? {};
     const changes: Change[] = []; let cursor: string | null = null;
     for (let p = 0; p < 50; p++) { const b = await api.get(`/v1/deals/${deal_id}/changelog`, { limit: "500", ...(cursor ? { cursor } : {}) }); changes.push(...(b.data ?? [])); cursor = b.additional_data?.next_cursor ?? null; if (!cursor) break; }
     const e = csEntradaOnboarding(deal, changes);

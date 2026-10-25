@@ -34,3 +34,7 @@ Registro das definições confirmadas pela operação. Atualizado em 25/10/2026 
 - Tela Cancelamentos (menu Operação): mês a mês pela data de entrada em Cancelados, filtro de carteira e de responsável (lista, resumo e CSV usam os mesmos registros), colunas de entrada, perda, motivo e valor.
 - Origem da data (`cs_cancelamentos.data_origem`): `historico` = confirmada pelo changelog; `etapa` = última mudança de etapa do negócio (estimativa); `perda` = só a data de perda; `sem_historico` = changelog sem registro da entrada.
 - Para confirmar: Análise Gerencial → Qualidade → "Cancelamentos: confirmar entrada e responsável (próximo lote)" até zerar os restantes.
+
+## Cargas históricas
+- Avançam sozinhas enquanto um administrador usa o Munin (uma etapa por vez, até 12 etapas a cada 30 minutos): cancelamentos dos últimos 3 anos → confirmação de entrada em Cancelados e responsável na data → atividades concluídas desde 01/01 do ano anterior → entradas reais no Onboarding. Não concorrem com a atualização de dados e só leem o Pipedrive.
+- O histórico de Valor de todos os negócios (upgrades anteriores a out/2026) continua sob demanda em Análise Gerencial → Qualidade, por ser longo.
