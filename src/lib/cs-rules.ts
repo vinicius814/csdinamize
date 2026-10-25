@@ -11,7 +11,7 @@ export function csDia(d=new Date()) { return new Intl.DateTimeFormat("en-CA",{ti
 export function csDias(data:string|null, hoje=csDia()) { return data?Math.floor((Date.parse(hoje+"T12:00:00Z")-Date.parse(data+"T12:00:00Z"))/86400000):null; }
 /** Etiqueta oficial de risco alto no Pipedrive ("Risco de Churn", id 709). */
 export const CS_TAG_RISCO_CHURN=709;
-/** Cobertura usa exclusivamente o campo oficial "Data do último contato efetivo" do Pipedrive. E-mails e atividades concluídas são complementares (Cliente 360) e nunca substituem o campo. */
+/** Cobertura usa exclusivamente o campo oficial "Data do último contato efetivo" do Pipedrive (definição confirmada pela operação em 25/10/2026). E-mails e atividades concluídas são complementares (Cliente 360) e nunca substituem o campo. */
 export function csContato(r:CSRow){ return r.ultimo_contato_efetivo; }
 /** Pendência de retorno: atividade aberta cujo assunto registra follow-up/retorno (identificador real da operação; não existe tipo ou campo dedicado no Pipedrive). */
 export const csEhRetorno=(assunto:string)=>/(follow|flw|retorno)/i.test(assunto);
