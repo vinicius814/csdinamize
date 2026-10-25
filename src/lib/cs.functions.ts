@@ -8,9 +8,17 @@ type Db = any;
 const num=(v:unknown)=>v===null||v===undefined?null:Number(v);
 function normalize(r:any):CSRow{return {...r,valor:num(r.valor),owner_nome:csNomeResponsavel(Number(r.owner_id),r.owner_nome),risco_fatores:r.risco_fatores??[]};}
 async function readRows(db:Db,apply:(q:any)=>any=q=>q):Promise<CSRow[]>{
- const rows:CSRow[]=[];
- for(let start=0;;start+=1000){const {data,error}=await apply(db.from("cs_snapshot_risco").select("*")).order("deal_id").range(start,start+999);if(error)throw new Error(error.message);rows.push(...(data??[]).map(normalize));if((data?.length??0)<1000)break;}
- return rows;
+ // Paginação por chave (deal_id > último) em faixas paralelas: OFFSET reavaliava a view (RLS + risco) desde o início a cada página
+ // e a leitura completa levava ~24s; por chave cada página custa o mesmo (~0,3s) e as faixas rodam juntas.
+ const {data:topo,error:tErr}=await db.from("cs_snapshot").select("deal_id").order("deal_id",{ascending:false}).limit(1).maybeSingle();if(tErr)throw new Error(tErr.message);
+ const max=Number(topo?.deal_id??0);if(!max)return [];
+ const FAIXAS=6,passo=Math.ceil((max+1)/FAIXAS);
+ const faixa=async(ini:number,fim:number)=>{const out:CSRow[]=[];let ultimo=ini-1;
+  for(;;){const {data,error}=await apply(db.from("cs_snapshot_risco").select("*")).gt("deal_id",ultimo).lt("deal_id",fim).order("deal_id").limit(1000);if(error)throw new Error(error.message);
+   const lote=data??[];out.push(...lote.map(normalize));if(lote.length<1000)break;ultimo=Number(lote[lote.length-1].deal_id);}
+  return out;};
+ const partes=await Promise.all(Array.from({length:FAIXAS},(_,i)=>faixa(i*passo,i===FAIXAS-1?max+1:(i+1)*passo)));
+ return partes.flat();
 }
 export const readCS = createServerFn({method:"POST"}).middleware([requireActive]).handler(async({context})=>{
  const db=context.supabase;

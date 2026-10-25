@@ -128,3 +128,6 @@ export function csValidarIntervalo(ini:string,fim:string):string|null{const ok=(
 /** "Carteira compartilhada" da operação = carteira de Carolina Branchi (Pipedrive 158921), confirmado em 25/10/2026. */
 export const CS_CARTEIRA_COMPARTILHADA=158921;
 export const csNomeResponsavel=(id:number,nome:string|null|undefined)=>id===CS_CARTEIRA_COMPARTILHADA?`Carteira compartilhada (${nome??"Carolina Branchi"})`:(nome??null);
+
+/** Agrupa fatores de risco por motivo (o texto do fator traz a contagem de dias de cada cliente). */
+export const csMotivoRisco=(f:string)=>{const t=/^\d+ dias sem contato efetivo$/.test(f)?"sem contato efetivo além do prazo de risco":f;return t.charAt(0).toUpperCase()+t.slice(1);};

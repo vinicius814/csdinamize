@@ -9,12 +9,12 @@ import { Button } from "@/components/ui/button";
 import { CS_PIPELINES, CS_STAGES, csDia, csFimMes } from "@/lib/cs-rules";
 import { csAuditClientKey } from "@/lib/cs-audit";
 
-type Busca = { mes?: string | undefined; pipeline?: "15" | "16" | "both" | undefined; owner?: string | undefined };
+type Busca = { mes?: string | undefined; pipeline?: "15" | "16" | "both" | undefined; owner?: number | undefined };
 export const Route = createFileRoute("/_authenticated/cancelamentos")({
   validateSearch: (s: Record<string, unknown>): Busca => ({
     mes: /^\d{4}-\d{2}$/.test(String(s["mes"] ?? "")) ? String(s["mes"]) : undefined,
     pipeline: ["15", "16", "both"].includes(String(s["pipeline"])) ? s["pipeline"] as Busca["pipeline"] : undefined,
-    owner: /^\d+$/.test(String(s["owner"] ?? "")) ? String(s["owner"]) : undefined,
+    owner: Number.isInteger(Number(s["owner"])) && Number(s["owner"]) > 0 ? Number(s["owner"]) : undefined,
   }),
   head: () => ({ meta: [{ title: "Cancelamentos — Munin CS" }, { name: "description", content: "Negócios cancelados mês a mês, pela data de entrada em Cancelados, com o CS responsável na data." }, { property: "og:title", content: "Cancelamentos — Munin CS" }, { property: "og:description", content: "Cancelamentos mensais de Customer Success." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Cancelamentos,
@@ -39,7 +39,7 @@ function Cancelamentos() {
   const doMes = useMemo(() => cancel.filter(e => e.dia >= from && e.dia <= to && (pipeline === "both" ? [15, 16].includes(e.pipeline_id) : e.pipeline_id === Number(pipeline))), [cancel, from, to, pipeline]);
   // Responsáveis = quem tem cancelamento no mês (inclui quem não tem mais carteira ativa).
   const responsaveis = [...new Map(doMes.map(e => [e.owner_id, e.owner_nome ?? `Responsável ${e.owner_id}`])).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
-  const lista = doMes.filter(e => !busca.owner || e.owner_id === Number(busca.owner)).sort((a, b) => a.dia.localeCompare(b.dia) || a.cliente.localeCompare(b.cliente, "pt-BR"));
+  const lista = doMes.filter(e => !busca.owner || e.owner_id === busca.owner).sort((a, b) => a.dia.localeCompare(b.dia) || a.cliente.localeCompare(b.cliente, "pt-BR"));
   const comValor = lista.filter(e => e.mrr_perdido !== null);
   const total = comValor.reduce((s, e) => s + Math.round(Number(e.mrr_perdido) * 100), 0) / 100;
   const semValor = lista.length - comValor.length, estimados = lista.filter(e => !e.responsavel_confirmado).length;
@@ -59,7 +59,7 @@ function Cancelamentos() {
       <input type="month" aria-label="Mês" className={selectStyle} value={mes} max={hoje.slice(0, 7)} onChange={e => e.target.value && set({ mes: e.target.value, owner: undefined })} />
       <Button size="sm" variant="outline" aria-label="Próximo mês" disabled={mes >= hoje.slice(0, 7)} onClick={() => set({ mes: mover(mes, 1), owner: undefined })}><ChevronRight className="h-4 w-4" /></Button>
       <select aria-label="Carteira" className={selectStyle} value={pipeline} onChange={e => set({ pipeline: e.target.value as Busca["pipeline"], owner: undefined })}><option value="15">Customer Success</option><option value="16">Perfil D</option><option value="both">Ambas as carteiras</option></select>
-      <select aria-label="Responsável" className={selectStyle} value={busca.owner ?? ""} onChange={e => set({ owner: e.target.value || undefined })}><option value="">Todos os responsáveis</option>{responsaveis.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
+      <select aria-label="Responsável" className={selectStyle} value={busca.owner ?? ""} onChange={e => set({ owner: Number(e.target.value) || undefined })}><option value="">Todos os responsáveis</option>{responsaveis.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
       <Button size="sm" variant="outline" className="ml-auto" disabled={!lista.length} onClick={exportar}><Download className="h-4 w-4" />Exportar CSV</Button>
     </div>
     {q.isPending ? <PageSkeleton /> : q.error ? <p role="alert" className="text-sm text-destructive">Falha de leitura: {q.error.message}</p> : <>

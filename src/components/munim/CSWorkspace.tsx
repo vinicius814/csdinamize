@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
 import { RefreshCw, ExternalLink, X, SlidersHorizontal, AlertTriangle, PhoneOff, Clock, Mail, UserPlus, ChevronRight, ArrowUpDown, Search, Filter } from "lucide-react";
 import { readCS, syncCS, autoSyncCS, agendaCS, retornosCS } from "@/lib/cs.functions";
-import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, CS_PERIODOS, type CSPeriodo, csEhReuniao, csResponsaveisAtivos, csValidarIntervalo, type CSRow, type RiscoCor } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_STAGES, csAtivo, csClientes, csDonoCliente, csDia, csDias, csMetricas, csPeriodo, CS_PERIODOS, type CSPeriodo, csEhReuniao, csMotivoRisco, csResponsaveisAtivos, csValidarIntervalo, type CSRow, type RiscoCor } from "@/lib/cs-rules";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,7 +130,7 @@ export function CSDashboard({filtro:urlFiltro,setFiltro:setUrlFiltro}:{filtro:Pa
    {ws.manager?<Bars title="Cobertura 60d por responsável" items={cobOwner} format={n=>`${n.toFixed(0)}%`} link={<Link to="/carteiras-cs" search={ctx as never} className="text-xs text-primary hover:underline">Comparar</Link>}/>:<Bars title="Clientes por etapa" items={[...new Set(clientes.map(c=>c.rows[0]!.stage_id))].map(s=>[CS_STAGES[s]??String(s),clientes.filter(c=>c.rows[0]!.stage_id===s).length])}/>}
    <section className="card-munim p-4"><CSFinancialAudit pipeline={pipe} owner={owner?Number(owner):null} from={from} to={to} ownerNames={ownerNames}/></section>
    {pipe==="both"&&<Bars title="Clientes por carteira" items={[15,16].map(p=>[CS_PIPELINES[p as 15|16],clientes.filter(c=>c.pipeline_id===p).length])}/>}
-   <Bars title="Principais motivos de risco" items={[...clientes.filter(c=>c.cor==="vermelho").flatMap(c=>c.fatores).reduce((m,f)=>m.set(f,(m.get(f)??0)+1),new Map<string,number>()).entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}/>
+   <Bars title="Principais motivos de risco" items={[...clientes.filter(c=>c.cor==="vermelho").flatMap(c=>[...new Set(c.fatores.map(csMotivoRisco))]).reduce((m,f)=>m.set(f,(m.get(f)??0)+1),new Map<string,number>()).entries()].sort((a,b)=>b[1]-a[1]).slice(0,6)}/>
   </div></section>
   {ws.manager&&<section className="mt-8"><Link to="/analise-gerencial" search={{pipeline:pipe,...(owner?{owner}:{})} as never} className="card-munim flex items-center justify-between gap-3 p-4 hover:border-primary/50"><div><p className="text-sm font-medium">Evolução, receita, retenção e desempenho</p><p className="text-xs text-muted-foreground">Análise Gerencial: séries mensais, comparação entre períodos e qualidade dos dados.</p></div><ChevronRight className="h-4 w-4 text-muted-foreground"/></Link></section>}
   <section className="mt-8"><h2 className="mb-3 font-display text-lg">Acompanhamento</h2><div className="grid gap-4 lg:grid-cols-3">
@@ -190,7 +190,7 @@ export function CSMinhaCarteira({situacao,setSituacao,ctx={}}:{situacao:Situacao
 // ───────────────────────── Carteiras CS (gestão) ─────────────────────────
 type Col="label"|"clientes"|"mrr"|"ticket"|"cobertura"|"emRisco"|"vencidas";
 export function CSCarteiras({situacao,setSituacao,ctx={}}:{situacao:Situacao;setSituacao:(s:Situacao)=>void;ctx?:{pipeline?:string|undefined;owner?:string|undefined}}){
- const ws=useWorkspace();const [pipeline,setPipeline]=useState(ctx.pipeline??"both"),[owner,setOwner]=useState(ctx.owner??""),[search,setSearch]=useState(""),[risco,setRisco]=useState(""),[stage,setStage]=useState(""),[days,setDays]=useState(60),[sort,setSort]=useState<{c:Col;desc:boolean}>({c:"mrr",desc:true});
+ const ws=useWorkspace();const [pipeline,setPipeline]=useState(ctx.pipeline??"15"),[owner,setOwner]=useState(ctx.owner??""),[search,setSearch]=useState(""),[risco,setRisco]=useState(""),[stage,setStage]=useState(""),[days,setDays]=useState(60),[sort,setSort]=useState<{c:Col;desc:boolean}>({c:"mrr",desc:true});
  return <Estado ws={ws}>{()=>{
   if(!ws.manager)return <Pagina larga><Topo titulo="Carteiras CS" frase="Visão gerencial." ws={ws}/><p className="card-munim p-6 text-sm text-muted-foreground">Acesso não autorizado: esta visão é exclusiva de gestores e administradores.</p></Pagina>;
   const all=ws.d?.rows??[];const scope=all.filter(inPipe(pipeline));const owners=csResponsaveisAtivos(scope);

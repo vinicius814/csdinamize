@@ -6,9 +6,9 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { analiseCS } from "@/lib/cs-analise.functions";
 import { recuperarHistoricoCS, recuperarAtividadesCS, reconstruirOnboardingCS, confirmarCancelamentosCS } from "@/lib/cs.functions";
-import { csSerieMensal, csTotaisPeriodo, csQualidade, csPeriodoAnteriorIgual, csPosicao, type MesAnalise, type FiltroAnalise, type AtividadeConcluida } from "@/lib/cs-analise";
+import { csSerieMensal, csTotaisPeriodo, csQualidade, csPeriodoComparavel, csPosicao, type MesAnalise, type FiltroAnalise, type AtividadeConcluida } from "@/lib/cs-analise";
 import { csCancelamentosUnificados, csAuditSummary, type AuditEvent } from "@/lib/cs-audit";
-import { CS_PIPELINES, CS_ONBOARDING_STAGES, type CSRow, csClientes, csDonoCliente, csMetricas, csDia, csDias, csClassificarChurn, csClassificarCobertura, csResponsaveisAtivos, csValidarIntervalo, csFimMes } from "@/lib/cs-rules";
+import { CS_PIPELINES, CS_ONBOARDING_STAGES, type CSRow, csClientes, csDonoCliente, csMetricas, csDia, csDias, csClassificarChurn, csClassificarCobertura, csResponsaveisAtivos, csValidarIntervalo, csFimMes, csNomeResponsavel } from "@/lib/cs-rules";
 import { useCSData, UltimaAtualizacao, selectStyle } from "@/components/munim/CSWorkspace";
 import { EventosTabela, AuditoriaLote, brl } from "@/components/munim/CSFinancialAudit";
 import { readCSAudit } from "@/lib/cs-audit.functions";
@@ -62,7 +62,7 @@ function Analise() {
   const busca = Route.useSearch(); const navigate = useNavigate({ from: Route.fullPath });
   const set = (p: Partial<Busca>) => navigate({ search: prev => ({ ...prev, ...p }) });
   const { session } = useAuth(); const cs = useCSData(); const hoje = csDia();
-  const per = intervalo(busca, hoje); const ant = csPeriodoAnteriorIgual(per.from, per.to);
+  const per = intervalo(busca, hoje); const ant = csPeriodoComparavel(per.from, per.to, per.erro ? "ano" : busca.modo ?? "ano");
   const filtro: FiltroAnalise = useMemo(() => ({ pipeline: busca.pipeline ?? "15", owner: busca.owner ? Number(busca.owner) : null }), [busca.pipeline, busca.owner]);
   const aba = busca.aba ?? "evolucao";
   const fnA = useServerFn(analiseCS), fnE = useServerFn(readCSAudit), qc = useQueryClient();
@@ -90,7 +90,7 @@ function Analise() {
   if (!manager) return <Pagina larga><Cabecalho titulo="Análise Gerencial" frase="Visão gerencial." /><p className="card-munim p-6 text-sm text-muted-foreground">Acesso não autorizado: esta visão é exclusiva de gestores e administradores.</p></Pagina>;
   const scope = rows.filter(r => filtro.pipeline === "both" ? [15, 16].includes(r.pipeline_id) : r.pipeline_id === Number(filtro.pipeline));
   // Responsáveis = carteira ativa + quem tem eventos no período (ex.: cancelamentos de quem não tem mais carteira).
-  const owners: [number, string][] = [...new Map<number, string>([...csResponsaveisAtivos(scope), ...(calc ? [...calc.can, ...calc.exp].filter(e => filtro.pipeline === "both" ? [15, 16].includes(e.pipeline_id) : e.pipeline_id === Number(filtro.pipeline)).map(e => [e.owner_id, e.owner_nome ?? `Responsável ${e.owner_id}`] as [number, string]) : [])]).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  const owners: [number, string][] = [...new Map<number, string>([...(calc ? [...calc.can, ...calc.exp].filter(e => filtro.pipeline === "both" ? [15, 16].includes(e.pipeline_id) : e.pipeline_id === Number(filtro.pipeline)).map(e => [e.owner_id, csNomeResponsavel(e.owner_id, e.owner_nome) ?? `Responsável ${e.owner_id}`] as [number, string]) : []), ...csResponsaveisAtivos(scope)]).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const anos = Array.from({ length: 4 }, (_, i) => String(Number(hoje.slice(0, 4)) - i));
   const delta = (a: number | null | undefined, b: number | null | undefined, f: (n: number) => string) => a === null || a === undefined || b === null || b === undefined ? "anterior: sem dados" : `anterior ${f(b)} · ${a - b >= 0 ? "+" : ""}${f(a - b)}`;
   const carregando = dados.isPending || ev.isPending || !calc;
@@ -115,7 +115,7 @@ function Analise() {
       {aba === "evolucao" && <Evolucao meses={calc.meses} tot={calc.tot} totAnt={calc.totAnt} delta={delta} metrica={metrica} setMetrica={setMetrica} setDrill={setDrill} />}
       {aba === "receita" && <Receita meses={calc.meses} tot={calc.tot} totAnt={calc.totAnt} delta={delta} setDrill={setDrill} />}
       {aba === "desempenho" && <Desempenho rows={scope} meses={calc.meses} metricas={dados.data!.metricas} can={calc.can} exp={calc.exp} from={per.from} to={per.to} owners={owners} filtroOwner={filtro.owner} pipeline={filtro.pipeline} setDrill={setDrill} />}
-      {aba === "onboarding" && <Onboarding rows={rows} meses={calc.meses} tot={calc.tot} owner={filtro.owner} setDrill={setDrill} />}
+      {aba === "onboarding" && <Onboarding rows={rows} meses={calc.meses} tot={calc.tot} owner={filtro.owner} setDrill={setDrill} atividadesDesde={dados.data!.fontes.atividadesDesde} />}
       <Qualidade admin={admin} meses={calc.meses} can={calc.can.filter(e => e.dia >= per.from && e.dia <= per.to)} fontes={dados.data!.fontes} from={per.from} to={per.to} pendentes={calc.resumo.pending.length} rows={scope} onDone={() => { void qc.invalidateQueries({ queryKey: ["cs-analise"] }); void qc.invalidateQueries({ queryKey: ["cs-audit"] }); }} />
     </>}
     <Dialog open={!!drill} onOpenChange={o => { if (!o) setDrill(null); }}><DialogContent className="max-h-[85dvh] w-[calc(100%_-_2rem)] max-w-6xl overflow-y-auto">
@@ -192,7 +192,9 @@ function Desempenho({ rows, meses, metricas, can, exp, from, to, owners, filtroO
   </section>;
 }
 
-function Onboarding({ rows, meses, tot, owner, setDrill }: { rows: CSRow[]; meses: MesAnalise[]; tot: Tot; owner: number | null; setDrill: SetDrill }) {
+function Onboarding({ rows, meses, tot, owner, setDrill, atividadesDesde }: { rows: CSRow[]; meses: MesAnalise[]; tot: Tot; owner: number | null; setDrill: SetDrill; atividadesDesde: string | null }) {
+  // Treinamentos: mês inteiro antes do início do histórico de atividades = sem dados (nunca zero).
+  const semTreino = (mes: string) => !atividadesDesde || csFimMes(mes) < atividadesDesde;
   const proj = rows.filter(r => r.pipeline_id === 1 && r.status === "open" && (owner === null || r.owner_id === owner));
   const ativos = proj.filter(r => r.stage_id !== 12), bloq = proj.filter(r => r.stage_id === 12);
   const soma = (xs: typeof proj) => xs.reduce((s, r) => s + (r.valor ?? 0), 0);
@@ -205,8 +207,8 @@ function Onboarding({ rows, meses, tot, owner, setDrill }: { rows: CSRow[]; mese
       <Kpi l="Treinamentos realizados no período" v={tot.treinamentos} n="Atividades concluídas de treinamento" />
     </div>
     <div className="mt-5 grid gap-4 lg:grid-cols-2">
-      <div className="card-munim p-4"><h3 className="mb-3 text-sm font-medium">Por mês</h3><table className="w-full text-left text-xs"><thead><tr>{["Mês", "Concluídos", "Treinamentos"].map(h => <th key={h} className="border-b border-border px-2 py-2 font-medium">{h}</th>)}</tr></thead><tbody>{meses.map(m => <tr key={m.mes} className="border-b border-border"><td className="px-2 py-2">{mesLabel(m.mes)}{m.parcial ? " · parcial" : ""}</td><td className="px-2 py-2"><button className="tabular-nums hover:underline" onClick={() => setDrill({ titulo: `Onboardings concluídos · ${mesLabel(m.mes)}`, eventos: m.eventos.concluidos })}>{m.onboarding.concluidos}</button></td><td className="px-2 py-2"><button className="tabular-nums hover:underline" onClick={() => setDrill({ titulo: `Treinamentos · ${mesLabel(m.mes)}`, atividades: m.eventos.treinamentos })}>{m.onboarding.treinamentos}</button></td></tr>)}</tbody></table>
-        <p className="mt-2 text-[11px] text-muted-foreground">Conclusões e treinamentos são fluxos (somáveis). Meses anteriores à recuperação histórica aparecem como zero apenas quando a fonte cobre o mês — veja Qualidade.</p></div>
+      <div className="card-munim p-4"><h3 className="mb-3 text-sm font-medium">Por mês</h3><table className="w-full text-left text-xs"><thead><tr>{["Mês", "Concluídos", "Treinamentos"].map(h => <th key={h} className="border-b border-border px-2 py-2 font-medium">{h}</th>)}</tr></thead><tbody>{meses.map(m => <tr key={m.mes} className="border-b border-border"><td className="px-2 py-2">{mesLabel(m.mes)}{m.parcial ? " · parcial" : ""}</td><td className="px-2 py-2"><button className="tabular-nums hover:underline" onClick={() => setDrill({ titulo: `Onboardings concluídos · ${mesLabel(m.mes)}`, eventos: m.eventos.concluidos })}>{m.onboarding.concluidos}</button></td><td className="px-2 py-2"><button className="tabular-nums hover:underline" onClick={() => setDrill({ titulo: `Treinamentos · ${mesLabel(m.mes)}`, atividades: m.eventos.treinamentos })}>{semTreino(m.mes) ? "—" : `${m.onboarding.treinamentos}${atividadesDesde && atividadesDesde > m.mes + "-01" ? " (parcial)" : ""}`}</button></td></tr>)}</tbody></table>
+        <p className="mt-2 text-[11px] text-muted-foreground">Conclusões e treinamentos são fluxos (somáveis). Traço = mês sem histórico de atividades carregado (não é zero). Concluídos dependem da reconstrução de entradas do Onboarding — veja Qualidade.</p></div>
       <div className="card-munim p-4"><h3 className="mb-3 text-sm font-medium">Aging por etapa (agora)</h3><table className="w-full text-left text-xs"><thead><tr>{["Etapa", "Projetos", "Valor", "Dias na etapa (média)"].map(h => <th key={h} className="border-b border-border px-2 py-2 font-medium">{h}</th>)}</tr></thead><tbody>{[...CS_ONBOARDING_STAGES, [12, "Bloq/Susp/Canc"] as [number, string]].map(([id, n]) => { const xs = proj.filter(r => r.stage_id === id); const dias = xs.map(r => r.stage_change_time ? csDias(r.stage_change_time.slice(0, 10), hoje) : null).filter((d): d is number => d !== null); return <tr key={id} className="border-b border-border"><td className="px-2 py-2">{n}</td><td className="px-2 py-2 tabular-nums">{xs.length}</td><td className="px-2 py-2 tabular-nums">{brlK(soma(xs))}</td><td className="px-2 py-2 tabular-nums">{dias.length ? Math.round(dias.reduce((s, d) => s + d, 0) / dias.length) : "—"}</td></tr>; })}</tbody></table></div>
     </div>
   </section>;

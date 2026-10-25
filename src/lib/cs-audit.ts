@@ -112,13 +112,15 @@ export function csCancelamentosUnificados(lista: CancelamentoLista[], audit: Aud
     if (c.revertido || ![15, 16].includes(c.pipeline_id)) continue;
     const a = auditados.get(c.deal_id);
     const confirmado = c.data_origem === "historico" || !!a;
-    const dia = c.data_origem === "historico" || !a ? c.dia : a.dia;
+    // Dia: "historico" e "etapa" já são a entrada em Cancelados (o negócio está na etapa, então a última mudança de etapa foi a entrada).
+    // Eventos da auditoria gravados antes da regra de 25/10 trazem a data da perda — só servem quando a lista não sabe a entrada.
+    const dia = c.data_origem === "historico" || c.data_origem === "etapa" || !a ? c.dia : a.dia;
     const owner = c.data_origem === "historico" || !a ? c.owner_id : a.owner_id;
     const valor = a && a.mrr_perdido !== null ? a.mrr_perdido : c.valor;
     out.push({ evento_id: `lista:${c.deal_id}`, tipo: "cancelamento", deal_id: c.deal_id, org_id: c.org_id, pipeline_id: c.pipeline_id, owner_id: owner,
       cliente: c.cliente ?? a?.cliente ?? `Negócio ${c.deal_id}`, negocio: a?.negocio ?? String(c.deal_id), owner_nome: owners.get(owner) ?? (owner === c.owner_id ? c.owner_nome ?? null : null) ?? a?.owner_nome ?? null,
       dia, ocorrido_em: (c.perdido_em ?? c.dia) + "T12:00:00.000Z", estado: valor === null ? "pendente" : "confirmado",
-      fonte: confirmado ? "Histórico: entrada em Cancelados e responsável na data" : c.data_origem === "perda" ? "Estimativa: entrada desconhecida (data da perda) e responsável atual" : "Estimativa: entrada pela etapa atual e responsável atual",
+      fonte: c.data_origem === "historico" ? "Histórico: entrada em Cancelados e responsável na data" : a ? "Entrada pela etapa de Cancelados; responsável pelo histórico do negócio" : c.data_origem === "perda" ? "Estimativa: entrada desconhecida (data da perda) e responsável atual" : "Estimativa: entrada pela etapa atual e responsável atual",
       motivo: `Entrou em Cancelados em ${br(dia)}; perdido em ${br(c.perdido_em ?? null)}.${valor === null ? (c.moeda && c.moeda !== "BRL" ? ` Moeda ${c.moeda}; valor não somado em BRL.` : " Valor desconhecido.") : ""}${c.motivo ? " Motivo: " + c.motivo : ""}`,
       mrr_anterior: null, mrr_posterior: null, mrr_perdido: valor, valor_anterior: valor, valor_posterior: null, status: "lost", activity_id: null,
       responsavel_confirmado: confirmado, perdido_em: c.perdido_em ?? null, motivo_perda: c.motivo ?? null });

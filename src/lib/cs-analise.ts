@@ -87,13 +87,30 @@ export function csPeriodoAnteriorIgual(from: string, to: string) {
   return { from: new Date(Date.parse(from + "T12:00:00Z") - d * 86400000).toISOString().slice(0, 10), to: new Date(Date.parse(from + "T12:00:00Z") - 86400000).toISOString().slice(0, 10) };
 }
 
+/** Desloca uma data em meses; o último dia do mês continua sendo o último dia (31/03 − 1 mês = 28/02 ou 29/02). */
+export function csDeslocarMeses(dia: string, n: number) {
+  const [y, m, d] = dia.split("-").map(Number) as [number, number, number];
+  const fimOrig = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const alvo = new Date(Date.UTC(y, m - 1 + n, 1)), fimAlvo = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate();
+  const dia2 = d === fimOrig ? fimAlvo : Math.min(d, fimAlvo);
+  return `${alvo.getUTCFullYear()}-${String(alvo.getUTCMonth() + 1).padStart(2, "0")}-${String(dia2).padStart(2, "0")}`;
+}
+/** Período de comparação: mesmo trecho do ano/trimestre/mês anterior (ano até hoje compara com o mesmo trecho do ano passado); intervalo livre = janela de mesmo tamanho imediatamente antes. */
+export function csPeriodoComparavel(from: string, to: string, modo: "ano" | "trimestre" | "mes" | "intervalo") {
+  if (modo === "intervalo") return csPeriodoAnteriorIgual(from, to);
+  const n = modo === "ano" ? -12 : modo === "trimestre" ? -3 : -1;
+  return { from: csDeslocarMeses(from, n), to: csDeslocarMeses(to, n) };
+}
+
 export type Verificacao = { item: string; situacao: Situacao; detalhe: string };
 /** Painel de qualidade: o que está validado, pendente, incompleto ou precisa de revisão — sem bloquear os demais indicadores. */
 export function csQualidade(a: { from: string; to: string; metricasDesde: string | null; cancelDesde: string | null; atividadesDesde: string | null; meses: MesAnalise[]; cancelamentos: AuditEvent[]; coberturaCampoVsAmpliada?: { campo: number; ampliada: number; clientes: number } | null; pendentes: number; responsaveisNaoReconstruidos: number }): Verificacao[] {
   const v: Verificacao[] = [];
   const cobre = (desde: string | null) => !desde ? "Pendente" : desde <= a.from ? "Validado" : "Incompleto";
   v.push({ item: "Posições mensais (clientes, MRR, cobertura)", situacao: cobre(a.metricasDesde) as Situacao, detalhe: a.metricasDesde ? `Fotografias gravadas desde ${a.metricasDesde}; meses anteriores não são preenchidos com números atuais.` : "Nenhuma fotografia gravada." });
-  v.push({ item: "Cancelamentos (lista de perdidos)", situacao: cobre(a.cancelDesde) as Situacao, detalhe: a.cancelDesde ? `Recuperados desde ${a.cancelDesde}, pela data efetiva de perda.` : "Histórico ainda não recuperado." });
+  v.push({ item: "Cancelamentos (lista de perdidos)", situacao: cobre(a.cancelDesde) as Situacao, detalhe: a.cancelDesde ? `Recuperados desde ${a.cancelDesde}. Mês = data de entrada em Cancelados.` : "Histórico ainda não recuperado." });
+  { const per = a.cancelamentos.filter(e => e.dia >= a.from && e.dia <= a.to), sem = per.filter(e => !e.responsavel_confirmado).length;
+    v.push({ item: "Responsável na data do cancelamento", situacao: !per.length || !sem ? "Validado" : "Incompleto", detalhe: !per.length ? "Nenhum cancelamento no período." : sem ? `${per.length - sem} de ${per.length} confirmados pelo histórico; ${sem} ainda com o responsável atual (rode "Cancelamentos: confirmar entrada e responsável").` : `Todos os ${per.length} confirmados pelo histórico do negócio.` }); }
   v.push({ item: "Atividades concluídas (treinamentos)", situacao: cobre(a.atividadesDesde) as Situacao, detalhe: a.atividadesDesde ? `Histórico desde ${a.atividadesDesde}. Treinamento = atividade concluída com "Treinamento" no assunto (agendamentos e cobranças não contam).` : "Sem histórico de atividades concluídas." });
   const semValor = a.cancelamentos.filter(e => e.mrr_perdido === null).length;
   v.push({ item: "Valor dos cancelamentos", situacao: semValor ? "Incompleto" : "Validado", detalhe: semValor ? `${semValor} negócios cancelados sem Valor conhecido (não somados como zero).` : "Todos os negócios cancelados têm Valor no momento da perda." });
