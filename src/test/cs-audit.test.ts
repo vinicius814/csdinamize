@@ -17,7 +17,7 @@ describe("auditoria reconciliável CS", () => {
   it("transferência entre pipelines respeita instante do evento", () => { const events = map({ ...deal, pipeline_id: 16 }, [{ field_key: "pipeline_id", time: "2026-10-20 12:00:00", old_value: 15, new_value: 16 }]); expect(events[0]?.pipeline_id).toBe(15); });
   const lost = { field_key: "status", time: "2026-10-10 12:00:00", old_value: "open", new_value: "lost" };
   it("cancelamento efetivo usa Valor no momento", () => {const s=csAuditSummary(map(deal,[lost]),filter);expect(s.cancelledClients).toBe(1);expect(s.mrrLost).toBe(900);});
-  it("moeda diferente de BRL fica pendente",()=>{const s=csAuditSummary(map({...deal,currency:"EUR"},[{field_key:"value",time:"2026-10-09T12:00:00Z",old_value:100,new_value:200}]),filter);expect(s.mrrExpansion).toBeNull();});
+  it("moeda diferente de BRL fica pendente",()=>{const s=csAuditSummary(map({...deal,currency:"EUR"},[{field_key:"value",time:"2026-10-09T12:00:00Z",old_value:100,new_value:200}]),filter);expect(s.mrrExpansion).toBe(0);expect(s.pending).toHaveLength(1);});
   it("responsável histórico ausente impede publicação",()=>expect(()=>map({...deal,owner_id:0})).toThrow("Responsável histórico indisponível"));
   it("solicitação aberta não é cancelamento", () => expect(csAuditSummary(map({ ...deal, status: "open" }, []), filter).cancelledClients).toBe(0));
   it("cancelamento revertido excluído", () => expect(csAuditSummary(map(deal, [lost, { field_key: "status", time: "2026-10-11 12:00:00", old_value: "lost", new_value: "open" }]), filter).cancelledClients).toBe(0));
