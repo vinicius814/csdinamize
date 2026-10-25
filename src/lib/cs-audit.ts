@@ -10,6 +10,8 @@ export type AuditEvent = {
 export type Change = { field_key: string; time: string; old_value: unknown; new_value: unknown };
 const date = (v: string) => new Date(/Z$|[+-]\d\d:\d\d$/.test(v) ? v.replace(" ", "T") : v.replace(" ", "T") + "Z");
 const number = (v: unknown): number | null => v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Number(v);
+/** Integer cents avoid floating-point drift (5972.25 → 5973 = 75 cents). */
+export const cents = (v: number) => Math.round(v * 100);
 /** Rewind complete changelog to the event instant; actor_user_id is never the account owner. */
 export function csHistoricalValue(changes: Change[], field: string, instant: string, current: unknown): unknown {
   let value = current;
@@ -41,31 +43,36 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
     else if (complete) e.motivo = "Atividade upgrade concluída no Pipedrive; valor financeiro independente.";
     events.push(e);
   }
-  // Preserve every distinct change (timestamp + old/new), including multiple changes in one day.
+  // Official rule: deal "value" is the monthly reference revenue; API "mrr" is ignored.
+  // Every distinct positive change is one upgrade event (timestamp + old/new), no minimum.
   for (const c of changes) {
-    if (!["mrr", "value"].includes(c.field_key)) continue;
+    if (c.field_key !== "value") continue;
     const old = number(c.old_value), next = number(c.new_value);
-    if (old === null || next === null || next <= old) continue;
-    const e = base("expansao", c.time, `${c.field_key}:${date(c.time).toISOString()}:${old}:${next}`, `Histórico ${c.field_key}`);
-    const currency = at(c.field_key === "mrr" ? "mrr_currency" : "currency", c.time, deal[c.field_key === "mrr" ? "mrr_currency" : "currency"]);
-    if (c.field_key === "mrr" && currency === "BRL" && complete) {
-      e.mrr_anterior = old; e.mrr_posterior = next; e.motivo = "Aumento do campo oficial MRR em BRL, com anterior e posterior.";
+    if (old === null || next === null || cents(next) <= cents(old)) continue; // creation (old null) is never upgrade
+    const e = base("expansao", c.time, `value:${date(c.time).toISOString()}:${old}:${next}`, "Histórico Valor");
+    e.valor_anterior = old; e.valor_posterior = next;
+    const currency = at("currency", c.time, deal["currency"]);
+    if (currency === "BRL" && complete) {
+      e.mrr_anterior = old; e.mrr_posterior = next; e.motivo = "Aumento do Valor do negócio (receita mensal de referência) em BRL.";
     } else {
-      e.estado = "pendente"; e.valor_anterior = old; e.valor_posterior = next;
-      e.motivo = c.field_key === "value" ? "Alteração de Valor comprovada, mas não comprova MRR recorrente; campo oficial MRR sem evidência." : "MRR sem confirmação de moeda BRL ou histórico incompleto.";
+      e.estado = "pendente"; e.motivo = currency !== "BRL" ? `Moeda ${String(currency ?? "desconhecida")}; não somada em BRL.` : "Histórico incompleto: atribuição não validada.";
     }
     events.push(e);
   }
   for (const c of changes.filter(c => c.field_key === "status" && c.new_value === "lost")) {
-    const e = base("cancelamento", c.time, `lost:${date(c.time).toISOString()}`, "Histórico status + etapa + lost_time");
+    const e = base("cancelamento", c.time, `lost:${date(c.time).toISOString()}`, "Histórico status + etapa + Valor");
     const stage = number(at("stage_id", c.time, deal["stage_id"]));
     const reverted = changes.some(x => x.field_key === "status" && x.old_value === "lost" && x.new_value !== "lost" && date(x.time) > date(c.time));
     if (reverted || !((e.pipeline_id === 15 && stage === 105) || (e.pipeline_id === 16 && stage === 111))) {
       e.estado = "excluido"; e.motivo = reverted ? "Perda revertida posteriormente." : "Perda comercial fora da etapa de cancelamento.";
     } else {
-      // Lost status is operational evidence, not proof of an effective financial cancellation.
-      e.estado = "pendente"; e.motivo = "Perda registrada no CRM; efetivação financeira e MRR perdido não comprovados.";
-      e.valor_anterior = number(at("value", c.time, deal["value"]));
+      const v = number(at("value", c.time, deal["value"])), currency = at("currency", c.time, deal["currency"]);
+      e.valor_anterior = v;
+      if (complete && v !== null && currency === "BRL") {
+        e.mrr_perdido = v; e.motivo = "Negócio perdido na etapa de cancelamento, sem reversão; Valor no momento do cancelamento.";
+      } else {
+        e.estado = "pendente"; e.motivo = v === null ? "Cancelamento sem Valor no momento do evento." : currency !== "BRL" ? `Moeda ${String(currency ?? "desconhecida")}; não somada em BRL.` : "Histórico incompleto.";
+      }
       const reason = at("lost_reason", c.time, deal["lost_reason"]);
       if (typeof reason === "string" && reason) e.motivo += ` Motivo: ${reason}`;
     }
@@ -82,7 +89,8 @@ export function csAuditSummary(events: AuditEvent[], filter: { pipeline: string;
   const cancellations = rows.filter(e => e.tipo === "cancelamento" && e.estado === "confirmado");
   const unique = (xs: AuditEvent[]) => new Set(xs.map(csAuditClientKey)).size;
   return { rows, upgrades, expansion, cancellations, upgradeClients: unique(upgrades), expansionClients: unique(expansion), cancelledClients: unique(cancellations),
-    mrrExpansion: expansion.length ? expansion.reduce((s, e) => s + Number(e.mrr_posterior) - Number(e.mrr_anterior), 0) : null,
-    mrrLost: cancellations.length && cancellations.every(e => e.mrr_perdido !== null) ? cancellations.reduce((s, e) => s + Number(e.mrr_perdido), 0) : null,
+    upgradeEvents: expansion.length,
+    mrrExpansion: expansion.reduce((s, e) => s + cents(Number(e.mrr_posterior)) - cents(Number(e.mrr_anterior)), 0) / 100,
+    mrrLost: cancellations.every(e => e.mrr_perdido !== null) ? cancellations.reduce((s, e) => s + cents(Number(e.mrr_perdido)), 0) / 100 : null,
     pending: rows.filter(e => e.estado === "pendente"), excluded: rows.filter(e => e.estado === "excluido") };
 }
