@@ -1,12 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireActive, requireAdmin } from "./access.middleware";
 import { comCredenciais } from "./credenciais.middleware";
-import { csPodeVer, csDia, csEhRetorno, type CSRow } from "./cs-rules";
+import { csPodeVer, csDia, csEhRetorno, csNomeResponsavel, type CSRow } from "./cs-rules";
 import { z } from "zod";
 
 type Db = any;
 const num=(v:unknown)=>v===null||v===undefined?null:Number(v);
-function normalize(r:any):CSRow{return {...r,valor:num(r.valor),risco_fatores:r.risco_fatores??[]};}
+function normalize(r:any):CSRow{return {...r,valor:num(r.valor),owner_nome:csNomeResponsavel(Number(r.owner_id),r.owner_nome),risco_fatores:r.risco_fatores??[]};}
 async function readRows(db:Db,apply:(q:any)=>any=q=>q):Promise<CSRow[]>{
  const rows:CSRow[]=[];
  for(let start=0;;start+=1000){const {data,error}=await apply(db.from("cs_snapshot_risco").select("*")).order("deal_id").range(start,start+999);if(error)throw new Error(error.message);rows.push(...(data??[]).map(normalize));if((data?.length??0)<1000)break;}
@@ -83,7 +83,7 @@ export const retornosCS=createServerFn({method:"POST"}).middleware([requireActiv
  const ids=[...new Set(filtradas.map(a=>Number(a["deal_id"])))];
  const deals=new Map<number,Record<string,unknown>>();
  for(let i=0;i<ids.length;i+=200){const {data,error}=await db.from("cs_snapshot").select("deal_id,titulo,org_nome,owner_id,owner_nome,valor").in("deal_id",ids.slice(i,i+200));if(error)throw new Error(error.message);for(const d of data??[])deals.set(Number(d.deal_id),d);}
- return filtradas.filter(a=>deals.has(Number(a["deal_id"]))).map(a=>{const d=deals.get(Number(a["deal_id"]))!;return {activity_id:Number(a["activity_id"]),deal_id:Number(a["deal_id"]),pipeline_id:Number(a["pipeline_id"]),owner_id:Number(d["owner_id"]),tipo:String(a["tipo"]),assunto:String(a["assunto"]),dia:a["dia"] as string|null,inicio:a["inicio"] as string|null,cliente:(d["org_nome"] as string|null)??(d["titulo"] as string),owner_nome:d["owner_nome"] as string|null,valor:d["valor"]===null||d["valor"]===undefined?null:Number(d["valor"])};});
+ return filtradas.filter(a=>deals.has(Number(a["deal_id"]))).map(a=>{const d=deals.get(Number(a["deal_id"]))!;return {activity_id:Number(a["activity_id"]),deal_id:Number(a["deal_id"]),pipeline_id:Number(a["pipeline_id"]),owner_id:Number(d["owner_id"]),tipo:String(a["tipo"]),assunto:String(a["assunto"]),dia:a["dia"] as string|null,inicio:a["inicio"] as string|null,cliente:(d["org_nome"] as string|null)??(d["titulo"] as string),owner_nome:csNomeResponsavel(Number(d["owner_id"]),d["owner_nome"] as string|null),valor:d["valor"]===null||d["valor"]===undefined?null:Number(d["valor"])};});
 });
 
 /** Admin-only, explicit trigger: recupera 36 meses de cancelamentos efetivos pela lista de perdidos (data de perda), sem changelog por negócio. */
@@ -105,4 +105,9 @@ export const onboardingEntradasCS=createServerFn({method:"POST"}).middleware([re
  const {data,error}=await (context.supabase as any).from("cs_eventos_onboarding").select("deal_id,entrou_em,entrada_origem").is("saiu_em",null);
  if(error)return [];
  return (data??[]).map((r:any)=>({deal_id:Number(r.deal_id),entrou_em:r.entrou_em as string|null,entrada_origem:r.entrada_origem as string|null}));
+});
+
+/** Admin: confirma pelo changelog a entrada em "Cancelados" e o CS responsável na data, em lotes retomáveis. */
+export const confirmarCancelamentosCS=createServerFn({method:"POST"}).middleware([requireAdmin]).handler(async()=>{
+ const {runConfirmarCancelamentos}=await import("./cs-historico.server");return runConfirmarCancelamentos();
 });

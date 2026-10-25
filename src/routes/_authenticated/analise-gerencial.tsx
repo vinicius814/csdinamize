@@ -5,7 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { analiseCS } from "@/lib/cs-analise.functions";
-import { recuperarHistoricoCS, recuperarAtividadesCS, reconstruirOnboardingCS } from "@/lib/cs.functions";
+import { recuperarHistoricoCS, recuperarAtividadesCS, reconstruirOnboardingCS, confirmarCancelamentosCS } from "@/lib/cs.functions";
 import { csSerieMensal, csTotaisPeriodo, csQualidade, csPeriodoAnteriorIgual, csPosicao, type MesAnalise, type FiltroAnalise, type AtividadeConcluida } from "@/lib/cs-analise";
 import { csCancelamentosUnificados, csAuditSummary, type AuditEvent } from "@/lib/cs-audit";
 import { CS_PIPELINES, CS_ONBOARDING_STAGES, type CSRow, csClientes, csDonoCliente, csMetricas, csDia, csDias, csClassificarChurn, csClassificarCobertura, csResponsaveisAtivos, csValidarIntervalo, csFimMes } from "@/lib/cs-rules";
@@ -89,7 +89,8 @@ function Analise() {
   const admin = !!cs.data && ["admin", "superadmin"].includes(cs.data.role);
   if (!manager) return <Pagina larga><Cabecalho titulo="Análise Gerencial" frase="Visão gerencial." /><p className="card-munim p-6 text-sm text-muted-foreground">Acesso não autorizado: esta visão é exclusiva de gestores e administradores.</p></Pagina>;
   const scope = rows.filter(r => filtro.pipeline === "both" ? [15, 16].includes(r.pipeline_id) : r.pipeline_id === Number(filtro.pipeline));
-  const owners = csResponsaveisAtivos(scope);
+  // Responsáveis = carteira ativa + quem tem eventos no período (ex.: cancelamentos de quem não tem mais carteira).
+  const owners: [number, string][] = [...new Map<number, string>([...csResponsaveisAtivos(scope), ...(calc ? [...calc.can, ...calc.exp].filter(e => filtro.pipeline === "both" ? [15, 16].includes(e.pipeline_id) : e.pipeline_id === Number(filtro.pipeline)).map(e => [e.owner_id, e.owner_nome ?? `Responsável ${e.owner_id}`] as [number, string]) : [])]).entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
   const anos = Array.from({ length: 4 }, (_, i) => String(Number(hoje.slice(0, 4)) - i));
   const delta = (a: number | null | undefined, b: number | null | undefined, f: (n: number) => string) => a === null || a === undefined || b === null || b === undefined ? "anterior: sem dados" : `anterior ${f(b)} · ${a - b >= 0 ? "+" : ""}${f(a - b)}`;
   const carregando = dados.isPending || ev.isPending || !calc;
@@ -213,7 +214,7 @@ function Onboarding({ rows, meses, tot, owner, setDrill }: { rows: CSRow[]; mese
 
 function Qualidade({ admin, meses, can, fontes, from, to, pendentes, rows, onDone }: { admin: boolean; meses: MesAnalise[]; can: AuditEvent[]; fontes: { metricasDesde: string | null; cancelDesde: string | null; atividadesDesde: string | null; execucoes: any[]; syncs: any[] }; from: string; to: string; pendentes: number; rows: CSRow[]; onDone: () => void }) {
   const [aberto, setAberto] = useState(false), [busy, setBusy] = useState("");
-  const recHist = useServerFn(recuperarHistoricoCS), recAt = useServerFn(recuperarAtividadesCS), recOnb = useServerFn(reconstruirOnboardingCS);
+  const recConf = useServerFn(confirmarCancelamentosCS), recHist = useServerFn(recuperarHistoricoCS), recAt = useServerFn(recuperarAtividadesCS), recOnb = useServerFn(reconstruirOnboardingCS);
   const ativos = csClientes(rows);
   const dentro = (d: string | null | undefined) => { const n = d ? csDias(d) : null; return n !== null && n >= 0 && n <= 60; };
   const cmp = { clientes: ativos.length, campo: ativos.filter(c => c.rows.some(r => dentro(r.ultimo_contato_efetivo))).length, ampliada: ativos.filter(c => c.rows.some(r => dentro(r.contato_efetivo ?? r.ultimo_contato_efetivo))).length };
@@ -228,6 +229,7 @@ function Qualidade({ admin, meses, can, fontes, from, to, pendentes, rows, onDon
         <AuditoriaLote from={from} to={to} />
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run("canc", () => recHist(), r => `${r.registros} cancelamentos efetivos desde ${dd(r.desde)} (${r.consultas} consultas).`)}>{busy === "canc" ? "Recuperando…" : "Cancelamentos: últimos 3 anos"}</Button>
+          <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run("conf", () => recConf(), r => `${r.feitos} cancelamentos confirmados (entrada em Cancelados e responsável na data); ${r.restantes} restantes.`)}>{busy === "conf" ? "Confirmando…" : "Cancelamentos: confirmar entrada e responsável (próximo lote)"}</Button>
           <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run("ativ", () => recAt(), r => `${r.gravadas} atividades concluídas gravadas (${r.lidas} lidas, ${r.chamadas} consultas)${r.concluido ? " · concluído" : " · continue para o próximo lote"}.`)}>{busy === "ativ" ? "Carregando…" : "Atividades concluídas: próximo lote"}</Button>
           <Button size="sm" variant="outline" disabled={!!busy} onClick={() => run("onb", () => recOnb(), r => `${r.feitos} projetos com entrada reconstruída; ${r.restantes} restantes.`)}>{busy === "onb" ? "Reconstruindo…" : "Onboarding: reconstruir entradas"}</Button>
         </div></div>}

@@ -6,6 +6,8 @@ export type AuditEvent = {
   dia: string; ocorrido_em: string; estado: "confirmado" | "pendente" | "excluido"; fonte: string; motivo: string;
   mrr_anterior: number | null; mrr_posterior: number | null; mrr_perdido: number | null;
   valor_anterior: number | null; valor_posterior: number | null; status: string | null; activity_id: number | null;
+  /** Somente cancelamentos: responsável e entrada confirmados pelo histórico (senão, responsável atual). */
+  responsavel_confirmado?: boolean; perdido_em?: string | null; motivo_perda?: string | null;
 };
 export type Change = { field_key: string; time: string; old_value: unknown; new_value: unknown };
 const date = (v: string) => new Date(/Z$|[+-]\d\d:\d\d$/.test(v) ? v.replace(" ", "T") : v.replace(" ", "T") + "Z");
@@ -60,7 +62,11 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
     events.push(e);
   }
   for (const c of changes.filter(c => c.field_key === "status" && c.new_value === "lost")) {
-    const e = base("cancelamento", c.time, `lost:${date(c.time).toISOString()}`, "Histórico status + etapa + Valor");
+    // Regra da operação: o cancelamento conta na data de entrada em "Cancelados", com o CS responsável naquela data.
+    const etapaCanc = number(at("pipeline_id", c.time, deal["pipeline_id"])) === 16 ? 111 : 105;
+    const entrada = changes.filter(x => x.field_key === "stage_id" && number(x.new_value) === etapaCanc && date(x.time) <= date(c.time)).sort((a, b) => date(b.time).getTime() - date(a.time).getTime())[0]?.time ?? c.time;
+    const e = base("cancelamento", entrada, `lost:${date(c.time).toISOString()}`, "Histórico entrada em Cancelados + perda + Valor");
+    e.ocorrido_em = date(c.time).toISOString();
     const stage = number(at("stage_id", c.time, deal["stage_id"]));
     const reverted = changes.some(x => x.field_key === "status" && x.old_value === "lost" && x.new_value !== "lost" && date(x.time) > date(c.time));
     if (reverted || !((e.pipeline_id === 15 && stage === 105) || (e.pipeline_id === 16 && stage === 111))) {
@@ -69,7 +75,7 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
       const v = number(at("value", c.time, deal["value"])), currency = at("currency", c.time, deal["currency"]);
       e.valor_anterior = v;
       if (complete && v !== null && currency === "BRL") {
-        e.mrr_perdido = v; e.motivo = "Negócio perdido na etapa de cancelamento, sem reversão; Valor no momento do cancelamento.";
+        e.mrr_perdido = v; e.motivo = `Entrou em Cancelados em ${e.dia.split("-").reverse().join("/")} e foi perdido em ${csDia(date(c.time)).split("-").reverse().join("/")}; Valor no momento da perda.`;
       } else {
         e.estado = "pendente"; e.motivo = v === null ? "Cancelamento sem Valor no momento do evento." : currency !== "BRL" ? `Moeda ${String(currency ?? "desconhecida")}; não somada em BRL.` : "Histórico incompleto.";
       }
@@ -90,12 +96,13 @@ export function csAuditDeal(deal: Record<string, any>, changes: Change[], activi
   return [...new Map(events.filter(e => [15, 16].includes(e.pipeline_id)).map(e => [e.evento_id, e])).values()];
 }
 export const csAuditClientKey = (e: AuditEvent) => `${e.pipeline_id}:${e.org_id === null ? "deal:" + e.deal_id : "org:" + e.org_id}`;
-/** Cancelamento da lista oficial de perdidos (lost_time na etapa de cancelamento), já com reversões marcadas. */
-export type CancelamentoLista = { deal_id: number; org_id: number | null; pipeline_id: number; owner_id: number; dia: string; valor: number | null; moeda: string | null; motivo: string | null; revertido: boolean; cliente?: string | null };
+/** Cancelamento da lista oficial de perdidos (etapa de cancelamento), com reversões marcadas e, quando lido do histórico, entrada e responsável confirmados. */
+export type CancelamentoLista = { deal_id: number; org_id: number | null; pipeline_id: number; owner_id: number; dia: string; valor: number | null; moeda: string | null; motivo: string | null; revertido: boolean; cliente?: string | null; perdido_em?: string | null; owner_atual?: number | null; owner_nome?: string | null; data_origem?: string | null };
+const br = (d: string | null | undefined) => d ? d.split("-").reverse().join("/") : "data desconhecida";
 /**
- * Regra oficial: cancelamentos = negócios elegíveis dados como perdidos no período (data efetiva de perda);
- * valor = Valor do negócio no momento da perda. Fonte principal: lista de perdidos; a auditoria por changelog
- * complementa (valor e responsável no instante do evento) e cobre negócios fora da lista. Um negócio conta uma vez por período.
+ * Regra da operação (25/10/2026): cancelamento = negócio do CS perdido na etapa de cancelamento; mês = data de ENTRADA em
+ * "Cancelados"; responsável = CS da conta naquela data; valor = Valor no momento da perda. Fonte principal: lista de perdidos
+ * (confirmada pelo histórico quando possível); a auditoria por changelog completa quem ainda não foi confirmado. Um negócio conta uma vez.
  */
 export function csCancelamentosUnificados(lista: CancelamentoLista[], audit: AuditEvent[], owners: Map<number, string>): AuditEvent[] {
   const auditados = new Map<number, AuditEvent>();
@@ -103,18 +110,21 @@ export function csCancelamentosUnificados(lista: CancelamentoLista[], audit: Aud
   const out: AuditEvent[] = [];
   for (const c of lista) {
     if (c.revertido || ![15, 16].includes(c.pipeline_id)) continue;
-    const a = auditados.get(c.deal_id); const mesmoDia = a && a.dia === c.dia;
-    const valor = mesmoDia && a.mrr_perdido !== null ? a.mrr_perdido : c.valor;
-    const owner = mesmoDia ? a.owner_id : c.owner_id;
-    out.push({ evento_id: `lista:${c.deal_id}:${c.dia}`, tipo: "cancelamento", deal_id: c.deal_id, org_id: c.org_id, pipeline_id: c.pipeline_id, owner_id: owner,
-      cliente: c.cliente ?? a?.cliente ?? `Negócio ${c.deal_id}`, negocio: a?.negocio ?? String(c.deal_id), owner_nome: owners.get(owner) ?? (mesmoDia ? a.owner_nome : null),
-      dia: c.dia, ocorrido_em: c.dia + "T12:00:00.000Z", estado: valor === null ? "pendente" : "confirmado",
-      fonte: mesmoDia ? "Lista de perdidos + histórico do negócio" : "Lista de perdidos (data de perda)",
-      motivo: valor === null ? (c.moeda && c.moeda !== "BRL" ? `Moeda ${c.moeda}; valor não somado em BRL.` : "Valor desconhecido no momento da perda.") : `Negócio perdido na etapa de cancelamento; Valor no momento da perda.${c.motivo ? " Motivo: " + c.motivo : ""}`,
-      mrr_anterior: null, mrr_posterior: null, mrr_perdido: valor, valor_anterior: valor, valor_posterior: null, status: "lost", activity_id: null });
+    const a = auditados.get(c.deal_id);
+    const confirmado = c.data_origem === "historico" || !!a;
+    const dia = c.data_origem === "historico" || !a ? c.dia : a.dia;
+    const owner = c.data_origem === "historico" || !a ? c.owner_id : a.owner_id;
+    const valor = a && a.mrr_perdido !== null ? a.mrr_perdido : c.valor;
+    out.push({ evento_id: `lista:${c.deal_id}`, tipo: "cancelamento", deal_id: c.deal_id, org_id: c.org_id, pipeline_id: c.pipeline_id, owner_id: owner,
+      cliente: c.cliente ?? a?.cliente ?? `Negócio ${c.deal_id}`, negocio: a?.negocio ?? String(c.deal_id), owner_nome: owners.get(owner) ?? (owner === c.owner_id ? c.owner_nome ?? null : null) ?? a?.owner_nome ?? null,
+      dia, ocorrido_em: (c.perdido_em ?? c.dia) + "T12:00:00.000Z", estado: valor === null ? "pendente" : "confirmado",
+      fonte: confirmado ? "Histórico: entrada em Cancelados e responsável na data" : c.data_origem === "perda" ? "Estimativa: entrada desconhecida (data da perda) e responsável atual" : "Estimativa: entrada pela etapa atual e responsável atual",
+      motivo: `Entrou em Cancelados em ${br(dia)}; perdido em ${br(c.perdido_em ?? null)}.${valor === null ? (c.moeda && c.moeda !== "BRL" ? ` Moeda ${c.moeda}; valor não somado em BRL.` : " Valor desconhecido.") : ""}${c.motivo ? " Motivo: " + c.motivo : ""}`,
+      mrr_anterior: null, mrr_posterior: null, mrr_perdido: valor, valor_anterior: valor, valor_posterior: null, status: "lost", activity_id: null,
+      responsavel_confirmado: confirmado, perdido_em: c.perdido_em ?? null, motivo_perda: c.motivo ?? null });
   }
   const naLista = new Set(out.map(e => e.deal_id));
-  for (const a of auditados.values()) if (!naLista.has(a.deal_id)) out.push(a);
+  for (const a of auditados.values()) if (!naLista.has(a.deal_id)) out.push({ ...a, responsavel_confirmado: true, perdido_em: a.ocorrido_em.slice(0, 10) });
   return out;
 }
 export type CSAuditFilter = { pipeline: string; owner: number | null; from: string; to: string };

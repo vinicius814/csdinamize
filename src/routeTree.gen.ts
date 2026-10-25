@@ -20,6 +20,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAgendaAtividadesRouteImport } from './routes/_authenticated/agenda-atividades'
 import { Route as AuthenticatedAnaliseGerencialRouteImport } from './routes/_authenticated/analise-gerencial'
 import { Route as AuthenticatedAprovacoesRouteImport } from './routes/_authenticated/aprovacoes'
+import { Route as AuthenticatedCancelamentosRouteImport } from './routes/_authenticated/cancelamentos'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
 import { Route as AuthenticatedCarteirasCsRouteImport } from './routes/_authenticated/carteiras-cs'
 import { Route as AuthenticatedClientesRiscoRouteImport } from './routes/_authenticated/clientes-risco'
@@ -96,6 +97,12 @@ const AuthenticatedAprovacoesRoute = AuthenticatedAprovacoesRouteImport.update({
   path: '/aprovacoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCancelamentosRoute =
+  AuthenticatedCancelamentosRouteImport.update({
+    id: '/cancelamentos',
+    path: '/cancelamentos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCarteiraRoute = AuthenticatedCarteiraRouteImport.update({
   id: '/carteira',
   path: '/carteira',
@@ -211,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/cancelamentos': typeof AuthenticatedCancelamentosRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
   '/clientes-risco': typeof AuthenticatedClientesRiscoRoute
@@ -241,6 +249,7 @@ export interface FileRoutesByTo {
   '/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/cancelamentos': typeof AuthenticatedCancelamentosRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
   '/clientes-risco': typeof AuthenticatedClientesRiscoRoute
@@ -274,6 +283,7 @@ export interface FileRoutesById {
   '/_authenticated/agenda-atividades': typeof AuthenticatedAgendaAtividadesRoute
   '/_authenticated/analise-gerencial': typeof AuthenticatedAnaliseGerencialRoute
   '/_authenticated/aprovacoes': typeof AuthenticatedAprovacoesRoute
+  '/_authenticated/cancelamentos': typeof AuthenticatedCancelamentosRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
   '/_authenticated/carteiras-cs': typeof AuthenticatedCarteirasCsRoute
   '/_authenticated/clientes-risco': typeof AuthenticatedClientesRiscoRoute
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/agenda-atividades'
     | '/analise-gerencial'
     | '/aprovacoes'
+    | '/cancelamentos'
     | '/carteira'
     | '/carteiras-cs'
     | '/clientes-risco'
@@ -338,6 +349,7 @@ export interface FileRouteTypes {
     | '/agenda-atividades'
     | '/analise-gerencial'
     | '/aprovacoes'
+    | '/cancelamentos'
     | '/carteira'
     | '/carteiras-cs'
     | '/clientes-risco'
@@ -370,6 +382,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agenda-atividades'
     | '/_authenticated/analise-gerencial'
     | '/_authenticated/aprovacoes'
+    | '/_authenticated/cancelamentos'
     | '/_authenticated/carteira'
     | '/_authenticated/carteiras-cs'
     | '/_authenticated/clientes-risco'
@@ -483,6 +496,13 @@ declare module '@tanstack/react-router' {
       path: '/aprovacoes'
       fullPath: '/aprovacoes'
       preLoaderRoute: typeof AuthenticatedAprovacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cancelamentos': {
+      id: '/_authenticated/cancelamentos'
+      path: '/cancelamentos'
+      fullPath: '/cancelamentos'
+      preLoaderRoute: typeof AuthenticatedCancelamentosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/carteira': {
@@ -626,6 +646,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaAtividadesRoute: typeof AuthenticatedAgendaAtividadesRoute
   AuthenticatedAnaliseGerencialRoute: typeof AuthenticatedAnaliseGerencialRoute
   AuthenticatedAprovacoesRoute: typeof AuthenticatedAprovacoesRoute
+  AuthenticatedCancelamentosRoute: typeof AuthenticatedCancelamentosRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
   AuthenticatedCarteirasCsRoute: typeof AuthenticatedCarteirasCsRoute
   AuthenticatedClientesRiscoRoute: typeof AuthenticatedClientesRiscoRoute
@@ -648,6 +669,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaAtividadesRoute: AuthenticatedAgendaAtividadesRoute,
   AuthenticatedAnaliseGerencialRoute: AuthenticatedAnaliseGerencialRoute,
   AuthenticatedAprovacoesRoute: AuthenticatedAprovacoesRoute,
+  AuthenticatedCancelamentosRoute: AuthenticatedCancelamentosRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
   AuthenticatedCarteirasCsRoute: AuthenticatedCarteirasCsRoute,
   AuthenticatedClientesRiscoRoute: AuthenticatedClientesRiscoRoute,

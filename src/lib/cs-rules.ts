@@ -124,3 +124,7 @@ export function csMeses(from:string,to:string):string[]{const out:string[]=[];le
 export const csFimMes=(mes:string)=>{const [y,m]=mes.split("-").map(Number) as [number,number];return new Date(Date.UTC(y,m,0)).toISOString().slice(0,10);};
 /** Intervalo personalizado: as duas datas são obrigatórias e válidas; início não pode ser depois do fim. */
 export function csValidarIntervalo(ini:string,fim:string):string|null{const ok=(d:string)=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+"T12:00:00Z"));if(!ini||!fim)return "Informe a data inicial e a data final.";if(!ok(ini)||!ok(fim))return "Data inválida.";if(ini>fim)return "A data inicial é posterior à final.";return null;}
+
+/** "Carteira compartilhada" da operação = carteira de Carolina Branchi (Pipedrive 158921), confirmado em 25/10/2026. */
+export const CS_CARTEIRA_COMPARTILHADA=158921;
+export const csNomeResponsavel=(id:number,nome:string|null|undefined)=>id===CS_CARTEIRA_COMPARTILHADA?`Carteira compartilhada (${nome??"Carolina Branchi"})`:(nome??null);
