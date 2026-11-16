@@ -1,3 +1,16 @@
+# Dinamize CS — Plano de Ação e Diagnóstico de Contas
+
+Sistema interno de Customer Success da Dinamize (reconstrução do projeto Lovable "Munin").
+Stack: Lovable (UI/hosting) · GitHub · Supabase (Postgres, Auth, RLS) · n8n (integrações) · Pipedrive (fonte comercial).
+
+- Comece por `CLAUDE.md` e `docs/PROJECT_STATUS.md`.
+- Escopo: `docs/PROJECT_SCOPE.md` · Arquitetura: `docs/ARCHITECTURE.md` · Regras: `docs/BUSINESS_RULES.md`.
+- Testes: `npx vitest run` · Workflows n8n: `python3 -I n8n/build.py` → `n8n/workflows/`.
+
+---
+
+## Notas originais do Munin
+
 # Munim 
 
 LOGIN
