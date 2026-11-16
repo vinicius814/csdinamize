@@ -1,0 +1,329 @@
+{
+  "name": "DCS 01 — Sincronização completa da carteira",
+  "nodes": [
+    {
+      "id": "77d7d05e-fdcf-5b29-bd61-bb1885fd231a",
+      "name": "Agendamento",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "40 5 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "03cfc7af-4ba3-5456-9782-4985c6d9d763",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u",
+              "name": "supabase_url",
+              "type": "string",
+              "value": "https://SEU-PROJETO.supabase.co"
+            },
+            {
+              "id": "cfg",
+              "name": "cfg",
+              "type": "object",
+              "value": "{\"stages\": [101, 102, 103, 135, 147, 104], \"ecom\": {\"segmento\": true, \"etiqueta\": true}, \"ownerSource\": \"owner\", \"fSeg\": \"723edfa476f1d04f92df16d7bc08bc482d9a2ac2\", \"fGer\": \"9260473c7dffdb28935ce0db7fafd45524f91431\", \"segEcom\": 360, \"labelEcom\": 690, \"pipeline\": 15, \"maxPaginas\": 200}"
+            },
+            {
+              "id": "modo",
+              "name": "modo",
+              "type": "string",
+              "value": "completa"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "4d42c631-0460-5676-a37e-93dd72d54be0",
+      "name": "Abrir sincronização",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_iniciar_sync",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_tipo: \"carteira\", p_modo: $json.modo }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    },
+    {
+      "id": "18d19fea-ddf0-50b2-ae86-3484b2c04093",
+      "name": "Usuários Pipedrive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "url": "https://api.pipedrive.com/v1/users",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pipedriveApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": []
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pipedriveApi": {
+          "id": "",
+          "name": "DCS · Pipedrive (cs-dinamize)"
+        }
+      }
+    },
+    {
+      "id": "6113a9fb-7f5a-543e-8bc5-d93cfe6643f3",
+      "name": "Negócios do funil CS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "url": "https://api.pipedrive.com/api/v2/deals",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pipedriveApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pipeline_id",
+              "value": "15"
+            },
+            {
+              "name": "status",
+              "value": "open"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "sort_by",
+              "value": "id"
+            },
+            {
+              "name": "sort_direction",
+              "value": "asc"
+            },
+            {
+              "name": "custom_fields",
+              "value": "723edfa476f1d04f92df16d7bc08bc482d9a2ac2,9260473c7dffdb28935ce0db7fafd45524f91431"
+            },
+            {
+              "name": "include_option_labels",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "cursor",
+                    "value": "={{ $response.body.additional_data.next_cursor }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.additional_data || !$response.body.additional_data.next_cursor }}",
+              "limitPagesFetched": true,
+              "maxRequests": 200,
+              "requestInterval": 250
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pipedriveApi": {
+          "id": "",
+          "name": "DCS · Pipedrive (cs-dinamize)"
+        }
+      }
+    },
+    {
+      "id": "a6f4f8d2-48cd-515e-b438-ecd164ad448f",
+      "name": "Consolidar carteira",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Código do nó \"Consolidar carteira\" (workflows 01/02). Equivalência com src/lib/dcs/motor.ts garantida por src/test/dcs-n8n.test.ts.\n// Entrada: deals (Pipedrive API v2), cfg {stages, ecom, ownerSource, fSeg, fGer, segEcom, labelEcom}, nomes {id: nome}.\nfunction consolidarCarteira(deals, cfg, nomes) {\n  const idDe = (v) => (v == null ? null : typeof v === \"object\" ? (v.value ?? v.id ?? null) : Number(v));\n  const incl = new Set(cfg.stages.map(Number));\n  const ecom = (d) => {\n    const segs = (d.custom_fields?.[cfg.fSeg] || []).map((x) => Number(typeof x === \"object\" && x ? x.id : x));\n    const labs = (d.label_ids || []).map(Number);\n    return (cfg.ecom.segmento && segs.includes(cfg.segEcom)) || (cfg.ecom.etiqueta && labs.includes(cfg.labelEcom));\n  };\n  const grupos = {};\n  for (const d of deals) {\n    if (d.is_archived || (d.status && d.status !== \"open\") || !incl.has(Number(d.stage_id)) || !ecom(d)) continue;\n    const org = idDe(d.org_id);\n    const key = org ? String(org) : \"d\" + d.id;\n    (grupos[key] = grupos[key] || []).push(d);\n  }\n  const out = [];\n  for (const [key, ds] of Object.entries(grupos)) {\n    ds.sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0) || a.id - b.id);\n    const p = ds[0];\n    const title = String(p.title || \"\").trim();\n    const m = title.match(/^\\s*(\\d+)\\s*[-–]\\s*(.*)$/);\n    let oid = idDe(p.owner_id);\n    let oname = oid != null ? (nomes[String(oid)] ?? \"Usuário \" + oid) : \"—\";\n    if (cfg.ownerSource === \"gerente\") {\n      const g = p.custom_fields?.[cfg.fGer];\n      oid = g?.id ?? null;\n      oname = g?.label || \"(sem gerente de contas)\";\n    }\n    const semValor = ds.some((x) => x.value == null || isNaN(Number(x.value)));\n    out.push({\n      key, org_id: idDe(p.org_id), nome: m ? m[2] : title, codigo: m ? m[1] : \"\", deal_id: p.id,\n      deal_ids: ds.map((x) => x.id), stage_id: Number(p.stage_id), owner_id: oid, owner_nome: oname,\n      person_id: idDe(p.person_id), label_ids: p.label_ids || [],\n      mrr: semValor ? null : Math.round(ds.reduce((a, x) => a + Number(x.value), 0) * 100) / 100,\n    });\n  }\n  return out;\n}\n\nconst cfg = $('Config').first().json.cfg;\nconst _r = $('Abrir sincronização').first().json; const run = typeof _r === 'string' ? _r : (_r.data ?? _r.dcs_iniciar_sync ?? _r.id);\nconst nomes = {}; for (const u of ($('Usuários Pipedrive').first().json.data || [])) nomes[String(u.id)] = u.name;\nconst paginas = $input.all();\nconst deals = paginas.flatMap((p) => p.json.data || []);\nconst ultima = paginas[paginas.length - 1]?.json;\nconst completo = paginas.every((p) => p.json.success !== false) && !ultima?.additional_data?.next_cursor && paginas.length < cfg.maxPaginas;\nconst rows = consolidarCarteira(deals, cfg, nomes);\nreturn [{ json: { p_run: run, p_rows: rows, p_lidos: deals.length, p_completo: true && completo } }];\n"
+      }
+    },
+    {
+      "id": "0cf22088-5bae-5fdb-99cc-705038d00ed7",
+      "name": "Publicar carteira",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_publicar_carteira",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronização": {
+      "main": [
+        [
+          {
+            "node": "Usuários Pipedrive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usuários Pipedrive": {
+      "main": [
+        [
+          {
+            "node": "Negócios do funil CS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Negócios do funil CS": {
+      "main": [
+        [
+          {
+            "node": "Consolidar carteira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar carteira": {
+      "main": [
+        [
+          {
+            "node": "Publicar carteira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Sincroniza a carteira e-commerce do funil 15 (modo completa) e publica no Supabase via dcs_publicar_carteira. Só inativa clientes após leitura completa."
+}

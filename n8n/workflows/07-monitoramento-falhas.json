@@ -1,0 +1,117 @@
+{
+  "name": "DCS 07 — Monitoramento e falhas",
+  "nodes": [
+    {
+      "id": "a41ba4a7-20e7-5e77-92df-973b27648428",
+      "name": "Erro em workflow DCS",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "fb11c791-9c75-59a4-9e5e-5a1e4bcf498a",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u",
+              "name": "supabase_url",
+              "type": "string",
+              "value": "https://SEU-PROJETO.supabase.co"
+            },
+            {
+              "id": "emails_admin",
+              "name": "emails_admin",
+              "type": "string",
+              "value": "vinicius.alves@dinamize.com.br"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "dc5667df-c318-598f-a614-53bb6da93ef2",
+      "name": "Registrar erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_registrar_log",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_origem: $('Erro em workflow DCS').first().json.workflow.name, p_nivel: 'erro', p_mensagem: $('Erro em workflow DCS').first().json.execution.error.message, p_dados: { execucao: $('Erro em workflow DCS').first().json.execution.id } }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Erro em workflow DCS": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Registrar erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Workflow de erro dos demais: registra a falha em dcs_integracao_logs, devolve jobs 'ambiguo' para nova checagem e avisa administradores por e-mail."
+}

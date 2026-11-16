@@ -1,0 +1,229 @@
+{
+  "name": "DCS 04 — Sincronização dos responsáveis",
+  "nodes": [
+    {
+      "id": "670b8fd2-e26f-5964-b7ea-8fe895cbd298",
+      "name": "Diário 06:10",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "480057f3-931c-5fe1-a5a2-b4eceda37395",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u",
+              "name": "supabase_url",
+              "type": "string",
+              "value": "https://SEU-PROJETO.supabase.co"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "32334444-7618-5778-b0af-57a281b6fd6a",
+      "name": "Abrir sincronização",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_iniciar_sync",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_tipo: \"responsaveis\", p_modo: \"completa\" }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    },
+    {
+      "id": "c1284e99-c457-5539-b7bb-e181b181475a",
+      "name": "Usuários Pipedrive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "url": "https://api.pipedrive.com/v1/users",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pipedriveApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": []
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pipedriveApi": {
+          "id": "",
+          "name": "DCS · Pipedrive (cs-dinamize)"
+        }
+      }
+    },
+    {
+      "id": "ea82fe4b-076c-5f17-98cf-75ad0fea113b",
+      "name": "Normalizar usuários",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst _r = $('Abrir sincronização').first().json; const run = typeof _r === 'string' ? _r : (_r.data ?? _r.dcs_iniciar_sync ?? _r.id);\nconst users = ($json.data || []).map((u) => ({ id: u.id, nome: u.name, email: u.email, ativo: !!u.active_flag }));\nreturn [{ json: { p_run: run, p_erro: null, users } }];\n"
+      }
+    },
+    {
+      "id": "bca4f9e1-0fc9-5f89-a1cb-0d27cffe732e",
+      "name": "Registrar responsáveis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_publicar_responsaveis",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_run: $json.p_run, p_users: $json.users }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Diário 06:10": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronização": {
+      "main": [
+        [
+          {
+            "node": "Usuários Pipedrive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usuários Pipedrive": {
+      "main": [
+        [
+          {
+            "node": "Normalizar usuários",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar usuários": {
+      "main": [
+        [
+          {
+            "node": "Registrar responsáveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Lê usuários do Pipedrive e registra ativos/inativos para vincular carteiras sem vínculos incorretos."
+}

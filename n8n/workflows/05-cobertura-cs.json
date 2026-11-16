@@ -1,0 +1,475 @@
+{
+  "name": "DCS 05 — Cobertura de Customer Success",
+  "nodes": [
+    {
+      "id": "279603bc-a9c0-5eb0-a046-3ddb5576f1c4",
+      "name": "Seg a sex 07:20 e 13:20",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "20 7,13 * * 1-5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "df012898-3106-54b2-bcac-7c876ef1481e",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "u",
+              "name": "supabase_url",
+              "type": "string",
+              "value": "https://SEU-PROJETO.supabase.co"
+            },
+            {
+              "id": "cov",
+              "name": "cov",
+              "type": "object",
+              "value": "{\"modes\": {\"contato_efetivo\": \"forte\", \"reunio_acompanhamento\": \"sim\", \"reunio_3___ativao\": \"sim\", \"email1\": \"kw\"}, \"kwPos\": [\"contato efetivo\", \"reuni\\u00e3o realizada\", \"reuniao realizada\", \"call realizada\", \"conversa realizada\", \"atendeu\", \"respondeu\", \"retorno do cliente\", \"alinhamento\", \"acompanhamento\"], \"kwNeg\": [\"tentativa\", \"sem resposta\", \"n\\u00e3o atendeu\", \"nao atendeu\", \"caixa postal\", \"cancelad\", \"no show\", \"no-show\", \"remarcad\", \"reagend\", \"convite\", \"lembrete\", \"agendar\"], \"lookbackDays\": 120}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "26407b7a-056a-5848-8ec1-9682f460674f",
+      "name": "Abrir sincronização",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_iniciar_sync",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_tipo: \"cobertura\", p_modo: \"completa\" }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    },
+    {
+      "id": "6847db8a-c5b0-56f3-87b0-765b3e6aa69c",
+      "name": "Clientes ativos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_clientes_para_cobertura",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({}) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    },
+    {
+      "id": "86315386-f349-5ce0-ad54-d689b65c9635",
+      "name": "Atividades concluídas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "url": "https://api.pipedrive.com/api/v2/activities",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pipedriveApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "done",
+              "value": "true"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "sort_by",
+              "value": "update_time"
+            },
+            {
+              "name": "sort_direction",
+              "value": "desc"
+            },
+            {
+              "name": "updated_since",
+              "value": "={{ $now.minus({days: $('Config').first().json.cov.lookbackDays}).toUTC().toISO({suppressMilliseconds: true}) }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "cursor",
+                    "value": "={{ $response.body.additional_data.next_cursor }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.additional_data || !$response.body.additional_data.next_cursor }}",
+              "limitPagesFetched": true,
+              "maxRequests": 200,
+              "requestInterval": 250
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pipedriveApi": {
+          "id": "",
+          "name": "DCS · Pipedrive (cs-dinamize)"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "95d1abe5-4a2e-5a2f-8149-fb44d251f6bf",
+      "name": "Atividades agendadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        0
+      ],
+      "parameters": {
+        "url": "https://api.pipedrive.com/api/v2/activities",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pipedriveApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "done",
+              "value": "false"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "sort_by",
+              "value": "due_date"
+            },
+            {
+              "name": "sort_direction",
+              "value": "desc"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "pagination": {
+            "pagination": {
+              "parameters": {
+                "parameters": [
+                  {
+                    "name": "cursor",
+                    "value": "={{ $response.body.additional_data.next_cursor }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ !$response.body.additional_data || !$response.body.additional_data.next_cursor }}",
+              "limitPagesFetched": true,
+              "maxRequests": 200,
+              "requestInterval": 250
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "pipedriveApi": {
+          "id": "",
+          "name": "DCS · Pipedrive (cs-dinamize)"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "c0f4b973-e0e3-503b-9909-2c4a2d28f327",
+      "name": "Classificar e agregar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Código do nó \"Classificar atividades\" (workflow 05). Equivalência com motor.classificarAtividade testada.\nfunction classificarAtividade(a, cov) {\n  const temPalavra = (txt, lista) => { const t = txt.toLowerCase(); return (lista || []).some((k) => k && t.includes(String(k).toLowerCase())); };\n  const semHtml = (h) => String(h || \"\").replace(/<[^>]*>/g, \" \").replace(/&nbsp;/g, \" \");\n  if (!a || !a.done || a.is_deleted) return \"ignorar\";\n  const subj = String(a.subject || \"\");\n  if (subj.startsWith(\"CS | Diagnóstico de utilização\") || /DZCS-\\S+-C\\d+/.test(String(a.note || \"\"))) return \"ignorar\";\n  const mode = cov.modes?.[a.type || \"\"] || \"nao\";\n  if (mode === \"nao\") return \"ignorar\";\n  if (mode === \"forte\") return \"efetivo\";\n  const txt = subj + \" \" + semHtml(a.note);\n  if (temPalavra(txt, cov.kwNeg)) return \"tentativa\";\n  if (mode === \"sim\") return \"efetivo\";\n  return temPalavra(txt, cov.kwPos) ? \"efetivo\" : \"incerto\";\n}\n\nconst cov = $('Config').first().json.cov;\nconst _r = $('Abrir sincronização').first().json; const run = typeof _r === 'string' ? _r : (_r.data ?? _r.dcs_iniciar_sync ?? _r.id);\nconst clientes = $('Clientes ativos').all().map((i) => i.json).filter((c) => c.key);  // PostgREST devolve array → um item por cliente\nconst byDeal = {}, byOrg = {}, byPerson = {};\nfor (const c of clientes) { (c.deal_ids || []).forEach((d) => byDeal[d] = c.key); if (c.org_id) byOrg[c.org_id] = c.key; if (c.person_id) byPerson[c.person_id] = c.key; }\nconst cliente = (a) => (a.deal_id && byDeal[a.deal_id]) || (a.org_id && byOrg[a.org_id]) || (a.person_id && byPerson[a.person_id]) || null;\nconst data = (a) => String(a.marked_as_done_time || a.due_date || a.add_time || '').slice(0, 10);\nconst rec = (a, d) => ({ id: a.id, date: d || data(a), type: a.type || '', subject: String(a.subject || '').slice(0, 90), owner: a.owner_id ?? null });\nconst later = (x, y) => !x ? y : !y ? x : (y.date > x.date || (y.date === x.date && y.id > x.id)) ? y : x;\nconst pg1 = $('Atividades concluídas').all(), pg2 = $('Atividades agendadas').all();\nconst completo = !pg1[pg1.length - 1]?.json?.additional_data?.next_cursor;\nconst agg = {};\nfor (const a of pg1.flatMap((p) => p.json.data || [])) {\n  const k = cliente(a); if (!k) continue;\n  const c = classificarAtividade(a, cov); if (c === 'ignorar') continue;\n  const slot = c === 'efetivo' ? 'ultimo_efetivo' : c === 'tentativa' ? 'ultima_tentativa' : 'ultimo_incerto';\n  const g = agg[k] = agg[k] || {}; g[slot] = later(g[slot], rec(a));\n}\nconst hoje = $now.setZone('America/Sao_Paulo').toISODate();\nfor (const a of pg2.flatMap((p) => p.json.data || [])) {\n  if (!a.due_date || a.due_date < hoje || a.is_deleted) continue;\n  const k = cliente(a); if (!k) continue;\n  if (classificarAtividade({ ...a, done: true }, cov) === 'ignorar') continue;\n  const g = agg[k] = agg[k] || {}; if (!g.proximo || a.due_date < g.proximo.date) g.proximo = rec(a, a.due_date);\n}\n// Leitura completa: clientes sem atividade recebem nulos (atividades excluídas/alteradas deixam de contar).\nconst rows = clientes.map((c) => ({ key: c.key, ultimo_efetivo: agg[c.key]?.ultimo_efetivo || null, ultimo_incerto: agg[c.key]?.ultimo_incerto || null,\n  ultima_tentativa: agg[c.key]?.ultima_tentativa || null, proximo: agg[c.key]?.proximo || null }));\nif (!completo) return [{ json: { p_run: run, p_erro: 'Leitura de atividades incompleta; cobertura anterior preservada' , falha: true } }];\nreturn [{ json: { p_run: run, p_rows: rows, p_completo: true, p_detalhes: { concluidas: pg1.length, agendadas: pg2.length } } }];\n"
+      }
+    },
+    {
+      "id": "6dcf7165-dd16-5806-b436-19a9441f1472",
+      "name": "Leitura completa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c",
+              "leftValue": "={{ !$json.falha }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "3113c92d-018a-5996-92a5-f2dc0687deb6",
+      "name": "Publicar cobertura",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_publicar_cobertura",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    },
+    {
+      "id": "6218dc53-e76b-5c8d-8133-cd5627f30477",
+      "name": "Registrar falha",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.supabase_url }}/rest/v1/rpc/dcs_falhar_sync",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ p_run: $json.p_run, p_erro: $json.p_erro }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "supabaseApi": {
+          "id": "",
+          "name": "DCS · Supabase service role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Seg a sex 07:20 e 13:20": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Abrir sincronização",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir sincronização": {
+      "main": [
+        [
+          {
+            "node": "Clientes ativos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clientes ativos": {
+      "main": [
+        [
+          {
+            "node": "Atividades concluídas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atividades concluídas": {
+      "main": [
+        [
+          {
+            "node": "Atividades agendadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atividades agendadas": {
+      "main": [
+        [
+          {
+            "node": "Classificar e agregar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar e agregar": {
+      "main": [
+        [
+          {
+            "node": "Leitura completa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leitura completa?": {
+      "main": [
+        [
+          {
+            "node": "Publicar cobertura",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar falha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Classifica atividades (contato efetivo, tentativa, sem evidência), lê próximos contatos e publica dcs_cobertura. Atividades do próprio sistema nunca contam."
+}

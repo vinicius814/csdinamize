@@ -1,0 +1,105 @@
+{
+  "name": "DCS 03 — Webhooks do Pipedrive",
+  "nodes": [
+    {
+      "id": "930909c9-5ff8-5b17-b799-d91cd7e86292",
+      "name": "Evento Pipedrive",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dcs-pipedrive",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "ebab538d-a589-58fd-aa5e-2e03f48e3f85",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "DCS · Segredo dos webhooks"
+        }
+      }
+    },
+    {
+      "id": "0c3a673d-0281-5b44-9cd9-cfffe1923d34",
+      "name": "Filtrar e deduplicar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst ev = $json.body || {};\nconst meta = ev.meta || {};\nconst id = meta.entity_id || ev.data?.id || ev.current?.id;\nconst pipeline = ev.data?.pipeline_id ?? ev.current?.pipeline_id ?? ev.previous?.pipeline_id;\nconst relevante = meta.entity === 'deal' && (pipeline === 15 || ev.previous?.pipeline_id === 15);\n// Idempotência: Pipedrive reenvia o mesmo evento; a chave fica em static data por 24h.\nconst st = $getWorkflowStaticData('global'); st.vistos = st.vistos || {};\nconst chave = `${meta.id || ''}:${id}:${meta.timestamp || ev.current?.update_time || ''}`;\nconst agora = Date.now(); for (const [k, t] of Object.entries(st.vistos)) if (agora - t > 864e5) delete st.vistos[k];\nif (!relevante || st.vistos[chave]) return [];\nst.vistos[chave] = agora;\nreturn [{ json: { deal_id: id, acao: meta.action, chave } }];\n"
+      }
+    },
+    {
+      "id": "9fab5898-00e3-57da-992b-291fb232a985",
+      "name": "Disparar sincronização incremental",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "",
+          "cachedResultName": "DCS 02 — Sincronização incremental da carteira"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Evento Pipedrive": {
+      "main": [
+        [
+          {
+            "node": "Filtrar e deduplicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar e deduplicar": {
+      "main": [
+        [
+          {
+            "node": "Disparar sincronização incremental",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Recebe eventos de negócio do Pipedrive (autenticados por cabeçalho), ignora repetidos e dispara a sincronização incremental do cliente afetado."
+}

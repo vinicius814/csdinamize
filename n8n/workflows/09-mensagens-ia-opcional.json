@@ -1,0 +1,147 @@
+{
+  "name": "DCS 09 — Mensagens com IA (opcional)",
+  "nodes": [
+    {
+      "id": "2d9b8b7f-4b2b-57ea-9a25-75f9d64820ab",
+      "name": "Pedido do app",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dcs-mensagem-ia",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "a871ce45-19a5-553b-8a78-9ea169297cf0",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "DCS · Segredo dos webhooks"
+        }
+      }
+    },
+    {
+      "id": "f4e4e0a9-624b-5d49-a12b-4c4feb36aca5",
+      "name": "Montar prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst f = $json.body?.fatos;\nif (!f || !Array.isArray(f.oportunidades) || !Array.isArray(f.positivos)) throw new Error('Payload inválido');\nconst prompt = `Escreva em português do Brasil, tom próximo e profissional, duas mensagens para o cliente ${f.cliente || ''} da Dinamize. `\n + `Valorize: ${f.positivos.join('; ') || 'n/d'}. Oportunidades: ${f.oportunidades.map((o) => o.titulo + ' → ' + o.acao).join('; ')}. `\n + 'Ofereça ajuda da equipe para preparar recursos. Não prometa resultados financeiros. '\n + 'Responda SOMENTE JSON {\"whatsapp\":\"...\",\"assunto\":\"...\",\"email\":\"...\"}.';\nreturn [{ json: { prompt } }];\n"
+      }
+    },
+    {
+      "id": "200ba2f1-e50e-5016-8108-546ee1d33d1f",
+      "name": "Modelo de linguagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 1200, messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {
+          "timeout": 45000
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "anthropicApi": {
+          "id": "",
+          "name": "DCS · Anthropic (opcional)"
+        }
+      }
+    },
+    {
+      "id": "544462cf-74b9-5d0a-9741-850fc38f0309",
+      "name": "Validar resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\ntry {\n  const t = $json.content?.[0]?.text || '';\n  const m = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));\n  if (typeof m.whatsapp !== 'string' || typeof m.email !== 'string') throw new Error('estrutura');\n  if (/R\\$\\s?\\d|garant/i.test(m.whatsapp + m.email)) throw new Error('promessa financeira');\n  return [{ json: { ok: true, ...m } }];\n} catch (e) { return [{ json: { ok: false, motivo: String(e.message || e) } }]; }\n"
+      }
+    }
+  ],
+  "connections": {
+    "Pedido do app": {
+      "main": [
+        [
+          {
+            "node": "Montar prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar prompt": {
+      "main": [
+        [
+          {
+            "node": "Modelo de linguagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modelo de linguagem": {
+      "main": [
+        [
+          {
+            "node": "Validar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveDataErrorExecution": "all",
+    "errorWorkflow": "DCS 07 — Monitoramento e falhas"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "dinamize-cs"
+    }
+  ],
+  "description": "Recebe apenas os fatos do diagnóstico (sem dados pessoais), gera versões WhatsApp/e-mail e valida a estrutura. Se falhar, o app usa os templates determinísticos."
+}
