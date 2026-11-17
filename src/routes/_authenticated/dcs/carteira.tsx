@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowDown, ArrowUp, Columns3, Download, ExternalLink, Layers, Search } from "lucide-react";
 import {
@@ -212,6 +213,22 @@ const COLUNAS: Coluna[] = [
     csv: (l) => l.maxPrioridade ?? "",
   },
   {
+    id: "acoes",
+    rotulo: "Ações",
+    fixa: true,
+    celula: (l) => (
+      <AcoesAnalise
+        compacto
+        clienteKey={l.c.key}
+        clienteNome={l.c.nome}
+        ativo={l.c.ativo}
+        status={l.status}
+        diag={l.diag}
+      />
+    ),
+    csv: () => "",
+  },
+  {
     id: "pipedrive",
     rotulo: "Pipedrive",
     celula: (l) => (
@@ -332,7 +349,7 @@ function Carteira() {
   }, [linhas]);
 
   const exportar = () => {
-    const ex = cols;
+    const ex = cols.filter((c) => c.id !== "acoes");
     const csv = [ex.map((c) => c.rotulo), ...linhas.map((l) => ex.map((c) => c.csv(l, ctx)))]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
       .join("\n");

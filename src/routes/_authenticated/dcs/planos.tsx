@@ -19,6 +19,7 @@ import {
   Titulo,
 } from "@/components/dcs/ui";
 import { STATUS_ACAO } from "./cliente.$key";
+import { NovaAcao } from "@/components/dcs/NovaAcao";
 
 type Busca = {
   q?: string | undefined;
@@ -55,6 +56,7 @@ type Linha = DcsAcao & {
 };
 
 function Planos() {
+  const acesso = useAcessoDcs();
   const b = Route.useSearch();
   const nav = Route.useNavigate();
   const set = (p: Partial<Busca>) =>
@@ -104,34 +106,37 @@ function Planos() {
         titulo="Planos de ação"
         sub="Recomendações dos diagnósticos e ações manuais de todos os clientes visíveis para você."
         acao={
-          <div
-            className="inline-flex rounded-lg border bg-card p-0.5"
-            role="group"
-            aria-label="Modo de visualização"
-          >
-            <button
-              type="button"
-              onClick={() => set({ visao: undefined })}
-              aria-pressed={!b.visao}
-              className={cx(
-                "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm",
-                !b.visao ? "bg-primary-soft font-medium text-primary" : "text-muted-foreground",
-              )}
+          <>
+            {acesso.data?.editar && <NovaAcao />}
+            <div
+              className="inline-flex rounded-lg border bg-card p-0.5"
+              role="group"
+              aria-label="Modo de visualização"
             >
-              <Rows3 className="h-4 w-4" /> Tabela
-            </button>
-            <button
-              type="button"
-              onClick={() => set({ visao: "kanban" })}
-              aria-pressed={b.visao === "kanban"}
-              className={cx(
-                "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm",
-                b.visao ? "bg-primary-soft font-medium text-primary" : "text-muted-foreground",
-              )}
-            >
-              <Columns3 className="h-4 w-4" /> Kanban
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => set({ visao: undefined })}
+                aria-pressed={!b.visao}
+                className={cx(
+                  "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm",
+                  !b.visao ? "bg-primary-soft font-medium text-primary" : "text-muted-foreground",
+                )}
+              >
+                <Rows3 className="h-4 w-4" /> Tabela
+              </button>
+              <button
+                type="button"
+                onClick={() => set({ visao: "kanban" })}
+                aria-pressed={b.visao === "kanban"}
+                className={cx(
+                  "inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm",
+                  b.visao ? "bg-primary-soft font-medium text-primary" : "text-muted-foreground",
+                )}
+              >
+                <Columns3 className="h-4 w-4" /> Kanban
+              </button>
+            </div>
+          </>
         }
       />
       <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl border bg-card p-3 shadow-[var(--glow-sm)] md:grid-cols-4 xl:grid-cols-8">
@@ -397,6 +402,7 @@ function DetalheAcao({ acao, fechar }: { acao: Linha | null; fechar: () => void 
   const atualizar = useAtualizarAcao(acao?.cliente_key ?? "");
   const [f, setF] = useState({
     status: "" as StatusAcao | "",
+    prioridade: "media" as DcsAcao["prioridade"],
     responsavel: "",
     prazo: "",
     observacoes: "",
@@ -405,6 +411,7 @@ function DetalheAcao({ acao, fechar }: { acao: Linha | null; fechar: () => void 
     if (acao)
       setF({
         status: acao.status,
+        prioridade: acao.prioridade,
         responsavel: acao.responsavel ?? "",
         prazo: acao.prazo ?? "",
         observacoes: acao.observacoes ?? "",
@@ -433,6 +440,7 @@ function DetalheAcao({ acao, fechar }: { acao: Linha | null; fechar: () => void 
         versao: acao.versao,
         campos: {
           status: f.status as StatusAcao,
+          prioridade: f.prioridade,
           responsavel: f.responsavel || null,
           prazo: f.prazo || null,
           observacoes: f.observacoes || null,
@@ -491,6 +499,21 @@ function DetalheAcao({ acao, fechar }: { acao: Linha | null; fechar: () => void 
               </div>
             </dl>
             <fieldset disabled={!pode} className="grid gap-3 text-sm">
+              <label className="grid gap-1">
+                <span className="text-xs font-medium text-muted-foreground">Prioridade</span>
+                <select
+                  value={f.prioridade}
+                  onChange={(e) =>
+                    setF({ ...f, prioridade: e.target.value as DcsAcao["prioridade"] })
+                  }
+                  className="h-9 rounded-lg border bg-card px-2"
+                >
+                  <option value="critica">Crítica</option>
+                  <option value="alta">Alta</option>
+                  <option value="media">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </label>
               <label className="grid gap-1">
                 <span className="text-xs font-medium text-muted-foreground">Status</span>
                 <select

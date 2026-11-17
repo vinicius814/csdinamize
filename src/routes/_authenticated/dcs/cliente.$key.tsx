@@ -19,6 +19,8 @@ import {
   useIniciarAnalise,
 } from "@/lib/dcs/dados";
 import { EditorDiagnostico } from "@/components/dcs/Diagnostico";
+import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
+import { NovaAcao } from "@/components/dcs/NovaAcao";
 import {
   cx,
   dataBR,
@@ -112,6 +114,20 @@ function Cliente() {
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <AcoesAnalise
+                  clienteKey={key}
+                  clienteNome={dados.cliente.nome}
+                  ativo={dados.cliente.ativo}
+                  status={
+                    !atual
+                      ? "aguardando"
+                      : atual.status === "em_analise"
+                        ? "em_andamento"
+                        : "concluido"
+                  }
+                  diag={atual}
+                  aoAbrirAba={(a) => setAba(a)}
+                />
                 <a href={pipedriveDeal(dados.cliente.deal_id)} target="_blank" rel="noreferrer">
                   <Button variant="outline" size="sm">
                     <ExternalLink className="mr-1 h-4 w-4" /> Abrir no Pipedrive
@@ -286,18 +302,23 @@ function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) 
     <Painel
       titulo="Plano de ação"
       acao={
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={verObsoletas}
-            onChange={(e) => setVerObsoletas(e.target.checked)}
-          />{" "}
-          Mostrar resolvidas em ciclos anteriores
-        </label>
+        <span className="flex flex-wrap items-center gap-3">
+          <NovaAcao clienteKey={clienteKey} />
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={verObsoletas}
+              onChange={(e) => setVerObsoletas(e.target.checked)}
+            />{" "}
+            Mostrar resolvidas em ciclos anteriores
+          </label>
+        </span>
       }
     >
       {!lista.length ? (
-        <p className="text-sm text-muted-foreground">O plano é gerado ao concluir a análise.</p>
+        <p className="text-sm text-muted-foreground">
+          O plano é gerado ao concluir a análise. Você também pode criar ações manuais.
+        </p>
       ) : (
         <div className="divide-y">
           {lista.map((a) => {

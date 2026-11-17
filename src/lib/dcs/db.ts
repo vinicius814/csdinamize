@@ -203,6 +203,12 @@ export type DcsDatabase = {
       dcs_integracao_logs: T<DcsLog>;
       dcs_membros: T<DcsMembro>;
       dcs_solicitacoes_sync: T<DcsSolicitacao>;
+      dcs_tipos_atividade: T<{
+        chave: string;
+        nome: string | null;
+        ocorrencias: number;
+        visto_em: string;
+      }>;
       dcs_acoes_eventos: T<{
         id: number;
         acao_id: string;
@@ -275,6 +281,25 @@ export type DcsDatabase = {
         Returns: undefined;
       };
       dcs_solicitar_sync: { Args: { p_tipo: string }; Returns: string };
+      dcs_atribuir_analise: { Args: { p_key: string; p_para: string }; Returns: DcsDiagnostico };
+      dcs_transferir_analise: {
+        Args: { p_id: string; p_para: string; p_motivo: string };
+        Returns: undefined;
+      };
+      dcs_criar_acao: {
+        Args: {
+          p_key: string;
+          p_categoria: string;
+          p_problema: string;
+          p_acao: string;
+          p_prioridade: string;
+          p_complexidade: string | null;
+          p_responsavel: string | null;
+          p_prazo: string | null;
+          p_ganho_rapido: boolean;
+        };
+        Returns: string;
+      };
       dcs_publicar_regras: { Args: { p_config: Json; p_metodologia: string }; Returns: string };
       dcs_responsaveis_admin: {
         Args: Record<string, never>;

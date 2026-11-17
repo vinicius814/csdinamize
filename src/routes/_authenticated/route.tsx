@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { accountQueryOptions } from "@/lib/account-query";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
 import { destination } from "@/lib/access";
+import { destinoLegado } from "@/lib/legado";
 import { Shell } from "@/components/dcs/Shell";
 
 function erroOAuthNaUrl(): string | undefined {
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/_authenticated")({
     if (to !== "/" && location.pathname !== to && location.pathname !== "/admin")
       throw redirect({ to });
     if (to === "/aguardando") throw redirect({ to });
+    const legado = destinoLegado(location.pathname, access.role);
+    if (legado) throw redirect({ to: legado as never, replace: true });
   },
   component: () => (
     <Shell>

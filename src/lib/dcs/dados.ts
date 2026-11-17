@@ -177,14 +177,100 @@ export function useCliente(key: string) {
   });
 }
 
+/** Invalida tudo que depende do estado das análises (carteira, ficha, painéis, contadores). */
+function invalidarAnalises(qc: ReturnType<typeof useQueryClient>, key?: string) {
+  if (key) void qc.invalidateQueries({ queryKey: ["dcs", "cliente", key] });
+  for (const k of ["carteira", "historico", "contadores", "planos", "alertas"])
+    void qc.invalidateQueries({ queryKey: ["dcs", k] });
+}
+
 export function useIniciarAnalise() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (key: string) => ok(dcs.rpc("dcs_iniciar_analise", { p_key: key })),
-    onSuccess: (_d, key) => {
-      void qc.invalidateQueries({ queryKey: ["dcs", "cliente", key] });
-      void qc.invalidateQueries({ queryKey: ["dcs", "carteira"] });
-    },
+    onSuccess: (_d, key) => invalidarAnalises(qc, key),
+  });
+}
+
+/** Admin: atribui uma análise ainda não iniciada a um analista (ou a si mesmo). */
+export function useAtribuirAnalise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { key: string; para: string }) =>
+      ok(dcs.rpc("dcs_atribuir_analise", { p_key: a.key, p_para: a.para })),
+    onSuccess: (_d, a) => invalidarAnalises(qc, a.key),
+  });
+}
+
+/** Admin: redistribui ou assume (para = próprio usuário) uma análise em andamento. */
+export function useTransferirAnalise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; key: string; para: string; motivo: string }) =>
+      ok(dcs.rpc("dcs_transferir_analise", { p_id: a.id, p_para: a.para, p_motivo: a.motivo })),
+    onSuccess: (_d, a) => invalidarAnalises(qc, a.key),
+  });
+}
+
+/** Reabre o ciclo mais recente concluído (analista responsável ou admin). */
+export function useReabrirAnalise() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; key: string; motivo: string }) =>
+      ok(dcs.rpc("dcs_reabrir_analise", { p_id: a.id, p_motivo: a.motivo })),
+    onSuccess: (_d, a) => invalidarAnalises(qc, a.key),
+  });
+}
+
+/** Ação manual no plano de ação. */
+export function useCriarAcao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: {
+      key: string;
+      categoria: string;
+      problema: string;
+      acao: string;
+      prioridade: string;
+      complexidade: string | null;
+      responsavel: string | null;
+      prazo: string | null;
+      ganho_rapido: boolean;
+    }) =>
+      ok(
+        dcs.rpc("dcs_criar_acao", {
+          p_key: a.key,
+          p_categoria: a.categoria,
+          p_problema: a.problema,
+          p_acao: a.acao,
+          p_prioridade: a.prioridade,
+          p_complexidade: a.complexidade,
+          p_responsavel: a.responsavel,
+          p_prazo: a.prazo,
+          p_ganho_rapido: a.ganho_rapido,
+        }),
+      ),
+    onSuccess: (_d, a) => invalidarAnalises(qc, a.key),
+  });
+}
+
+/** Usuários que podem receber análises (admin): perfil ativo com edição. Master e admins legados incluídos. */
+export function useDestinosAnalise(ativo: boolean) {
+  const q = useUsuarios(ativo);
+  return {
+    ...q,
+    data: (q.data ?? []).filter(
+      (u) => u.status === "ativo" && u.ativo && (u.perfil === "admin" || u.pode_editar),
+    ),
+  };
+}
+
+export function useTiposAtividade(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "tipos-atividade"],
+    enabled: ativo,
+    queryFn: async () =>
+      ok(dcs.from("dcs_tipos_atividade").select("*").order("ocorrencias", { ascending: false })),
   });
 }
 
@@ -304,7 +390,9 @@ export function useAtualizarAcao(key: string) {
     mutationFn: async (a: {
       id: string;
       versao: number;
-      campos: Partial<Pick<DcsAcao, "status" | "responsavel" | "prazo" | "observacoes">>;
+      campos: Partial<
+        Pick<DcsAcao, "status" | "prioridade" | "responsavel" | "prazo" | "observacoes">
+      >;
     }) =>
       ok(
         dcs.rpc("dcs_atualizar_acao", {
@@ -313,10 +401,7 @@ export function useAtualizarAcao(key: string) {
           p_campos: a.campos as never,
         }),
       ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["dcs", "cliente", key] });
-      void qc.invalidateQueries({ queryKey: ["dcs", "planos"] });
-    },
+    onSuccess: () => invalidarAnalises(qc, key),
   });
 }
 

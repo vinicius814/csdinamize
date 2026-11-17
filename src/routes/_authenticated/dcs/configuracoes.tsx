@@ -3,7 +3,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, History, Save } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/dcs/db";
-import { useAnalistas, useConfig, usePublicarRegras, useVersoesRegras } from "@/lib/dcs/dados";
+import {
+  useAnalistas,
+  useConfig,
+  usePublicarRegras,
+  useTiposAtividade,
+  useVersoesRegras,
+} from "@/lib/dcs/dados";
 import { artefato as A, mesclarConfig, type Config } from "@/lib/dcs/motor";
 import { validarConfig } from "@/lib/dcs/config";
 import { CATEGORIAS } from "@/lib/dcs/indicadores";
@@ -23,7 +29,15 @@ const SECOES = [
 ] as const;
 type Secao = (typeof SECOES)[number][0];
 const TIPOS = A.TYPE_LABELS as Record<string, string>;
-const MODOS = A.MODE_L as Record<string, string>;
+// Modos da metodologia + "tentativa" (tipo que registra tentativa de contato; nunca conta como contato efetivo).
+const MODOS: Record<string, string> = {
+  forte: "Sempre contato efetivo",
+  sim: "Efetivo, exceto com palavras de exclusão",
+  kw: "Efetivo só com palavras-chave",
+  tentativa: "Tentativa de contato",
+  nao: "Ignorar",
+};
+void A.MODE_L;
 const REFS: [string, string, "min" | "max", string][] = [
   ["deliv", "Entregabilidade mínima", "min", "%"],
   ["hard", "Hard bounce máximo", "max", "%"],
@@ -282,32 +296,7 @@ function Configuracoes() {
                       geram divergências.
                     </p>
                   </Painel>
-                  <Painel
-                    titulo="Regras por tipo de atividade do Pipedrive"
-                    sub="Como cada tipo conta na leitura de atividades (referência)."
-                  >
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {Object.keys(c.cov.modes).map((k) => (
-                        <label
-                          key={k}
-                          className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
-                        >
-                          <span className="min-w-0 truncate">{TIPOS[k] ?? k}</span>
-                          <select
-                            value={c.cov.modes[k]}
-                            onChange={(e) => up((x) => (x.cov.modes[k] = e.target.value))}
-                            className="h-8 rounded-md border bg-card px-1 text-xs"
-                          >
-                            {Object.entries(MODOS).map(([m, r]) => (
-                              <option key={m} value={m}>
-                                {r}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  </Painel>
+                  <TiposAtividade c={c} up={up} />
                   <Painel titulo="Palavras-chave">
                     <div className="grid gap-3 md:grid-cols-2">
                       <Lista
@@ -516,5 +505,65 @@ function Lista({
         className="rounded-lg border bg-card p-2 text-sm"
       />
     </Campo>
+  );
+}
+
+function TiposAtividade({ c, up }: { c: Config; up: (f: (x: Config) => void) => void }) {
+  const tipos = useTiposAtividade(true);
+  const modos = c.cov.modes as Record<string, string>;
+  const vistos = new Map((tipos.data ?? []).map((t) => [t.chave, t]));
+  const chaves = [...new Set([...Object.keys(modos), ...vistos.keys()])];
+  const pendentes = chaves.filter((k) => !(k in modos));
+  const ordenadas = [...pendentes, ...chaves.filter((k) => k in modos)];
+  return (
+    <Painel
+      titulo="Classificação dos tipos de atividade do Pipedrive"
+      sub="Como cada tipo conta na leitura de atividades. Tipos novos aparecem aqui após a próxima sincronização de cobertura e ficam ignorados até serem classificados."
+    >
+      {pendentes.length > 0 && (
+        <p
+          role="status"
+          className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+        >
+          {pendentes.length} tipo(s) ainda sem classificação. Revise e publique uma nova versão.
+        </p>
+      )}
+      <div className="grid gap-2 lg:grid-cols-2">
+        {ordenadas.map((k) => {
+          const v = vistos.get(k);
+          const pendente = !(k in modos);
+          return (
+            <label
+              key={k}
+              className={cx(
+                "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm",
+                pendente && "border-amber-300 bg-amber-50/50",
+              )}
+            >
+              <span className="min-w-0">
+                <span className="block truncate">{v?.nome ?? TIPOS[k] ?? k}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {k}
+                  {v ? ` · ${v.ocorrencias} atividade(s) na última leitura` : ""}
+                  {pendente ? " · pendente" : ""}
+                </span>
+              </span>
+              <select
+                value={modos[k] ?? ""}
+                onChange={(e) => up((x) => (x.cov.modes[k] = e.target.value))}
+                className="h-8 shrink-0 rounded-md border bg-card px-1 text-xs"
+              >
+                {pendente && <option value="">Classificar…</option>}
+                {Object.entries(MODOS).map(([m, r]) => (
+                  <option key={m} value={m}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        })}
+      </div>
+    </Painel>
   );
 }
