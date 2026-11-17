@@ -18,12 +18,12 @@
 - Interface completa (todas as telas), renomear projeto no Lovable, identidade visual.
 - Validação com dados reais em leitura; homologação; produção.
 
-## Bloqueios (precisam do Vinícius)
-1. **Push no GitHub** para `viniciusalves-crypto/omunim` foi negado nesta sessão → pacote entregue como bundle/patch.
-2. **Lovable**: 403 `project_blocked_by_connection_access` → liberar as conexões do projeto para o conector (ou reconectar).
-3. **Supabase**: sem acesso direto (sem auditoria de dados reais, sem aplicar migrations).
-4. **D5** (regra de cobertura) e **D9** (dados do artefato) aguardam decisão.
-5. Credenciais DCS no n8n (service role, token Pipedrive, segredo de webhook).
+## Situação dos bloqueios (17/11/2026)
+1. GitHub: branch `dinamize-cs/fase-0` publicada. A tag `backup/munin-pre-dcs-2026-11-16` não sobe (o proxy derruba o push de tags); o ponto de recuperação continua sendo o commit `3455efe` (`main`).
+2. Lovable e Supabase: acesso liberado. Banco auditado (3 usuários ativos). Migration 1 aplicada; migration 2 aguardando a confirmação pedida pelo conector do Supabase.
+3. Cobertura (D5): aguardando confirmação; campo do Pipedrive localizado. D13 (tipos novos de atividade) também.
+4. Dados do artefato: o artefato não aparece entre os artefatos da conta (pertence a outra conta ou link compartilhado) → exportação CSV pelo próprio artefato.
+5. n8n: existe a credencial "Pipedrive account" (dá para reaproveitar); faltam a de service role do Supabase e o segredo dos webhooks (o conector não cria credenciais).
 
 ## Próxima ação objetiva
-Com o push liberado: `git push -u origin dinamize-cs/fase-0` e `git push origin backup/munin-pre-dcs-2026-11-16`; depois aplicar migrations em homologação.
+Confirmar e aplicar a migration 2; depois interface (navegação, carteira, diagnóstico com autosave).

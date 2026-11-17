@@ -502,3 +502,13 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ BEGI
 END $$;
 REVOKE ALL ON FUNCTION public.dcs_salvar_membro(uuid,text,boolean,boolean,integer[],text[],text[],integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.dcs_salvar_membro(uuid,text,boolean,boolean,integer[],text[],text[],integer) TO authenticated;
+
+-- Endurecimento: o Supabase concede ALL (inclusive TRUNCATE, fora do alcance da RLS) a anon/authenticated por padrão.
+DO $$ DECLARE t text; BEGIN
+  FOR t IN SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename LIKE 'dcs\_%' LOOP
+    EXECUTE format('REVOKE ALL ON public.%I FROM anon', t);
+    EXECUTE format('REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.%I FROM authenticated', t);
+  END LOOP;
+END $$;
+GRANT INSERT ON public.dcs_mensagens TO authenticated;
+GRANT INSERT, UPDATE ON public.dcs_preferencias TO authenticated;

@@ -12,7 +12,7 @@ projeto Lovable "Munin" (este repositório, `omunim`). Regras de sincronização
 ## Onde fica cada coisa
 - Metodologia original (porte 1:1, não editar): `src/lib/dcs/artefato-v1.ts`.
 - Motor com correções C1–C5 (único ponto de regra no app): `src/lib/dcs/motor.ts` + `src/test/dcs-motor.test.ts`.
-- Banco: `supabase/migrations/20261116230000_dcs_fundacao.sql`, `..._dcs_integracoes_alertas.sql`; rollback em `supabase/rollback/`;
+- Banco: `supabase/migrations/20261117142211_dcs_fundacao.sql`, `..._dcs_integracoes_alertas.sql`; rollback em `supabase/rollback/`;
   cenários de RLS/concorrência em `supabase/tests/dcs_fundacao.pglite.mjs` (rodar: ver docs/TESTING.md).
 - n8n: edite `n8n/build.py` e `n8n/src/*.js`, gere com `python3 -I n8n/build.py`. Nunca edite `n8n/workflows/*.json` à mão.
 

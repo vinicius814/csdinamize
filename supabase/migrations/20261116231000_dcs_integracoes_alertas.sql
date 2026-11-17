@@ -88,3 +88,6 @@ REVOKE ALL ON FUNCTION public.dcs_publicar_responsaveis(uuid,jsonb), public.dcs_
   public.dcs_reenfileirar_jobs(), public.dcs_atualizar_alertas() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.dcs_publicar_responsaveis(uuid,jsonb), public.dcs_clientes_para_cobertura(), public.dcs_registrar_log(text,text,text,jsonb),
   public.dcs_reenfileirar_jobs(), public.dcs_atualizar_alertas() TO service_role;
+
+REVOKE ALL ON public.dcs_responsaveis, public.dcs_alertas, public.dcs_responsaveis_publico FROM anon;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.dcs_responsaveis, public.dcs_alertas FROM authenticated;
