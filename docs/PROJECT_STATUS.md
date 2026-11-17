@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Fase atual:** interface do núcleo implementada na branch (área `/dcs`); aguardando merge na `main` para aparecer no Lovable.
+**Fase atual:** interface do núcleo na `main` (merge fast-forward 3455efe → 451e9e0 em 17/11/2026, sincronizado no Lovable; preview em estado ready). Site publicado do Munin só muda após Publish no Lovable.
 **Branch:** `dinamize-cs/fase-0` (local; push aguardando permissão). **Base:** `main@3455efe` (tag `backup/munin-pre-dcs-2026-11-16`).
 
 ## Concluído (implementado + testado)
@@ -39,7 +39,7 @@
 Validação: tsc 0 erros, lint sem erros, 222 testes, build de produção ok; no banco real, sessões simuladas: superadmin vê 221 clientes/valores/cobertura/127 alertas, usuário sem cadastro não vê nada; fluxo iniciar → salvar → conflito 40001 → concluir → job "aguardando_autorizacao" → novo ciclo herdando respostas executado e desfeito (sem resíduo).
 
 ## Pendente
-- Merge da branch na `main` (necessário para ver no Lovable) — aguardando o ok do Vinícius.
+- Validação visual no preview com login real (Vinícius).
 - Tela de usuários e permissões (hoje: admin/superadmin do Munin já entram como admin; demais exigem `dcs_membros`).
 - Configurações administrativas (pesos, faixas, metas de cobertura) — banco pronto (`dcs_publicar_regras`).
 - Inteligência gerencial ampliada (gráficos de evolução), workflows 02/03/06/09.
