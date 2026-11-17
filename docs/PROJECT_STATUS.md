@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Fase atual:** back-end e integrações de leitura em produção com dados reais; interface ainda não iniciada.
+**Fase atual:** interface do núcleo implementada na branch (área `/dcs`); aguardando merge na `main` para aparecer no Lovable.
 **Branch:** `dinamize-cs/fase-0` (local; push aguardando permissão). **Base:** `main@3455efe` (tag `backup/munin-pre-dcs-2026-11-16`).
 
 ## Concluído (implementado + testado)
@@ -30,5 +30,19 @@
 ## Achados
 - D14: migrations do Munin de 25/10 não aplicadas no banco.
 
+## Interface (17/11/2026) — implementada e testada localmente
+Área `/dcs` dentro do app (tema claro Dinamize, #EA5456), item "Dinamize CS" no menu:
+- Visão geral (KPIs com acesso aos clientes, por responsável, recursos com menor adesão).
+- Carteira (busca, filtros por responsável/status/cobertura, ordenação; valor só com permissão financeira e ordem padrão alfabética sem ela; paginação; inativos; CSV; link Pipedrive).
+- Cliente: diagnóstico com 7 categorias, estados, subitens condicionais, dependências, matriz de automações + janela de 1 dia, métricas 30/90 dias com sugestão automática, resultados; salvamento automático (1,2 s) com indicador, conflito de versão e aviso ao sair; índice/faixa/preliminar; recomendações; conclusão com resumo e confirmação de pendências; plano de ação editável; histórico com comparação entre ciclos; mensagens WhatsApp/e-mail por template.
+- Minhas análises, Planos de ação (filtros: abertas, atrasadas, ganhos rápidos, reincidências), Cobertura (faixas, precisam de contato, divergências campo × atividades), Alertas, Integrações (sincronizações, fila do Pipedrive, eventos).
+Validação: tsc 0 erros, lint sem erros, 222 testes, build de produção ok; no banco real, sessões simuladas: superadmin vê 221 clientes/valores/cobertura/127 alertas, usuário sem cadastro não vê nada; fluxo iniciar → salvar → conflito 40001 → concluir → job "aguardando_autorizacao" → novo ciclo herdando respostas executado e desfeito (sem resíduo).
+
+## Pendente
+- Merge da branch na `main` (necessário para ver no Lovable) — aguardando o ok do Vinícius.
+- Tela de usuários e permissões (hoje: admin/superadmin do Munin já entram como admin; demais exigem `dcs_membros`).
+- Configurações administrativas (pesos, faixas, metas de cobertura) — banco pronto (`dcs_publicar_regras`).
+- Inteligência gerencial ampliada (gráficos de evolução), workflows 02/03/06/09.
+
 ## Próxima ação objetiva
-Interface: navegação e identidade Dinamize, carteira (dados reais já disponíveis) e diagnóstico com salvamento automático.
+Após o merge: cadastrar a equipe (Cheyne, Manoela, Juliana, Enzo) com suas carteiras e construir Usuários e Configurações.

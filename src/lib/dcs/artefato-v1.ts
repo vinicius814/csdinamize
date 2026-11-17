@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @ts-nocheck
 /**
  * Metodologia original do artefato "Dinamize CS — Plano de Ação e Diagnóstico de Contas".

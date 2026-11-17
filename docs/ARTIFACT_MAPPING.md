@@ -22,10 +22,11 @@ Status: **P** = portado e testado (motor/banco) · **B** = estrutura de banco pr
 | classifyActivity, hasKw, stripHtml | motor.classificarAtividade + n8n 05 (com "tentativa") | P |
 | syncCoverage, coverageMaps, matchClient, later | n8n 05 + dcs_publicar_cobertura | B |
 | covThresholds, covInfo, COV_L, covStale | motor.limitesCobertura/statusCobertura | P |
-| msgFacts, templateMessage, genMessage | motor.fatosMensagem/mensagemTemplate; IA opcional n8n 09; dcs_mensagens | P/B |
+| msgFacts, templateMessage, genMessage | motor.fatosMensagem/mensagemTemplate (aba Mensagens); IA opcional n8n 09 | P |
 | ROLES, NAV_BY_ROLE, computePerm, canSee, inviteState | dcs_membros + dcs_perfil/dcs_pode_ver (RLS) + motor.MODULOS_POR_PERFIL | P/B |
 | MONEY_OK (ocultação visual) | dcs_clientes_financeiro + RLS | B (segurança real) |
-| vOverview, vCarteira, vMinhas, vDiag, vPlanos, vCobertura, vIntel, vHist, vUsers, vConfig | rotas `_authenticated/dcs/*` | UI |
+| vOverview, vCarteira, vMinhas, vDiag, vPlanos, vCobertura, vHist | rotas `src/routes/_authenticated/dcs/*` + `src/components/dcs/*` | P (UI implementada) |
+| vIntel, vUsers, vConfig | — | UI pendente |
 | groupClients, itemRank, IND, COLL | consultas da visão geral/inteligência | UI |
 | exportCarteira/Cov/Hist/Planos (CSV) | exportações conforme permissão | UI |
 | PD_BASE, PIPELINE_ID, F_SEG, F_GER, SEG_ECOM, LABEL_ECOM, STAGES | validados no Pipedrive em 16/11/2026 (ver PIPEDRIVE_INTEGRATION) | P |
