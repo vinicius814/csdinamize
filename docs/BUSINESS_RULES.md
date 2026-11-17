@@ -26,6 +26,8 @@ Fonte: artefato original (`src/lib/dcs/artefato-v1.ts`, porte 1:1) + correções
 - O plano é independente do status do diagnóstico (concluir ≠ implementar).
 
 ## Cobertura
+- **Contato efetivo (fonte oficial)**: campo de negócio "Data do último contato efetivo" (`58cd094a…`), maior data entre os negócios do cliente (`motor.dataContatoEfetivo`). Sem data no campo = "sem registro".
+- A classificação abaixo é **referência**: alimenta tentativas, atividades sem evidência, próximos agendados e o sinal de divergência (`motor.divergenciaContato`: atividade efetiva mais de 7 dias mais nova que o campo, ou campo vazio).
 - Classificação por tipo de atividade: forte (sempre efetivo), sim (efetivo salvo palavra de exclusão), kw (só com palavra positiva), nao (ignora).
 - Palavras de exclusão marcam **tentativa**; concluída sem evidência = **incerto**. Atividades do próprio sistema (assunto "CS | Diagnóstico de utilização" ou marca DZCS) nunca contam.
 - Faixas padrão: ≤30 dias em dia, ≤45 atenção, ≤60 pendente, >60 crítico; sem registro; dados indisponíveis sem sincronização. Regras por responsável e faixa de valor sobrepõem o padrão.

@@ -28,7 +28,21 @@ const cfgN8n = {
   labelEcom: A.LABEL_ECOM,
 };
 
+const contato = carregar<(d: unknown[], campo: string) => string | null>(
+  "contato-efetivo.js",
+  "dataContatoEfetivo",
+);
+
 describe("workflows n8n ≡ motor", () => {
+  it("contato efetivo pelo campo do Pipedrive", () => {
+    const ds = [["2026-01-02"], ["2026-03-04T10:00:00Z"], [null], ["x"], []].map((v) => ({
+      custom_fields: v.length ? { [M.CAMPO_CONTATO_EFETIVO]: v[0] } : {},
+    }));
+    for (let i = 0; i <= ds.length; i++)
+      expect(contato(ds.slice(0, i), M.CAMPO_CONTATO_EFETIVO)).toBe(
+        M.dataContatoEfetivo(ds.slice(0, i)),
+      );
+  });
   it("consolidação da carteira", () => {
     const deals: M.DealPD[] = [
       {

@@ -98,8 +98,10 @@ await db.exec("UPDATE dcs_sync_execucoes SET status='falha' WHERE tipo='cobertur
 const cr = (await q("SELECT dcs_iniciar_sync('cobertura','completa') id")).rows[0].id;
 const clis = (await q("SELECT * FROM dcs_clientes_para_cobertura()")).rows;
 ok(clis.length===2, "cobertura: só clientes ativos");
-await q("SELECT dcs_publicar_cobertura($1,$2::jsonb,true,'{}')",[cr, JSON.stringify([{key:"1",ultimo_efetivo:{id:5,date:"2026-01-01"}},{key:"inexistente"}])]);
+await q("SELECT dcs_publicar_cobertura($1,$2::jsonb,true,'{}')",[cr, JSON.stringify([{key:"1",data_contato_efetivo:"2026-01-01",contato_por_atividade:{id:5,date:"2026-03-01"}},{key:"inexistente"}])]);
 ok((await q("SELECT count(*)::int n FROM dcs_cobertura")).rows[0].n===1, "cobertura: chaves desconhecidas descartadas");
+const cb = (await q("SELECT data_contato_efetivo::text d, ultimo_efetivo->>'fonte' f, contato_por_atividade->>'date' a FROM dcs_cobertura")).rows[0];
+ok(cb.d==="2026-01-01" && cb.f==="campo_pipedrive" && cb.a==="2026-03-01", "cobertura: contato efetivo vem do campo do Pipedrive; atividade fica como referência");
 await db.exec("UPDATE dcs_diagnosticos SET proxima_revisao='2020-01-01' WHERE ciclo=1; UPDATE dcs_acoes SET status='aguardando_contato', prazo='2020-01-01', prioridade='critica'");
 await q("SELECT dcs_atualizar_alertas()");
 const al = (await q("SELECT tipo FROM dcs_alertas ORDER BY tipo")).rows.map(x=>x.tipo).join();
@@ -107,6 +109,9 @@ ok(al==="acao_atrasada,cobertura_critica,oportunidade_critica", "alertas: ação
 await db.exec("UPDATE dcs_jobs SET status='ambiguo', tentativas=1");
 ok((await q("SELECT dcs_reenfileirar_jobs() n")).rows[0].n===1, "fila: job ambíguo volta para conferência");
 await db.exec("RESET ROLE; SET ROLE authenticated"); await as(CS1);
-neg = await q("SELECT * FROM dcs_responsaveis").then(r=>r.rows.length===0);
+neg = await q("SELECT email FROM dcs_responsaveis").then(()=>false).catch(()=>true);
 ok(neg, "e-mails de responsáveis restritos a administradores");
+ok((await q("SELECT nome FROM dcs_responsaveis")).rows[0]?.nome==="Ana Nova", "membros leem nome dos responsáveis");
+neg = await q("SELECT * FROM dcs_responsaveis_admin()").then(()=>false).catch(()=>true);
+ok(neg, "função de e-mails bloqueada para não administradores");
 ok((await q("SELECT DISTINCT cliente_key k FROM dcs_alertas")).rows.map(x=>x.k).join()==="1", "alertas respeitam a carteira (CS1 vê só os do cliente 1)");

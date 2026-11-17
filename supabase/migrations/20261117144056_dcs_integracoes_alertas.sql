@@ -1,5 +1,32 @@
 -- Dinamize CS — funções usadas pelos workflows n8n 04, 05, 07 e 08 (aditiva).
 
+-- Regra de cobertura (D5, confirmada em 17/11/2026): o contato efetivo vem do campo do negócio
+-- "Data do último contato efetivo" no Pipedrive (maior data entre os negócios do cliente).
+-- A classificação de atividades do artefato fica como referência e sinaliza divergências.
+ALTER TABLE public.dcs_cobertura
+  ADD COLUMN data_contato_efetivo date,           -- campo do Pipedrive (fonte oficial)
+  ADD COLUMN contato_por_atividade jsonb;         -- último efetivo pela classificação de atividades (referência)
+COMMENT ON COLUMN public.dcs_cobertura.ultimo_efetivo IS 'Legado da fase 0: preenchido com {date, fonte} a partir de data_contato_efetivo';
+
+CREATE OR REPLACE FUNCTION public.dcs_publicar_cobertura(p_run uuid, p_rows jsonb, p_completo boolean, p_detalhes jsonb) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE n int; BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.dcs_sync_execucoes WHERE id=p_run AND tipo='cobertura' AND status='executando') THEN RAISE EXCEPTION 'Sincronização não está em execução'; END IF;
+  IF jsonb_typeof(p_rows)<>'array' THEN RAISE EXCEPTION 'Payload inválido'; END IF;
+  INSERT INTO public.dcs_cobertura(key,data_contato_efetivo,ultimo_efetivo,contato_por_atividade,ultimo_incerto,ultima_tentativa,proximo,atualizado_em,sync_id)
+  SELECT x.key, x.data_contato_efetivo,
+         CASE WHEN x.data_contato_efetivo IS NULL THEN NULL ELSE jsonb_build_object('date',x.data_contato_efetivo,'fonte','campo_pipedrive') END,
+         x.contato_por_atividade, x.ultimo_incerto, x.ultima_tentativa, x.proximo, now(), p_run
+    FROM jsonb_to_recordset(p_rows) AS x(key text, data_contato_efetivo date, contato_por_atividade jsonb, ultimo_incerto jsonb, ultima_tentativa jsonb, proximo jsonb)
+    JOIN public.dcs_clientes c ON c.key=x.key
+  ON CONFLICT (key) DO UPDATE SET data_contato_efetivo=excluded.data_contato_efetivo, ultimo_efetivo=excluded.ultimo_efetivo,
+    contato_por_atividade=excluded.contato_por_atividade, ultimo_incerto=excluded.ultimo_incerto,
+    ultima_tentativa=excluded.ultima_tentativa, proximo=excluded.proximo, atualizado_em=now(), sync_id=p_run;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  UPDATE public.dcs_sync_execucoes SET status=CASE WHEN p_completo THEN 'sucesso' ELSE 'parcial' END, concluido_em=now(), alterados=n, completo=p_completo, detalhes=p_detalhes WHERE id=p_run;
+  RETURN n; END $$;
+REVOKE ALL ON FUNCTION public.dcs_publicar_cobertura(uuid,jsonb,boolean,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.dcs_publicar_cobertura(uuid,jsonb,boolean,jsonb) TO service_role;
+
 CREATE TABLE public.dcs_responsaveis (
   pipedrive_user_id integer PRIMARY KEY,
   nome text NOT NULL,
@@ -63,7 +90,7 @@ GRANT SELECT ON public.dcs_alertas TO authenticated; GRANT ALL ON public.dcs_ale
 CREATE OR REPLACE FUNCTION public.dcs_atualizar_alertas() RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date; lim int; n int; BEGIN
   SELECT coalesce((config->'cov'->>'pendente')::int, 60) INTO lim FROM public.dcs_regras WHERE ativa;
-  DELETE FROM public.dcs_alertas;
+  DELETE FROM public.dcs_alertas WHERE true;  -- pg_safeupdate exige WHERE
   INSERT INTO public.dcs_alertas(tipo,cliente_key,referencia,detalhe)
   SELECT 'revisao_vencida', d.cliente_key, d.id::text, jsonb_build_object('proxima_revisao',d.proxima_revisao,'ciclo',d.ciclo)
     FROM public.dcs_diagnosticos d JOIN public.dcs_clientes c ON c.key=d.cliente_key AND c.ativo
@@ -74,9 +101,9 @@ DECLARE hoje date := (now() AT TIME ZONE 'America/Sao_Paulo')::date; lim int; n 
     FROM public.dcs_acoes a JOIN public.dcs_clientes c ON c.key=a.cliente_key AND c.ativo
    WHERE NOT a.obsoleta AND a.status NOT IN ('implementado','nao_aprovado') AND a.prazo<hoje
   UNION ALL
-  SELECT 'cobertura_critica', c.key, NULL, jsonb_build_object('ultimo_efetivo',cb.ultimo_efetivo->>'date')
+  SELECT 'cobertura_critica', c.key, NULL, jsonb_build_object('data_contato_efetivo',cb.data_contato_efetivo)
     FROM public.dcs_clientes c LEFT JOIN public.dcs_cobertura cb ON cb.key=c.key
-   WHERE c.ativo AND cb.key IS NOT NULL AND (cb.ultimo_efetivo IS NULL OR (cb.ultimo_efetivo->>'date')::date < hoje-lim)
+   WHERE c.ativo AND cb.key IS NOT NULL AND (cb.data_contato_efetivo IS NULL OR cb.data_contato_efetivo < hoje-lim)
   UNION ALL
   SELECT 'oportunidade_critica', a.cliente_key, a.id::text, jsonb_build_object('acao',a.acao)
     FROM public.dcs_acoes a JOIN public.dcs_clientes c ON c.key=a.cliente_key AND c.ativo

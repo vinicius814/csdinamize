@@ -1,6 +1,6 @@
 # Status do projeto
 
-**Fase atual:** 0 concluída; 1–4 parcialmente (back-end, motor, integrações). Interface ainda não iniciada.
+**Fase atual:** back-end e integrações de leitura em produção com dados reais; interface ainda não iniciada.
 **Branch:** `dinamize-cs/fase-0` (local; push aguardando permissão). **Base:** `main@3455efe` (tag `backup/munin-pre-dcs-2026-11-16`).
 
 ## Concluído (implementado + testado)
@@ -18,12 +18,17 @@
 - Interface completa (todas as telas), renomear projeto no Lovable, identidade visual.
 - Validação com dados reais em leitura; homologação; produção.
 
-## Situação dos bloqueios (17/11/2026)
-1. GitHub: branch `dinamize-cs/fase-0` publicada. A tag `backup/munin-pre-dcs-2026-11-16` não sobe (o proxy derruba o push de tags); o ponto de recuperação continua sendo o commit `3455efe` (`main`).
-2. Lovable e Supabase: acesso liberado. Banco auditado (3 usuários ativos). Migration 1 aplicada; migration 2 aguardando a confirmação pedida pelo conector do Supabase.
-3. Cobertura (D5): aguardando confirmação; campo do Pipedrive localizado. D13 (tipos novos de atividade) também.
-4. Dados do artefato: o artefato não aparece entre os artefatos da conta (pertence a outra conta ou link compartilhado) → exportação CSV pelo próprio artefato.
-5. n8n: existe a credencial "Pipedrive account" (dá para reaproveitar); faltam a de service role do Supabase e o segredo dos webhooks (o conector não cria credenciais).
+## Integrações em produção (17/11/2026)
+- Supabase "Munim V2": migrations `dcs_fundacao`, `dcs_integracoes_alertas`, `dcs_responsaveis_por_coluna` aplicadas; 35 cenários pglite aprovados; verificador de segurança sem erros nos objetos dcs_* (avisos aceitos: funções SECURITY DEFINER chamáveis por usuários autenticados, todas com checagem interna).
+- n8n: workflows 01, 04, 05, 08 e 10 ativos; 07 como workflow de erro. Execuções de teste com dados reais:
+  - 04: 45 responsáveis (12 ativos).
+  - 01: 700 negócios lidos no funil 15 → 221 clientes e-commerce, leitura completa, 0 inativados, todos com valor.
+  - 05: 221 clientes com o campo de contato efetivo; 52 em dia, 14 atenção, 28 pendentes, 127 críticos; 36 divergências com as atividades.
+  - 08: 127 alertas de cobertura crítica.
+- Pendente no n8n: definir o 07 como "Error workflow" nas configurações dos demais (Settings → Error workflow); 02, 03, 06 e 09 (D17, escrita no Pipedrive aguarda autorização).
+
+## Achados
+- D14: migrations do Munin de 25/10 não aplicadas no banco.
 
 ## Próxima ação objetiva
-Confirmar e aplicar a migration 2; depois interface (navegação, carteira, diagnóstico com autosave).
+Interface: navegação e identidade Dinamize, carteira (dados reais já disponíveis) e diagnóstico com salvamento automático.

@@ -294,3 +294,19 @@ describe("mensagens e permissões", () => {
     expect(M.chaveAtividade("116749", 2)).toBe("DZCS-116749-C2");
   });
 });
+
+describe("contato efetivo pelo campo do Pipedrive (D5)", () => {
+  const cf = (v: unknown) => ({ custom_fields: { [M.CAMPO_CONTATO_EFETIVO]: v } });
+  it("usa a maior data entre os negócios e ignora vazios/inválidos", () => {
+    expect(M.dataContatoEfetivo([cf("2026-09-01"), cf("2026-10-15"), cf(null), cf("lixo")])).toBe(
+      "2026-10-15",
+    );
+    expect(M.dataContatoEfetivo([cf(null), {}])).toBeNull();
+  });
+  it("sinaliza divergência com a classificação de atividades", () => {
+    expect(M.divergenciaContato(null, "2026-11-01")).toBe("sem_campo");
+    expect(M.divergenciaContato("2026-10-01", "2026-11-01")).toBe("atividade_mais_recente");
+    expect(M.divergenciaContato("2026-10-28", "2026-11-01")).toBeNull();
+    expect(M.divergenciaContato("2026-10-01", null)).toBeNull();
+  });
+});

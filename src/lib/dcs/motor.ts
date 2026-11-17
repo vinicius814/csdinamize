@@ -512,3 +512,34 @@ export function podeVerCliente(
 /** Chave de idempotência da atividade no Pipedrive (mesma marca usada pelo artefato). */
 export const chaveAtividade = (clienteKey: string, ciclo: number) => `DZCS-${clienteKey}-C${ciclo}`;
 export { A as artefato };
+
+/* ---------- Contato efetivo: campo do Pipedrive (D5, confirmado em 17/11/2026) ---------- */
+/** Campo de negócio "Data do último contato efetivo" no Pipedrive. */
+export const CAMPO_CONTATO_EFETIVO = "58cd094a23bd14b9275f4c006f1b19457b3c1d63";
+const DATA_ISO = /^\d{4}-\d{2}-\d{2}/;
+/** Maior data válida do campo entre os negócios do cliente; null se nenhum negócio tiver o campo preenchido. */
+export function dataContatoEfetivo(deals: Pick<DealPD, "custom_fields">[]): string | null {
+  let max: string | null = null;
+  for (const d of deals) {
+    const v = d.custom_fields?.[CAMPO_CONTATO_EFETIVO];
+    if (typeof v !== "string" || !DATA_ISO.test(v)) continue;
+    const dia = v.slice(0, 10);
+    if (!max || dia > max) max = dia;
+  }
+  return max;
+}
+/**
+ * Compara a fonte oficial (campo) com a classificação de atividades (referência).
+ * "sem_campo": há contato por atividade mas o campo está vazio; "atividade_mais_recente": atividade
+ * efetiva mais nova que o campo além da tolerância (campo possivelmente desatualizado).
+ */
+export function divergenciaContato(
+  campo: string | null,
+  porAtividade: string | null,
+  toleranciaDias = 7,
+): "sem_campo" | "atividade_mais_recente" | null {
+  if (!porAtividade) return null;
+  if (!campo) return "sem_campo";
+  const dias = (Date.parse(porAtividade.slice(0, 10)) - Date.parse(campo.slice(0, 10))) / 864e5;
+  return dias > toleranciaDias ? "atividade_mais_recente" : null;
+}
