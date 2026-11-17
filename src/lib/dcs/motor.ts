@@ -368,6 +368,8 @@ export function classificarAtividade(
   const mode = (cov.modes as Record<string, string>)?.[a.type || ""] || "nao";
   if (mode === "nao") return "ignorar";
   if (mode === "forte") return "efetivo";
+  // "tentativa": o tipo registra tentativa de contato (não conta como contato efetivo).
+  if (mode === "tentativa") return "ignorar";
   const txt = subj + " " + semHtml(a.note);
   if (temPalavra(txt, cov.kwNeg)) return "ignorar";
   if (mode === "sim") return "efetivo";

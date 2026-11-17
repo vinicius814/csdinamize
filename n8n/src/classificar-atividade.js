@@ -8,6 +8,7 @@ function classificarAtividade(a, cov) {
   const mode = cov.modes?.[a.type || ""] || "nao";
   if (mode === "nao") return "ignorar";
   if (mode === "forte") return "efetivo";
+  if (mode === "tentativa") return "tentativa";
   const txt = subj + " " + semHtml(a.note);
   if (temPalavra(txt, cov.kwNeg)) return "tentativa";
   if (mode === "sim") return "efetivo";

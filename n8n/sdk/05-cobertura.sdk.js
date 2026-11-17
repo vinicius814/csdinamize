@@ -34,6 +34,20 @@ const abrir = node({
   }
 });
 
+// Regras publicadas em Configurações (classificação por tipo de atividade e palavras-chave), sem alterar código.
+const regras = node({
+  type: 'n8n-nodes-base.httpRequest', version: 4.4,
+  config: {
+    name: 'Regras ativas', executeOnce: true,
+    parameters: {
+      method: 'POST', url: SB + 'dcs_regras_ativas', authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',
+      sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: '{}',
+      options: { timeout: 60000, response: { response: { responseFormat: 'text', outputPropertyName: 'regras' } } }
+    },
+    credentials: credSupabase
+  }
+});
+
 const clientes = node({
   type: 'n8n-nodes-base.httpRequest', version: 4.4,
   config: {
@@ -109,14 +123,24 @@ function classificarAtividade(a, cov) {
   const mode = cov.modes?.[a.type || ""] || "nao";
   if (mode === "nao") return "ignorar";
   if (mode === "forte") return "efetivo";
+  if (mode === "tentativa") return "tentativa";
   const txt = subj + " " + semHtml(a.note);
   if (temPalavra(txt, cov.kwNeg)) return "tentativa";
   if (mode === "sim") return "efetivo";
   return temPalavra(txt, cov.kwPos) ? "efetivo" : "incerto";
 }
-const cov = { modes: { contato_efetivo: "forte", reunio_acompanhamento: "sim", reunio_3___ativao: "sim", email1: "kw" },
+const covPadrao = { modes: { contato_efetivo: "forte", reunio_acompanhamento: "sim", reunio_3___ativao: "sim", email1: "kw" },
   kwPos: ["contato efetivo","reunião realizada","reuniao realizada","call realizada","conversa realizada","atendeu","respondeu","retorno do cliente","alinhamento","acompanhamento"],
   kwNeg: ["tentativa","sem resposta","não atendeu","nao atendeu","caixa postal","cancelad","no show","no-show","remarcad","reagend","convite","lembrete","agendar"] };
+let publicadas = {};
+try { publicadas = JSON.parse($('Regras ativas').first().json.regras || '{}') || {}; } catch (e) { publicadas = {}; }
+const cv = (publicadas && publicadas.cov) || {};
+const cov = { modes: { ...covPadrao.modes, ...(cv.modes || {}) },
+  kwPos: Array.isArray(cv.kwPos) ? cv.kwPos : covPadrao.kwPos, kwNeg: Array.isArray(cv.kwNeg) ? cv.kwNeg : covPadrao.kwNeg };
+const tipos = {};
+for (const a of [...pgFTodos(), ...pgATodos()]) if (a && a.type) tipos[a.type] = (tipos[a.type] || 0) + 1;
+function pgFTodos() { return $('Atividades concluídas').all().flatMap((p) => Array.isArray(p.json.data) ? p.json.data : []); }
+function pgATodos() { return $('Atividades agendadas').all().flatMap((p) => Array.isArray(p.json.data) ? p.json.data : []); }
 const run = String($('Abrir sincronização').first().json.run || '').replace(/"/g, '').trim();
 let clientes = null;
 try { clientes = JSON.parse($('Clientes ativos').first().json.clientes || 'null'); } catch (e) { clientes = null; }
@@ -151,7 +175,7 @@ for (const a of pgA.flatMap((p) => p.json.data)) {
 const rows = clientes.map((c) => ({ key: c.key, data_contato_efetivo: dataContatoEfetivo(dealsPorCliente[c.key] || [], "58cd094a23bd14b9275f4c006f1b19457b3c1d63"),
   contato_por_atividade: agg[c.key]?.contato_por_atividade || null, ultimo_incerto: agg[c.key]?.ultimo_incerto || null,
   ultima_tentativa: agg[c.key]?.ultima_tentativa || null, proximo: agg[c.key]?.proximo || null }));
-return [{ json: { falha: false, p_run: run, p_rows: rows, p_completo: true,
+return [{ json: { falha: false, p_run: run, p_rows: rows, p_completo: true, p_tipos: Object.entries(tipos).map(([chave, ocorrencias]) => ({ chave, ocorrencias })),
   p_detalhes: { negocios: deals.length, paginas_concluidas: pgF.length, paginas_agendadas: pgA.length, com_campo: rows.filter((r) => r.data_contato_efetivo).length } } }];` } }
 });
 
@@ -179,6 +203,19 @@ const publicar = node({
   }
 });
 
+const registrarTipos = node({
+  type: 'n8n-nodes-base.httpRequest', version: 4.4,
+  config: {
+    name: 'Registrar tipos de atividade', onError: 'continueRegularOutput',
+    parameters: {
+      method: 'POST', url: SB + 'dcs_registrar_tipos_atividade', authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',
+      sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: expr("{{ JSON.stringify({ p_tipos: $('Calcular cobertura').first().json.p_tipos || [] }) }}"),
+      options: { timeout: 60000, response: { response: { responseFormat: 'text', outputPropertyName: 'tipos' } } }
+    },
+    credentials: credSupabase
+  }
+});
+
 const falhar = node({
   type: 'n8n-nodes-base.httpRequest', version: 4.4,
   config: {
@@ -195,12 +232,13 @@ const falhar = node({
 export default workflow('dcs-05', 'Dinamize CS | 05 — Cobertura de Customer Success')
   .add(agendamento)
   .to(abrir)
+  .to(regras)
   .to(clientes)
   .to(negocios)
   .to(feitas)
   .to(abertas)
   .to(agregar)
-  .to(ok.onTrue(publicar).onFalse(falhar))
+  .to(ok.onTrue(publicar.to(registrarTipos)).onFalse(falhar))
   .add(manual)
   .to(abrir)
   .add(pedido)

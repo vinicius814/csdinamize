@@ -118,6 +118,27 @@ describe("workflows n8n ≡ motor", () => {
       expect(wf === "tentativa" ? "ignorar" : wf).toBe(M.classificarAtividade(a, cfg.cov));
     }
   });
+  it("tipo configurado como tentativa nunca conta como contato efetivo (ex.: Contato de retenção)", () => {
+    const cov = { ...cfg.cov, modes: { ...cfg.cov.modes, contato_retencao: "tentativa" } };
+    const a = {
+      id: 1,
+      done: true,
+      type: "contato_retencao",
+      subject: "Contato efetivo com o cliente",
+    };
+    expect(classificar(a, cov)).toBe("tentativa");
+    expect(M.classificarAtividade(a, cov)).toBe("ignorar");
+    const semRegra = { id: 2, done: true, type: "contato_retencao", subject: "respondeu" };
+    expect(M.classificarAtividade(semRegra, cfg.cov)).toBe("ignorar");
+  });
+  it("workflow 05 lê as regras publicadas e o código embutido é o mesmo de n8n/src", () => {
+    const wf = fs.readFileSync(
+      path.resolve(__dirname, "../../n8n/sdk/05-cobertura.sdk.js"),
+      "utf8",
+    );
+    expect(wf).toContain("dcs_regras_ativas");
+    expect(wf).toContain('if (mode === "tentativa") return "tentativa";');
+  });
   it("workflows sem segredos e com credenciais por nome", () => {
     const dir = path.resolve(__dirname, "../../n8n/workflows");
     for (const f of fs.readdirSync(dir)) {
