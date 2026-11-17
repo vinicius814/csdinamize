@@ -6,7 +6,7 @@
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -41,6 +41,8 @@
   --color-ember-foreground: var(--ember-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-primary-hover: var(--primary-hover);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -55,94 +57,56 @@
 }
 
 :root {
-  --area-rosa: oklch(0.74 0.15 350);
-  --qr-surface: oklch(1 0 0);
-  --radius: 0.75rem;
-  --background: oklch(0.162 0.014 258.4);
-  --foreground: oklch(0.936 0.012 264.5);
-  --card: oklch(0.205 0.026 263.8);
-  --card-foreground: oklch(0.936 0.012 264.5);
-  --popover: oklch(0.205 0.026 263.8);
-  --popover-foreground: oklch(0.936 0.012 264.5);
-  --primary: oklch(0.688 0.169 251.4);
-  --primary-foreground: oklch(0.162 0.014 258.4);
-  --button-disabled: oklch(0.35 0.04 258);
-  --button-disabled-foreground: oklch(0.936 0.012 264.5);
-  --secondary: oklch(0.244 0.033 263.7);
-  --secondary-foreground: oklch(0.936 0.012 264.5);
-  --muted: oklch(0.244 0.033 263.7);
-  --muted-foreground: oklch(0.667 0.031 261.4);
-  --accent: oklch(0.244 0.033 263.7);
-  --accent-foreground: oklch(0.936 0.012 264.5);
-  --destructive: oklch(0.711 0.166 22.2);
-  --destructive-foreground: oklch(0.162 0.014 258.4);
-  --border: oklch(0.308 0.040 260.4);
-  --input: oklch(0.308 0.040 260.4);
-  --ring: oklch(0.688 0.169 251.4);
-  --surface: oklch(0.205 0.026 263.8);
-  --surface-2: oklch(0.244 0.033 263.7);
-  --ember: oklch(0.725 0.182 46.0);
-  --ember-foreground: oklch(0.162 0.014 258.4);
-  --success: oklch(0.773 0.153 163.2);
-  --warning: oklch(0.837 0.164 84.4);
-  --sidebar: oklch(0.181 0.018 259.7);
-  --sidebar-foreground: oklch(0.936 0.012 264.5);
-  --sidebar-primary: oklch(0.688 0.169 251.4);
-  --sidebar-primary-foreground: oklch(0.162 0.014 258.4);
-  --sidebar-accent: oklch(0.244 0.033 263.7);
-  --sidebar-accent-foreground: oklch(0.936 0.012 264.5);
-  --sidebar-border: oklch(0.308 0.040 260.4);
-  --sidebar-ring: oklch(0.688 0.169 251.4);
-  --glow: 0 0 24px -4px oklch(0.688 0.169 251.4 / 0.55);
-  --glow-sm: 0 0 14px -6px oklch(0.688 0.169 251.4 / 0.6);
-  --primary-soft: oklch(0.688 0.169 251.4 / 0.14);
-  --ember-soft: oklch(0.725 0.182 46.0 / 0.16);
-  --glass: oklch(0.205 0.026 263.8 / 0.72);
+  /* Dinamize CS — design system (tema claro único). Cores da marca em hex para conferência direta. */
+  color-scheme: light;
+  --area-rosa: #DB2777;
+  --qr-surface: #FFFFFF;
+  --radius: 0.625rem;
+  --background: #F5F6F8;
+  --foreground: #1F2430;
+  --card: #FFFFFF;
+  --card-foreground: #1F2430;
+  --popover: #FFFFFF;
+  --popover-foreground: #1F2430;
+  --primary: #EA5456;
+  --primary-hover: #D13F41;
+  --primary-foreground: #FFFFFF;
+  --button-disabled: #F1F2F4;
+  --button-disabled-foreground: #9CA3AF;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1F2430;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #FDECEC;
+  --accent-foreground: #B4312F;
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #EA5456;
+  --surface: #FFFFFF;
+  --surface-2: #F9FAFB;
+  --ember: #F59E0B;
+  --ember-foreground: #1F2430;
+  --success: #16A34A;
+  --warning: #D97706;
+  --info: #2563EB;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1F2430;
+  --sidebar-primary: #EA5456;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FDECEC;
+  --sidebar-accent-foreground: #C23B3D;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #EA5456;
+  --glow: 0 1px 2px rgb(16 24 40 / 0.04), 0 4px 12px rgb(16 24 40 / 0.06);
+  --glow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --primary-soft: #FDECEC;
+  --ember-soft: #FEF3C7;
+  --glass: rgb(255 255 255 / 0.85);
 }
-
-.light {
-  --area-rosa: oklch(0.5 0.15 350);
-  --background: oklch(0.976 0.006 264.5);
-  --foreground: oklch(0.200 0.028 262.3);
-  --card: oklch(1.000 0.000 89.9);
-  --card-foreground: oklch(0.200 0.028 262.3);
-  --popover: oklch(1.000 0.000 89.9);
-  --popover-foreground: oklch(0.200 0.028 262.3);
-  --primary: oklch(0.545 0.170 253.4);
-  --primary-foreground: oklch(1.000 0.000 89.9);
-  --button-disabled: oklch(0.91 0.02 258);
-  --button-disabled-foreground: oklch(0.35 0.04 258);
-  --secondary: oklch(0.948 0.010 261.8);
-  --secondary-foreground: oklch(0.200 0.028 262.3);
-  --muted: oklch(0.948 0.010 261.8);
-  --muted-foreground: oklch(0.508 0.032 260.3);
-  --accent: oklch(0.948 0.010 261.8);
-  --accent-foreground: oklch(0.200 0.028 262.3);
-  --destructive: oklch(0.577 0.215 27.3);
-  --destructive-foreground: oklch(1 0 89.9);
-  --border: oklch(0.893 0.018 261.3);
-  --input: oklch(0.893 0.018 261.3);
-  --ring: oklch(0.595 0.170 253.4);
-  --surface: oklch(1.000 0.000 89.9);
-  --surface-2: oklch(0.948 0.010 261.8);
-  --ember: oklch(0.653 0.186 43.9);
-  --ember-foreground: oklch(0.162 0.014 258.4);
-  --success: oklch(0.773 0.153 163.2);
-  --warning: oklch(0.837 0.164 84.4);
-  --sidebar: oklch(1.000 0.000 89.9);
-  --sidebar-foreground: oklch(0.200 0.028 262.3);
-  --sidebar-primary: oklch(0.595 0.170 253.4);
-  --sidebar-primary-foreground: oklch(0.162 0.014 258.4);
-  --sidebar-accent: oklch(0.948 0.010 261.8);
-  --sidebar-accent-foreground: oklch(0.200 0.028 262.3);
-  --sidebar-border: oklch(0.893 0.018 261.3);
-  --sidebar-ring: oklch(0.595 0.170 253.4);
-  --glow: 0 0 20px -6px oklch(0.595 0.170 253.4 / 0.35);
-  --glow-sm: 0 0 12px -6px oklch(0.595 0.170 253.4 / 0.4);
-  --primary-soft: oklch(0.595 0.170 253.4 / 0.1);
-  --ember-soft: oklch(0.653 0.186 43.9 / 0.12);
-  --glass: oklch(1.000 0.000 89.9 / 0.75);
-}
+/* Compatibilidade: a classe .light (tema antigo) não altera mais nada. */
+.light {}
 
 @layer base {
   * { border-color: var(--color-border); }
@@ -152,7 +116,9 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+  html, body { overflow-x: hidden; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 }
 
 @utility glass {
@@ -163,7 +129,7 @@
 @utility button-primary {
   background-color: var(--primary);
   color: var(--primary-foreground);
-  &:hover:not(:disabled) { background-color: color-mix(in oklab, var(--primary) 90%, var(--background)); }
+  &:hover:not(:disabled) { background-color: var(--primary-hover); }
   &:disabled, &[aria-disabled="true"] { background-color: var(--button-disabled); color: var(--button-disabled-foreground); opacity: 1; }
 }
 
@@ -221,27 +187,8 @@
 .kanban-scroll::-webkit-scrollbar-thumb{background:hsl(var(--muted-foreground)/.35);border-radius:9999px;}
 .kanban-scroll::-webkit-scrollbar-track{background:transparent;}
 
-/* Dinamize CS: tema claro com a cor da marca (#EA5456), aplicado só dentro da área /dcs. */
-.dcs {
-  --background: oklch(0.985 0.002 260);
-  --foreground: oklch(0.22 0.02 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.02 260);
-  --primary: oklch(0.646 0.18 22.7);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.955 0.006 260);
-  --secondary-foreground: oklch(0.25 0.02 260);
-  --muted: oklch(0.962 0.005 260);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.955 0.02 22.7);
-  --accent-foreground: oklch(0.35 0.08 22.7);
-  --destructive: oklch(0.577 0.215 27.3);
-  --border: oklch(0.91 0.008 260);
-  --input: oklch(0.91 0.008 260);
-  --ring: oklch(0.646 0.18 22.7);
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-}
+/* Área de tabelas: única rolagem horizontal permitida. */
+.dcs-tabela { overflow-x: auto; max-width: 100%; position: relative; }
+.dcs-tabela table { min-width: 100%; }
+.dcs-tabela th { position: sticky; top: 0; background: var(--surface-2); z-index: 1; }
+.dcs {}
