@@ -144,3 +144,10 @@ neg = await db.exec(`UPDATE account_access SET status='suspenso' WHERE user_id='
 ok(neg, "último master não pode ser suspenso");
 neg = await db.exec(`UPDATE user_roles SET role='admin' WHERE user_id='${ADM}'`).then(()=>false).catch((e)=>/último Administrador Master/.test(e.message));
 ok(neg, "último master não pode ser rebaixado");
+await db.exec("SET ROLE authenticated");
+await as("00000000-0000-0000-0000-00000000000b");
+neg = await q(`SELECT dcs_salvar_permissoes('${CS1}','admin',true,true,true,true,'{}','{}',null)`).then(()=>false).catch((e)=>/Master/.test(e.message));
+ok(neg, "admin comum não concede perfil Administrador");
+await as(ADM);
+await q(`SELECT dcs_salvar_permissoes('${CS1}','cs',false,true,false,true,'{100}','{}',null)`);
+ok(true, "master altera permissões de analista");
