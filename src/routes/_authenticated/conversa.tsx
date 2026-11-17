@@ -11,9 +11,9 @@ export const Route = createFileRoute("/_authenticated/conversa")({
   }),
   head: () => ({
     meta: [
-      { title: "Chat do CS — Munin" },
+      { title: "Chat do CS — Dinamize CS" },
       { name: "description", content: "Chat do CS: o futuro assistente de Customer Success da Dinamize. Em breve." },
-      { property: "og:title", content: "Chat do CS — Munin" },
+      { property: "og:title", content: "Chat do CS — Dinamize CS" },
       { property: "og:description", content: "Assistente de Customer Success da Dinamize, em breve." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

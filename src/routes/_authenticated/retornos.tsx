@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 
 export const Route=createFileRoute("/_authenticated/retornos")({
  validateSearch:(s:Record<string,unknown>):{q:string;pipeline?:string|undefined;owner?:string|undefined}=>({q:typeof s["q"]==="string"?s["q"]:"",pipeline:["15","16","1","both"].includes(String(s["pipeline"]))?String(s["pipeline"]):undefined,owner:/^\d+$/.test(String(s["owner"]??""))?String(s["owner"]):undefined}),
- head:()=>({meta:[{title:"Retornos pendentes — Munin CS"},{name:"description",content:"Tarefas de retorno e follow-up abertas no Pipedrive, por cliente, responsável e tempo de espera."},{property:"og:title",content:"Retornos pendentes — Munin CS"},{property:"og:description",content:"Retornos pendentes da operação de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),
+ head:()=>({meta:[{title:"Retornos pendentes — Dinamize CS"},{name:"description",content:"Tarefas de retorno e follow-up abertas no Pipedrive, por cliente, responsável e tempo de espera."},{property:"og:title",content:"Retornos pendentes — Dinamize CS"},{property:"og:description",content:"Retornos pendentes da operação de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),
  component:Retornos});
 
 type Retorno={activity_id:number;deal_id:number;pipeline_id:number;owner_id:number;tipo:string;assunto:string;dia:string|null;inicio:string|null;cliente:string;owner_nome:string|null;valor:number|null};

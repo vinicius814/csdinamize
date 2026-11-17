@@ -19,9 +19,9 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Configurações — Munin" },
+      { title: "Configurações — Dinamize CS" },
       { name: "description", content: "Ajuste o Munin do seu jeito: conexões, regras de risco, rotina e aparência." },
-      { property: "og:title", content: "Configurações — Munin" },
+      { property: "og:title", content: "Configurações — Dinamize CS" },
       { property: "og:description", content: "Ajuste o Munin do seu jeito." },
     ],
   }),

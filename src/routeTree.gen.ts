@@ -41,8 +41,13 @@ import { Route as AuthenticatedDcsAlertasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedDcsAnalisesRouteImport } from './routes/_authenticated/dcs/analises'
 import { Route as AuthenticatedDcsCarteiraRouteImport } from './routes/_authenticated/dcs/carteira'
 import { Route as AuthenticatedDcsCoberturaRouteImport } from './routes/_authenticated/dcs/cobertura'
+import { Route as AuthenticatedDcsConfiguracoesRouteImport } from './routes/_authenticated/dcs/configuracoes'
+import { Route as AuthenticatedDcsHistoricoRouteImport } from './routes/_authenticated/dcs/historico'
 import { Route as AuthenticatedDcsIntegracoesRouteImport } from './routes/_authenticated/dcs/integracoes'
+import { Route as AuthenticatedDcsInteligenciaRouteImport } from './routes/_authenticated/dcs/inteligencia'
+import { Route as AuthenticatedDcsMinhaContaRouteImport } from './routes/_authenticated/dcs/minha-conta'
 import { Route as AuthenticatedDcsPlanosRouteImport } from './routes/_authenticated/dcs/planos'
+import { Route as AuthenticatedDcsUsuariosRouteImport } from './routes/_authenticated/dcs/usuarios'
 import { Route as AuthenticatedDcsClienteKeyRouteImport } from './routes/_authenticated/dcs/cliente.$key'
 import { Route as ApiOauthGoogleReturnRouteImport } from './routes/api/oauth/google/return'
 import { Route as ApiPublicCsSyncRouteImport } from './routes/api/public/cs/sync'
@@ -220,10 +225,34 @@ const AuthenticatedDcsCoberturaRoute =
     path: '/cobertura',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsConfiguracoesRoute =
+  AuthenticatedDcsConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsHistoricoRoute =
+  AuthenticatedDcsHistoricoRouteImport.update({
+    id: '/historico',
+    path: '/historico',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
 const AuthenticatedDcsIntegracoesRoute =
   AuthenticatedDcsIntegracoesRouteImport.update({
     id: '/integracoes',
     path: '/integracoes',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsInteligenciaRoute =
+  AuthenticatedDcsInteligenciaRouteImport.update({
+    id: '/inteligencia',
+    path: '/inteligencia',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsMinhaContaRoute =
+  AuthenticatedDcsMinhaContaRouteImport.update({
+    id: '/minha-conta',
+    path: '/minha-conta',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
 const AuthenticatedDcsPlanosRoute = AuthenticatedDcsPlanosRouteImport.update({
@@ -231,6 +260,12 @@ const AuthenticatedDcsPlanosRoute = AuthenticatedDcsPlanosRouteImport.update({
   path: '/planos',
   getParentRoute: () => AuthenticatedDcsRouteRoute,
 } as any)
+const AuthenticatedDcsUsuariosRoute =
+  AuthenticatedDcsUsuariosRouteImport.update({
+    id: '/usuarios',
+    path: '/usuarios',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
 const AuthenticatedDcsClienteKeyRoute =
   AuthenticatedDcsClienteKeyRouteImport.update({
     id: '/cliente/$key',
@@ -297,8 +332,13 @@ export interface FileRoutesByFullPath {
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
+  '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
+  '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
+  '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
+  '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs/': typeof AuthenticatedDcsIndexRoute
   '/dcs/cliente/$key': typeof AuthenticatedDcsClienteKeyRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
@@ -337,8 +377,13 @@ export interface FileRoutesByTo {
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
+  '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
+  '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
+  '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
+  '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs': typeof AuthenticatedDcsIndexRoute
   '/dcs/cliente/$key': typeof AuthenticatedDcsClienteKeyRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
@@ -380,8 +425,13 @@ export interface FileRoutesById {
   '/_authenticated/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/_authenticated/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/_authenticated/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
+  '/_authenticated/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/_authenticated/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/_authenticated/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
+  '/_authenticated/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
+  '/_authenticated/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
   '/_authenticated/dcs/planos': typeof AuthenticatedDcsPlanosRoute
+  '/_authenticated/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/_authenticated/dcs/': typeof AuthenticatedDcsIndexRoute
   '/_authenticated/dcs/cliente/$key': typeof AuthenticatedDcsClienteKeyRoute
   '/api/oauth/google/return': typeof ApiOauthGoogleReturnRoute
@@ -423,8 +473,13 @@ export interface FileRouteTypes {
     | '/dcs/analises'
     | '/dcs/carteira'
     | '/dcs/cobertura'
+    | '/dcs/configuracoes'
+    | '/dcs/historico'
     | '/dcs/integracoes'
+    | '/dcs/inteligencia'
+    | '/dcs/minha-conta'
     | '/dcs/planos'
+    | '/dcs/usuarios'
     | '/dcs/'
     | '/dcs/cliente/$key'
     | '/api/oauth/google/return'
@@ -463,8 +518,13 @@ export interface FileRouteTypes {
     | '/dcs/analises'
     | '/dcs/carteira'
     | '/dcs/cobertura'
+    | '/dcs/configuracoes'
+    | '/dcs/historico'
     | '/dcs/integracoes'
+    | '/dcs/inteligencia'
+    | '/dcs/minha-conta'
     | '/dcs/planos'
+    | '/dcs/usuarios'
     | '/dcs'
     | '/dcs/cliente/$key'
     | '/api/oauth/google/return'
@@ -505,8 +565,13 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/analises'
     | '/_authenticated/dcs/carteira'
     | '/_authenticated/dcs/cobertura'
+    | '/_authenticated/dcs/configuracoes'
+    | '/_authenticated/dcs/historico'
     | '/_authenticated/dcs/integracoes'
+    | '/_authenticated/dcs/inteligencia'
+    | '/_authenticated/dcs/minha-conta'
     | '/_authenticated/dcs/planos'
+    | '/_authenticated/dcs/usuarios'
     | '/_authenticated/dcs/'
     | '/_authenticated/dcs/cliente/$key'
     | '/api/oauth/google/return'
@@ -756,6 +821,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsCoberturaRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/configuracoes': {
+      id: '/_authenticated/dcs/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/dcs/configuracoes'
+      preLoaderRoute: typeof AuthenticatedDcsConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/historico': {
+      id: '/_authenticated/dcs/historico'
+      path: '/historico'
+      fullPath: '/dcs/historico'
+      preLoaderRoute: typeof AuthenticatedDcsHistoricoRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/integracoes': {
       id: '/_authenticated/dcs/integracoes'
       path: '/integracoes'
@@ -763,11 +842,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsIntegracoesRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/inteligencia': {
+      id: '/_authenticated/dcs/inteligencia'
+      path: '/inteligencia'
+      fullPath: '/dcs/inteligencia'
+      preLoaderRoute: typeof AuthenticatedDcsInteligenciaRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/minha-conta': {
+      id: '/_authenticated/dcs/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/dcs/minha-conta'
+      preLoaderRoute: typeof AuthenticatedDcsMinhaContaRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/planos': {
       id: '/_authenticated/dcs/planos'
       path: '/planos'
       fullPath: '/dcs/planos'
       preLoaderRoute: typeof AuthenticatedDcsPlanosRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/usuarios': {
+      id: '/_authenticated/dcs/usuarios'
+      path: '/usuarios'
+      fullPath: '/dcs/usuarios'
+      preLoaderRoute: typeof AuthenticatedDcsUsuariosRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
     '/_authenticated/dcs/cliente/$key': {
@@ -820,8 +920,13 @@ interface AuthenticatedDcsRouteRouteChildren {
   AuthenticatedDcsAnalisesRoute: typeof AuthenticatedDcsAnalisesRoute
   AuthenticatedDcsCarteiraRoute: typeof AuthenticatedDcsCarteiraRoute
   AuthenticatedDcsCoberturaRoute: typeof AuthenticatedDcsCoberturaRoute
+  AuthenticatedDcsConfiguracoesRoute: typeof AuthenticatedDcsConfiguracoesRoute
+  AuthenticatedDcsHistoricoRoute: typeof AuthenticatedDcsHistoricoRoute
   AuthenticatedDcsIntegracoesRoute: typeof AuthenticatedDcsIntegracoesRoute
+  AuthenticatedDcsInteligenciaRoute: typeof AuthenticatedDcsInteligenciaRoute
+  AuthenticatedDcsMinhaContaRoute: typeof AuthenticatedDcsMinhaContaRoute
   AuthenticatedDcsPlanosRoute: typeof AuthenticatedDcsPlanosRoute
+  AuthenticatedDcsUsuariosRoute: typeof AuthenticatedDcsUsuariosRoute
   AuthenticatedDcsIndexRoute: typeof AuthenticatedDcsIndexRoute
   AuthenticatedDcsClienteKeyRoute: typeof AuthenticatedDcsClienteKeyRoute
 }
@@ -831,8 +936,13 @@ const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
   AuthenticatedDcsAnalisesRoute: AuthenticatedDcsAnalisesRoute,
   AuthenticatedDcsCarteiraRoute: AuthenticatedDcsCarteiraRoute,
   AuthenticatedDcsCoberturaRoute: AuthenticatedDcsCoberturaRoute,
+  AuthenticatedDcsConfiguracoesRoute: AuthenticatedDcsConfiguracoesRoute,
+  AuthenticatedDcsHistoricoRoute: AuthenticatedDcsHistoricoRoute,
   AuthenticatedDcsIntegracoesRoute: AuthenticatedDcsIntegracoesRoute,
+  AuthenticatedDcsInteligenciaRoute: AuthenticatedDcsInteligenciaRoute,
+  AuthenticatedDcsMinhaContaRoute: AuthenticatedDcsMinhaContaRoute,
   AuthenticatedDcsPlanosRoute: AuthenticatedDcsPlanosRoute,
+  AuthenticatedDcsUsuariosRoute: AuthenticatedDcsUsuariosRoute,
   AuthenticatedDcsIndexRoute: AuthenticatedDcsIndexRoute,
   AuthenticatedDcsClienteKeyRoute: AuthenticatedDcsClienteKeyRoute,
 }

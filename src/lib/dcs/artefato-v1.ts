@@ -1334,9 +1334,7 @@ function mergeCfg(c) {
   for (const k of Object.keys(d)) {
     if (c[k] !== undefined) {
       d[k] =
-        typeof d[k] === "object" && !Array.isArray(d[k])
-          ? Object.assign({}, d[k], c[k])
-          : c[k];
+        typeof d[k] === "object" && !Array.isArray(d[k]) ? Object.assign({}, d[k], c[k]) : c[k];
     }
   }
   if (c.cov)
@@ -1413,11 +1411,7 @@ function bandOfSc(sc, cfg) {
   if (!sc || sc.score == null) return null;
   let b = bandOf(sc.score, cfg);
   const i = cfg.bands.indexOf(b);
-  if (
-    i === cfg.bands.length - 1 &&
-    sc.completion < (cfg.topBandMinCompletion ?? 80) &&
-    i > 0
-  )
+  if (i === cfg.bands.length - 1 && sc.completion < (cfg.topBandMinCompletion ?? 80) && i > 0)
     b = cfg.bands[i - 1];
   return b;
 }
@@ -1430,10 +1424,8 @@ const outRef = (key, v, cfg) => {
 };
 
 /* ===================== Plano de ação ===================== */
-const lower = (p) =>
-  ({ critica: "alta", alta: "media", media: "baixa", baixa: "baixa" })[p];
-const raise = (p) =>
-  ({ critica: "critica", alta: "critica", media: "alta", baixa: "media" })[p];
+const lower = (p) => ({ critica: "alta", alta: "media", media: "baixa", baixa: "baixa" })[p];
+const raise = (p) => ({ critica: "critica", alta: "critica", media: "alta", baixa: "media" })[p];
 function prioFor(it, st, override) {
   if (override && PRIOS.includes(override)) return override;
   if (st === "nao_funciona") return raise(it.p);
@@ -1453,12 +1445,7 @@ function mkRec(it, st, o, diag, cfg, aNi) {
   const mk = ENT_METRIC[it.key];
   if (mk) {
     const v = diag?.metrics?.m30?.[mk];
-    if (
-      v !== "" &&
-      v != null &&
-      !isNaN(v) &&
-      outRef(mk, Number(v), cfg) === true
-    )
+    if (v !== "" && v != null && !isNaN(v) && outRef(mk, Number(v), cfg) === true)
       extra = ` (${v}% nos últimos 30 dias)`;
   }
   return {
@@ -1485,18 +1472,13 @@ function genRecs(diag, cfg) {
     const o = items[it.key] || {},
       st = stOf(items, it.key);
     if (!PROB.includes(st)) continue;
-    if (st !== "nao_impl" && it.subs.some((k) => PROB.includes(stOf(items, k))))
-      continue; // a recomendação específica do detalhe substitui a genérica
+    if (st !== "nao_impl" && it.subs.some((k) => PROB.includes(stOf(items, k)))) continue; // a recomendação específica do detalhe substitui a genérica
     out.push(mkRec(it, st, o, diag, cfg, st === "nao_impl" ? it.aNi : null));
   }
   for (const it of SUBS) {
     const par = ITEM_BY[it.parent],
       ps = stOf(items, par.key);
-    if (
-      !needsMet(par, items) ||
-      ["nao_impl", "na", "nao_analisado"].includes(ps)
-    )
-      continue;
+    if (!needsMet(par, items) || ["nao_impl", "na", "nao_analisado"].includes(ps)) continue;
     const st = stOf(items, it.key);
     if (!PROB.includes(st)) continue;
     out.push(mkRec(it, st, items[it.key] || {}, diag, cfg, null));
@@ -1515,10 +1497,8 @@ function genRecs(diag, cfg) {
         cat: "aut",
         ref: k,
         problem: `${it.l}: relatório de conversão com janela de atribuição de ${o.jan} dia(s)`,
-        action:
-          "Ajustar a janela de atribuição do relatório de conversão para 1 dia",
-        benefit:
-          "Mensuração fiel da receita recuperada, sem superestimar a atribuição",
+        action: "Ajustar a janela de atribuição do relatório de conversão para 1 dia",
+        benefit: "Mensuração fiel da receita recuperada, sem superestimar a atribuição",
         priority: "alta",
         complexity: "baixa",
         who: "ambos",
@@ -1569,8 +1549,7 @@ function genRecs(diag, cfg) {
       cat: "res",
       ref: "res_contr",
       problem: `Recursos contratados sem uso: ${un}`,
-      action:
-        "Priorizar a ativação dos recursos contratados que ainda não estão em uso",
+      action: "Priorizar a ativação dos recursos contratados que ainda não estão em uso",
       benefit: "Mais retorno do investimento na plataforma",
       priority: "media",
       complexity: "media",
@@ -1582,10 +1561,7 @@ function genRecs(diag, cfg) {
     });
   const so = { critica: 0, alta: 1, media: 2, baixa: 3 };
   out.sort(
-    (a, b) =>
-      so[a.priority] - so[b.priority] ||
-      b.quick - a.quick ||
-      a.id.localeCompare(b.id),
+    (a, b) => so[a.priority] - so[b.priority] || b.quick - a.quick || a.id.localeCompare(b.id),
   );
   return out;
 }
@@ -1608,12 +1584,7 @@ function autoEntPatch(diag, cfg) {
 }
 const maxPrio = (recs) => {
   for (const p of PRIOS)
-    if (
-      recs.some(
-        (r) =>
-          r.priority === p && !r.obsolete && r.impl?.status !== "implementado",
-      )
-    )
+    if (recs.some((r) => r.priority === p && !r.obsolete && r.impl?.status !== "implementado"))
       return p;
   return null;
 };
@@ -1621,11 +1592,7 @@ const maxPrio = (recs) => {
 /* ===================== Resumo derivado (documento leve por cliente) ===================== */
 const isIn = (diag, k, arr) => {
   const s = diag?.items?.[k]?.s;
-  return !s || s === "na" || s === "nao_analisado"
-    ? null
-    : arr.includes(s)
-      ? 1
-      : 0;
+  return !s || s === "na" || s === "nao_analisado" ? null : arr.includes(s) ? 1 : 0;
 };
 function buildDerived(diag, cfg) {
   const sc = calcScore(diag?.items, cfg),
@@ -1638,8 +1605,7 @@ function buildDerived(diag, cfg) {
   }
   const m = diag?.metrics?.m30 || {};
   const metOut = Object.keys(cfg.refs).some(
-    (k) =>
-      outRef(k, m[k] === "" || m[k] == null ? NaN : Number(m[k]), cfg) === true,
+    (k) => outRef(k, m[k] === "" || m[k] == null ? NaN : Number(m[k]), cfg) === true,
   );
   const entBad = ITEMS.filter((i) => i.cat === "ent").some(
     (i) => diag?.items?.[i.key]?.s === "nao_funciona",
@@ -1650,10 +1616,7 @@ function buildDerived(diag, cfg) {
   const conv = AUTO_WIN1.map((k) => {
     const o = diag?.items?.[k];
     if (!o || !COUNTED.includes(o.s) || o.s === "nao_impl") return null;
-    return o.sub?.rel === "n" ||
-      (o.jan !== "" && o.jan != null && Number(o.jan) !== 1)
-      ? 1
-      : 0;
+    return o.sub?.rel === "n" || (o.jan !== "" && o.jan != null && Number(o.jan) !== 1) ? 1 : 0;
   }).filter((x) => x !== null);
   return {
     score: sc.score,
@@ -1662,9 +1625,7 @@ function buildDerived(diag, cfg) {
     unavail: sc.unavailable,
     pend: sc.pending,
     completion: sc.completion,
-    cats: Object.fromEntries(
-      Object.entries(sc.cat).map(([k, v]) => [k, v.score]),
-    ),
+    cats: Object.fromEntries(Object.entries(sc.cat).map(([k, v]) => [k, v.score])),
     st,
     opp: recs.length,
     crit: recs.filter((r) => r.priority === "critica").length,
@@ -1690,11 +1651,7 @@ function lastMetric(diag) {
 
 /* ===================== Resumo profissional e nota do Pipedrive ===================== */
 const dBR = (d) =>
-  d
-    ? new Date(
-        d + (String(d).length <= 10 ? "T12:00:00" : ""),
-      ).toLocaleDateString("pt-BR")
-    : "—";
+  d ? new Date(d + (String(d).length <= 10 ? "T12:00:00" : "")).toLocaleDateString("pt-BR") : "—";
 function pendingInfo(diag, cfg) {
   const items = diag?.items || {},
     sc = calcScore(items, cfg),
@@ -1714,9 +1671,7 @@ function pendingInfo(diag, cfg) {
     }
   }
   const m = diag?.metrics?.m30 || {};
-  const miss = METRICS_MAIN.filter(([k]) => m[k] === "" || m[k] == null).map(
-    ([, l]) => l,
-  );
+  const miss = METRICS_MAIN.filter(([k]) => m[k] === "" || m[k] == null).map(([, l]) => l);
   return {
     n: sc.pending,
     cats,
@@ -1736,8 +1691,7 @@ function buildSummary(ctx) {
     band = bandOfSc(sc, cfg),
     recs = genRecs(diag, cfg),
     pi = pendingInfo(diag, cfg);
-  const itemsBy = (st, L) =>
-    (L || ITEMS).filter((i) => diag.items?.[i.key]?.s === st);
+  const itemsBy = (st, L) => (L || ITEMS).filter((i) => diag.items?.[i.key]?.s === st);
   const pos = itemsBy("funcional", MAINS)
     .sort((a, b) => b.e - a.e)
     .slice(0, 6)
@@ -1751,15 +1705,8 @@ function buildSummary(ctx) {
   const opps = recs
     .filter((r) => r.state === "nao_impl" || r.source === "extra")
     .slice(0, 6)
-    .map((r) =>
-      r.problem.replace(
-        /: ainda não implementado/,
-        " — oportunidade de implementação",
-      ),
-    );
-  const prio = recs
-    .slice(0, 6)
-    .map((r) => `[${PRIO_L[r.priority]}] ${r.action}`);
+    .map((r) => r.problem.replace(/: ainda não implementado/, " — oportunidade de implementação"));
+  const prio = recs.slice(0, 6).map((r) => `[${PRIO_L[r.priority]}] ${r.action}`);
   const cs = Object.entries(sc.cat)
     .filter(([, v]) => v.score != null)
     .sort((a, b) => b[1].score - a[1].score);
@@ -1783,22 +1730,16 @@ function buildSummary(ctx) {
   const nx = [
     "Apresentar o diagnóstico ao cliente e alinhar as prioridades.",
     "Preparar na conta os recursos que dependem da Dinamize (pop-ups, segmentações e automações) para revisão e ativação do cliente.",
-    pi.n
-      ? "Complementar os itens ainda não analisados em uma nova revisão do diagnóstico."
-      : "",
+    pi.n ? "Complementar os itens ainda não analisados em uma nova revisão do diagnóstico." : "",
     "Acompanhar a implementação das recomendações no plano de ação.",
     nextReview ? `Nova revisão prevista para ${dBR(nextReview)}.` : "",
   ].filter(Boolean);
   const L = (a) =>
-    a.length
-      ? a.map((x) => "• " + x).join("\n")
-      : "• Nenhum item registrado nesta análise.";
+    a.length ? a.map((x) => "• " + x).join("\n") : "• Nenhum item registrado nesta análise.";
   const unv = pi.n
     ? [
         ...pi.names.slice(0, 10),
-        ...(pi.names.length > 10
-          ? [`e mais ${pi.names.length - 10} item(ns)`]
-          : []),
+        ...(pi.names.length > 10 ? [`e mais ${pi.names.length - 10} item(ns)`] : []),
         ...pi.miss.map((m) => "Indicador não preenchido: " + m),
       ]
     : [];
@@ -1843,10 +1784,60 @@ function buildSummary(ctx) {
   };
 }
 export {
-  PD_BASE, PIPELINE_ID, F_SEG, F_GER, SEG_ECOM, LABEL_ECOM, STAGES, USERS, ACT_TYPE, ACT_SUBJECT,
-  STATES, ST_BY, CODE2ST, PRIOS, PRIO_L, IMPL, IMPL_L, WHO_L, CPX_L, CATS, ITEMS, ITEM_BY, CAT_BY,
-  MAIN_DEF, MAINS, SUBS, MAINS_BY_CAT, stOf, needsMet, PROB, ENT_METRIC, METRICS_MAIN, MATRIX_COLS,
-  autoState, AUTO_CHECKS, AUTO_WIN1, METRICS, RES_FIELDS, DEF_CFG, TYPE_LABELS, MODE_L, mergeCfg,
-  COUNTED, calcScore, bandOf, bandOfSc, outRef, prioFor, mkRec, genRecs, autoEntPatch, maxPrio,
-  buildDerived, pendingInfo, PEND_TEXT, buildSummary,
+  PD_BASE,
+  PIPELINE_ID,
+  F_SEG,
+  F_GER,
+  SEG_ECOM,
+  LABEL_ECOM,
+  STAGES,
+  USERS,
+  ACT_TYPE,
+  ACT_SUBJECT,
+  STATES,
+  ST_BY,
+  CODE2ST,
+  PRIOS,
+  PRIO_L,
+  IMPL,
+  IMPL_L,
+  WHO_L,
+  CPX_L,
+  CATS,
+  ITEMS,
+  ITEM_BY,
+  CAT_BY,
+  MAIN_DEF,
+  MAINS,
+  SUBS,
+  MAINS_BY_CAT,
+  stOf,
+  needsMet,
+  PROB,
+  ENT_METRIC,
+  METRICS_MAIN,
+  MATRIX_COLS,
+  autoState,
+  AUTO_CHECKS,
+  AUTO_WIN1,
+  METRICS,
+  RES_FIELDS,
+  DEF_CFG,
+  TYPE_LABELS,
+  MODE_L,
+  mergeCfg,
+  COUNTED,
+  calcScore,
+  bandOf,
+  bandOfSc,
+  outRef,
+  prioFor,
+  mkRec,
+  genRecs,
+  autoEntPatch,
+  maxPrio,
+  buildDerived,
+  pendingInfo,
+  PEND_TEXT,
+  buildSummary,
 };

@@ -153,6 +153,39 @@ export type DcsMembro = {
   modulos: string[] | null;
   pipedrive_user_id: number | null;
 };
+export type DcsSolicitacao = {
+  id: string;
+  tipo: "carteira" | "cobertura" | "responsaveis";
+  status: "pendente" | "em_execucao" | "concluida" | "falha";
+  solicitado_por: string | null;
+  solicitado_em: string;
+  atendido_em: string | null;
+  erro: string | null;
+};
+export type DcsUsuario = {
+  user_id: string;
+  nome: string | null;
+  email: string | null;
+  status: string;
+  papel: "user" | "admin" | "superadmin";
+  ultimo_acesso: string | null;
+  perfil: "admin" | "cs" | "contas" | null;
+  financeiro: boolean;
+  pode_editar: boolean;
+  pode_exportar: boolean;
+  ativo: boolean;
+  carteiras: number[];
+  clientes: string[];
+  modulos: string[] | null;
+};
+export type MeuAcesso = {
+  perfil: "admin" | "cs" | "contas" | null;
+  master: boolean;
+  financeiro: boolean;
+  editar: boolean;
+  exportar: boolean;
+  modulos: string[] | null;
+};
 
 type T<R> = { Row: R; Insert: Partial<R>; Update: Partial<R>; Relationships: [] };
 export type DcsDatabase = {
@@ -169,6 +202,24 @@ export type DcsDatabase = {
       dcs_jobs: T<DcsJob>;
       dcs_integracao_logs: T<DcsLog>;
       dcs_membros: T<DcsMembro>;
+      dcs_solicitacoes_sync: T<DcsSolicitacao>;
+      dcs_acoes_eventos: T<{
+        id: number;
+        acao_id: string;
+        em: string;
+        ator: string | null;
+        tipo: string;
+        dados: Json;
+      }>;
+      dcs_auditoria: T<{
+        id: number;
+        em: string;
+        ator: string | null;
+        entidade: string;
+        entidade_id: string | null;
+        acao: string;
+        dados: Json;
+      }>;
       dcs_responsaveis: T<{
         pipedrive_user_id: number;
         nome: string;
@@ -181,6 +232,8 @@ export type DcsDatabase = {
         config: Json;
         metodologia: string;
         ativa: boolean;
+        criado_por: string | null;
+        criado_em: string;
       }>;
       dcs_mensagens: T<{
         id: string;
@@ -204,6 +257,29 @@ export type DcsDatabase = {
     Functions: {
       dcs_perfil: { Args: Record<string, never>; Returns: string | null };
       dcs_ve_financeiro: { Args: Record<string, never>; Returns: boolean };
+      dcs_meu_acesso: { Args: Record<string, never>; Returns: MeuAcesso };
+      dcs_analistas: { Args: Record<string, never>; Returns: { user_id: string; nome: string }[] };
+      dcs_listar_usuarios: { Args: Record<string, never>; Returns: DcsUsuario[] };
+      dcs_salvar_permissoes: {
+        Args: {
+          p_user: string;
+          p_perfil: string;
+          p_financeiro: boolean;
+          p_editar: boolean;
+          p_exportar: boolean;
+          p_ativo: boolean;
+          p_carteiras: number[];
+          p_clientes: string[];
+          p_modulos: string[] | null;
+        };
+        Returns: undefined;
+      };
+      dcs_solicitar_sync: { Args: { p_tipo: string }; Returns: string };
+      dcs_publicar_regras: { Args: { p_config: Json; p_metodologia: string }; Returns: string };
+      dcs_responsaveis_admin: {
+        Args: Record<string, never>;
+        Returns: { pipedrive_user_id: number; nome: string; ativo: boolean; visto_em: string }[];
+      };
       dcs_iniciar_analise: { Args: { p_key: string }; Returns: DcsDiagnostico };
       dcs_salvar_diagnostico: {
         Args: {

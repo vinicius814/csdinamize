@@ -48,6 +48,10 @@ const COR: Record<string, string> = {
   nao_impl: "bg-slate-700 text-white border-slate-700",
   na: "bg-slate-300 text-slate-800 border-slate-300",
 };
+const ROTULO_ESTADO: Record<string, string> = Object.fromEntries([
+  ...ESTADOS.map(([k, r]) => [k, r]),
+  ["nao_analisado", "Não analisado"],
+]);
 type Salvamento = "salvo" | "pendente" | "salvando" | "erro" | "conflito";
 
 export function EditorDiagnostico(props: {
@@ -57,9 +61,11 @@ export function EditorDiagnostico(props: {
   cliente: { nome: string; owner_nome: string | null };
   analistaNome: string;
   acoes: DcsAcao[];
+  anterior?: DcsDiagnostico | null;
   onMudou: () => void;
 }) {
   const { diag, cfg, editavel } = props;
+  const antes = props.anterior?.itens as Record<string, M.ItemResp> | undefined;
   const [conteudo, setConteudo] = useState<ConteudoDiag>(() => ({
     itens: diag.itens ?? {},
     metricas: (diag.metricas as Record<string, unknown>) ?? {},
@@ -105,6 +111,25 @@ export function EditorDiagnostico(props: {
     return () => window.removeEventListener("beforeunload", aviso);
   }, []);
 
+  // Atalhos: Alt+→ / Alt+← trocam de categoria; Ctrl/Cmd+S salva imediatamente.
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === "ArrowRight" || e.key === "ArrowLeft")) {
+        e.preventDefault();
+        setAba((a) => {
+          const i = CATS.findIndex((c) => c.id === a);
+          const n = (i + (e.key === "ArrowRight" ? 1 : CATS.length - 1)) % CATS.length;
+          return CATS[n]!.id;
+        });
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        void salvar();
+      }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [salvar]);
+
   const mudar = (f: (c: ConteudoDiag) => ConteudoDiag) => {
     if (!editavel || estado === "conflito") return;
     setConteudo((c) => {
@@ -143,25 +168,60 @@ export function EditorDiagnostico(props: {
   const catSc = sc.cat as Record<string, { score: number | null; done: number; total: number }>;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-5 min-[1600px]:grid-cols-[minmax(0,1fr)_340px]">
       <div className="min-w-0">
-        <div className="mb-3 flex flex-wrap gap-1">
-          {CATS.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setAba(c.id)}
-              className={cx(
-                "rounded-md border px-3 py-1.5 text-sm",
-                aba === c.id ? "border-primary bg-accent font-medium" : "bg-card hover:bg-muted",
-              )}
-            >
-              {c.short}
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {catSc[c.id]?.done ?? 0}/{catSc[c.id]?.total ?? 0}
-              </span>
-            </button>
-          ))}
-        </div>
+        <nav
+          aria-label="Categorias do diagnóstico"
+          className="sticky top-16 z-20 -mx-1 mb-3 bg-background/95 px-1 pb-2 pt-2 backdrop-blur"
+        >
+          <div className="dcs-tabela">
+            <div className="flex min-w-max gap-1.5" role="tablist">
+              {CATS.map((c, i) => {
+                const v = catSc[c.id];
+                const pctCat = v?.total ? Math.round((100 * v.done) / v.total) : 0;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={aba === c.id}
+                    onClick={() => setAba(c.id)}
+                    title={`${c.name} — ${v?.done ?? 0} de ${v?.total ?? 0} analisados${i === 0 ? " (Alt+→ para avançar)" : ""}`}
+                    className={cx(
+                      "w-[128px] rounded-lg border px-3 py-2 text-left transition-colors",
+                      aba === c.id
+                        ? "border-primary bg-primary-soft"
+                        : "bg-card hover:border-primary/40",
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "block truncate text-sm",
+                        aba === c.id && "font-medium text-primary",
+                      )}
+                    >
+                      {c.short}
+                    </span>
+                    <span className="mt-1 flex items-center gap-1.5">
+                      <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                        <span
+                          className={cx(
+                            "block h-full rounded-full",
+                            pctCat === 100 ? "bg-emerald-500" : "bg-primary",
+                          )}
+                          style={{ width: `${pctCat}%` }}
+                        />
+                      </span>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        {v?.done ?? 0}/{v?.total ?? 0}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
         <Painel
           titulo={CATS.find((c) => c.id === aba)?.name}
           acao={
@@ -175,22 +235,39 @@ export function EditorDiagnostico(props: {
           {aba === "ent" && (
             <Metricas conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
           )}
+          {(MAINS_BY_CAT[aba] ?? []).some((it) => it.matrix) && (
+            <MatrizAutomacoes
+              itens={(MAINS_BY_CAT[aba] ?? []).filter((it) => it.matrix)}
+              valores={conteudo.itens}
+              antes={antes}
+              editavel={editavel && estado !== "conflito"}
+              setItem={setItem}
+              setCheck={setCheck}
+            />
+          )}
           <div className="divide-y">
-            {(MAINS_BY_CAT[aba] ?? []).map((it) => (
-              <LinhaItem
-                key={it.key}
-                it={it}
-                itens={conteudo.itens}
-                editavel={editavel && estado !== "conflito"}
-                setItem={setItem}
-                setCheck={setCheck}
-              />
-            ))}
+            {(MAINS_BY_CAT[aba] ?? [])
+              .filter((it) => !it.matrix)
+              .map((it) => (
+                <LinhaItem
+                  key={it.key}
+                  it={it}
+                  itens={conteudo.itens}
+                  antes={antes}
+                  editavel={editavel && estado !== "conflito"}
+                  setItem={setItem}
+                  setCheck={setCheck}
+                />
+              ))}
           </div>
+          <p className="mt-4 hidden text-[11px] text-muted-foreground md:block">
+            Atalhos: Alt+→ / Alt+← trocam de categoria · Ctrl+S salva agora · o salvamento é
+            automático.
+          </p>
           {aba === "res" && <Resultados conteudo={conteudo} editavel={editavel} mudar={mudar} />}
         </Painel>
       </div>
-      <aside className="space-y-4">
+      <aside className="grid content-start gap-4 md:grid-cols-2 min-[1600px]:grid-cols-1">
         <Painel titulo="Índice de aproveitamento">
           <div className="flex items-baseline justify-between">
             <Indice
@@ -338,6 +415,7 @@ function Estados({
           key={k}
           type="button"
           title={dica}
+          aria-pressed={valor === k}
           disabled={!editavel}
           onClick={() => onChange(valor === k ? "nao_analisado" : k)}
           className={cx(
@@ -368,6 +446,7 @@ function SimNao({
           key={v}
           type="button"
           disabled={!editavel}
+          aria-pressed={valor === v}
           onClick={() => onChange(valor === v ? "" : v)}
           className={cx(
             "px-2 py-0.5",
@@ -388,12 +467,14 @@ function SimNao({
 function LinhaItem({
   it,
   itens,
+  antes,
   editavel,
   setItem,
   setCheck,
 }: {
   it: Item;
   itens: Record<string, M.ItemResp>;
+  antes?: Record<string, M.ItemResp> | undefined;
   editavel: boolean;
   setItem: (k: string, p: Partial<M.ItemResp>) => void;
   setCheck: (k: string, c: string, v: "s" | "n" | "") => void;
@@ -437,6 +518,14 @@ function LinhaItem({
             {(o.obs || o.ev) && !aberto && (
               <span className="ml-1.5 text-[11px] text-muted-foreground">· com anotações</span>
             )}
+            {antes && antes[it.key]?.s && antes[it.key]?.s !== st && (
+              <span
+                className="ml-1.5 text-[11px] text-muted-foreground"
+                title="Estado no ciclo anterior"
+              >
+                · ciclo anterior: {ROTULO_ESTADO[antes[it.key]!.s as string] ?? antes[it.key]!.s}
+              </span>
+            )}
           </span>
         </button>
         <Estados
@@ -478,73 +567,7 @@ function LinhaItem({
         </div>
       )}
       {aberto && (
-        <div className="mt-3 space-y-3 pl-6">
-          {it.matrix && (
-            <div className="grid gap-2 text-xs sm:grid-cols-2">
-              {(A.AUTO_CHECKS as [string, string][])
-                .filter(([k]) => !["impl", "ativa", "rel", "jan"].includes(k))
-                .map(([k, rot]) => (
-                  <label key={k} className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">{rot}</span>
-                    <SimNao
-                      valor={o.sub?.[k]}
-                      onChange={(v) => setCheck(it.key, k, v)}
-                      editavel={editavel}
-                    />
-                  </label>
-                ))}
-            </div>
-          )}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Textarea
-              placeholder="Observações"
-              rows={2}
-              disabled={!editavel}
-              defaultValue={o.obs ?? ""}
-              onBlur={(e) =>
-                e.target.value !== (o.obs ?? "") && setItem(it.key, { obs: e.target.value })
-              }
-            />
-            <Textarea
-              placeholder="Evidências e links"
-              rows={2}
-              disabled={!editavel}
-              defaultValue={o.ev ?? ""}
-              onBlur={(e) =>
-                e.target.value !== (o.ev ?? "") && setItem(it.key, { ev: e.target.value })
-              }
-            />
-          </div>
-          <div className="grid gap-2 sm:grid-cols-[1fr_180px]">
-            <Input
-              placeholder="Recomendação específica (opcional — substitui a padrão)"
-              disabled={!editavel}
-              defaultValue={o.rec ?? ""}
-              onBlur={(e) =>
-                e.target.value !== (o.rec ?? "") && setItem(it.key, { rec: e.target.value })
-              }
-            />
-            <select
-              disabled={!editavel}
-              value={o.prio ?? ""}
-              onChange={(e) =>
-                setItem(
-                  it.key,
-                  e.target.value
-                    ? { prio: e.target.value as M.Prioridade }
-                    : { prio: undefined as never },
-                )
-              }
-              className="h-9 rounded-md border bg-card px-2 text-sm"
-            >
-              <option value="">Prioridade automática</option>
-              <option value="critica">Crítica</option>
-              <option value="alta">Alta</option>
-              <option value="media">Média</option>
-              <option value="baixa">Baixa</option>
-            </select>
-          </div>
-        </div>
+        <DetalhesItem it={it} o={o} editavel={editavel} setItem={setItem} setCheck={setCheck} />
       )}
       {mostraSubs && (
         <div className="mt-2 space-y-1.5 border-l-2 border-muted pl-4 ml-6">
@@ -775,3 +798,252 @@ function Conclusao(p: {
     </Painel>
   );
 }
+
+function DetalhesItem({
+  it,
+  o,
+  editavel,
+  setItem,
+  setCheck,
+}: {
+  it: Item;
+  o: M.ItemResp;
+  editavel: boolean;
+  setItem: (k: string, p: Partial<M.ItemResp>) => void;
+  setCheck: (k: string, c: string, v: "s" | "n" | "") => void;
+}) {
+  return (
+    <div className="mt-3 space-y-3 pl-6">
+      {it.matrix && (
+        <div className="grid gap-2 text-xs sm:grid-cols-2">
+          {(A.AUTO_CHECKS as [string, string][])
+            .filter(([k]) => !["impl", "ativa", "rel", "jan"].includes(k))
+            .map(([k, rot]) => (
+              <label key={k} className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">{rot}</span>
+                <SimNao
+                  valor={o.sub?.[k]}
+                  onChange={(v) => setCheck(it.key, k, v)}
+                  editavel={editavel}
+                />
+              </label>
+            ))}
+        </div>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Textarea
+          placeholder="Observações"
+          rows={2}
+          disabled={!editavel}
+          defaultValue={o.obs ?? ""}
+          onBlur={(e) =>
+            e.target.value !== (o.obs ?? "") && setItem(it.key, { obs: e.target.value })
+          }
+        />
+        <Textarea
+          placeholder="Evidências e links"
+          rows={2}
+          disabled={!editavel}
+          defaultValue={o.ev ?? ""}
+          onBlur={(e) => e.target.value !== (o.ev ?? "") && setItem(it.key, { ev: e.target.value })}
+        />
+      </div>
+      <div className="grid gap-2 sm:grid-cols-[1fr_180px]">
+        <Input
+          placeholder="Recomendação específica (opcional — substitui a padrão)"
+          disabled={!editavel}
+          defaultValue={o.rec ?? ""}
+          onBlur={(e) =>
+            e.target.value !== (o.rec ?? "") && setItem(it.key, { rec: e.target.value })
+          }
+        />
+        <select
+          disabled={!editavel}
+          value={o.prio ?? ""}
+          onChange={(e) =>
+            setItem(
+              it.key,
+              e.target.value
+                ? { prio: e.target.value as M.Prioridade }
+                : { prio: undefined as never },
+            )
+          }
+          className="h-9 rounded-md border bg-card px-2 text-sm"
+        >
+          <option value="">Prioridade automática</option>
+          <option value="critica">Crítica</option>
+          <option value="alta">Alta</option>
+          <option value="media">Média</option>
+          <option value="baixa">Baixa</option>
+        </select>
+      </div>
+    </div>
+  );
+}
+
+/** Matriz de automações: uma linha por automação, colunas Sim/Não; o estado (Resultado) é calculado pelo motor. */
+function MatrizAutomacoes({
+  itens,
+  valores,
+  antes,
+  editavel,
+  setItem,
+  setCheck,
+}: {
+  itens: Item[];
+  valores: Record<string, M.ItemResp>;
+  antes?: Record<string, M.ItemResp> | undefined;
+  editavel: boolean;
+  setItem: (k: string, p: Partial<M.ItemResp>) => void;
+  setCheck: (k: string, c: string, v: "s" | "n" | "") => void;
+}) {
+  const [aberto, setAberto] = useState<string | null>(null);
+  const cols = A.MATRIX_COLS as [string, string][];
+  return (
+    <div className="dcs-tabela mb-4 rounded-lg border">
+      <table className="w-full min-w-[820px] text-sm">
+        <thead className="bg-surface-2 text-left text-xs text-muted-foreground">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Automação</th>
+            {cols.map(([k, r]) => (
+              <th key={k} className="px-2 py-2 text-center font-semibold">
+                {r === "Relatório de conversão"
+                  ? "Relatório"
+                  : r === "Precisa melhorar"
+                    ? "Melhoria"
+                    : r}
+              </th>
+            ))}
+            <th
+              className="px-2 py-2 text-center font-semibold"
+              title="Janela de atribuição exigida: 1 dia"
+            >
+              Janela
+            </th>
+            <th className="px-2 py-2 font-semibold">Resultado</th>
+            <th className="px-2 py-2">
+              <span className="sr-only">Detalhes</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {itens.map((it) => {
+            const o = valores[it.key] ?? {};
+            const st = (o.s ?? "nao_analisado") as string;
+            const dep = it.needs && !A.needsMet(it, valores);
+            const win1 = (A.AUTO_WIN1 as string[]).includes(it.key);
+            const ant = antes?.[it.key]?.s;
+            return (
+              <FragmentoLinha key={it.key}>
+                <tr className={cx("border-t align-middle", dep && "opacity-60")}>
+                  <td className="px-3 py-2">
+                    <span className="font-medium">{it.l}</span>
+                    {it.e ? (
+                      <span className="ml-1.5 rounded bg-accent px-1 text-[10px] font-medium uppercase text-accent-foreground">
+                        essencial
+                      </span>
+                    ) : null}
+                    {(o.obs || o.ev) && (
+                      <span className="ml-1.5 text-[11px] text-muted-foreground">· anotações</span>
+                    )}
+                    {dep && (
+                      <span className="block text-[11px] text-muted-foreground">
+                        dispensado: depende de “{ITEM[it.needs!]?.l}”
+                      </span>
+                    )}
+                    {ant && ant !== st && (
+                      <span className="block text-[11px] text-muted-foreground">
+                        ciclo anterior: {ROTULO_ESTADO[ant] ?? ant}
+                      </span>
+                    )}
+                  </td>
+                  {cols.map(([k, r]) => (
+                    <td key={k} className="px-2 py-2 text-center" aria-label={`${it.l} — ${r}`}>
+                      <SimNao
+                        valor={o.sub?.[k]}
+                        onChange={(v) => setCheck(it.key, k, v)}
+                        editavel={editavel && !dep}
+                      />
+                    </td>
+                  ))}
+                  <td className="px-2 py-2 text-center">
+                    {win1 ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min={0}
+                          aria-label={`${it.l} — janela de atribuição em dias`}
+                          className={cx(
+                            "h-7 w-14 px-1 text-center text-xs",
+                            o.jan != null &&
+                              o.jan !== "" &&
+                              Number(o.jan) !== 1 &&
+                              "border-red-400",
+                          )}
+                          disabled={!editavel || !!dep}
+                          value={o.jan ?? ""}
+                          onChange={(e) =>
+                            setItem(it.key, {
+                              jan: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                        />
+                        <span className="text-[11px] text-muted-foreground">d</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-2">
+                    <span
+                      className={cx(
+                        "inline-flex rounded px-2 py-0.5 text-xs font-medium",
+                        st === "nao_analisado" ? "bg-muted text-muted-foreground" : COR[st],
+                      )}
+                    >
+                      {ROTULO_ESTADO[st] ?? st}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setAberto(aberto === it.key ? null : it.key)}
+                      aria-expanded={aberto === it.key}
+                      className="rounded-md border px-2 py-1 text-xs hover:border-primary hover:text-primary"
+                    >
+                      {aberto === it.key ? "Fechar" : "Detalhes"}
+                    </button>
+                  </td>
+                </tr>
+                {aberto === it.key && (
+                  <tr className="bg-surface-2/60">
+                    <td colSpan={cols.length + 4} className="px-3 pb-3">
+                      <div className="mb-2 mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="text-muted-foreground">
+                          Ajuste manual do resultado (opcional):
+                        </span>
+                        <Estados
+                          valor={st as M.Estado}
+                          onChange={(s) => setItem(it.key, { s })}
+                          editavel={editavel && !dep}
+                        />
+                      </div>
+                      <DetalhesItem
+                        it={it}
+                        o={o}
+                        editavel={editavel && !dep}
+                        setItem={setItem}
+                        setCheck={setCheck}
+                      />
+                    </td>
+                  </tr>
+                )}
+              </FragmentoLinha>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+const FragmentoLinha = ({ children }: { children: React.ReactNode }) => <>{children}</>;

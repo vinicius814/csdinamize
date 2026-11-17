@@ -118,24 +118,46 @@ export function Kpi({
   detalhe,
   to,
   search,
+  icone,
+  tom = "neutro",
 }: {
   rotulo: string;
   valor: ReactNode;
   detalhe?: ReactNode;
   to?: string;
   search?: Record<string, string>;
+  icone?: ReactNode;
+  tom?: "neutro" | "marca" | "ok" | "aviso" | "critico" | "info";
 }) {
+  const fundo = {
+    neutro: "bg-muted text-muted-foreground",
+    marca: "bg-primary-soft text-primary",
+    ok: "bg-emerald-50 text-emerald-600",
+    aviso: "bg-amber-50 text-amber-600",
+    critico: "bg-red-50 text-red-600",
+    info: "bg-sky-50 text-sky-600",
+  }[tom];
   const corpo = (
-    <div className="rounded-lg border bg-card p-4 transition-colors hover:border-primary/40">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {rotulo}
+    <div className="flex h-full min-h-[116px] flex-col rounded-xl border bg-card p-4 shadow-[var(--glow-sm)] transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-[var(--glow)]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[13px] font-medium text-muted-foreground">{rotulo}</div>
+        {icone && (
+          <span
+            className={cx(
+              "grid h-8 w-8 shrink-0 place-items-center rounded-lg [&_svg]:h-4 [&_svg]:w-4",
+              fundo,
+            )}
+          >
+            {icone}
+          </span>
+        )}
       </div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{valor}</div>
-      {detalhe && <div className="mt-1 text-xs text-muted-foreground">{detalhe}</div>}
+      <div className="mt-auto pt-2 text-2xl font-semibold tabular-nums tracking-tight">{valor}</div>
+      <div className="mt-0.5 min-h-[16px] text-xs text-muted-foreground">{detalhe}</div>
     </div>
   );
   return to ? (
-    <Link to={to as never} search={search as never} className="block">
+    <Link to={to as never} search={search as never} className="block h-full rounded-xl">
       {corpo}
     </Link>
   ) : (
@@ -145,24 +167,36 @@ export function Kpi({
 
 export function Painel({
   titulo,
+  sub,
   acao,
   children,
   className,
+  semPadding,
 }: {
   titulo?: ReactNode;
+  sub?: ReactNode;
   acao?: ReactNode;
   children: ReactNode;
   className?: string;
+  semPadding?: boolean;
 }) {
   return (
-    <section className={cx("rounded-lg border bg-card", className)}>
+    <section
+      className={cx(
+        "flex min-w-0 flex-col rounded-xl border bg-card shadow-[var(--glow-sm)]",
+        className,
+      )}
+    >
       {titulo && (
-        <header className="flex items-center justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">{titulo}</h2>
+        <header className="flex flex-wrap items-start justify-between gap-2 border-b px-4 py-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">{titulo}</h2>
+            {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+          </div>
           {acao}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className={cx("min-w-0 flex-1", !semPadding && "p-4")}>{children}</div>
     </section>
   );
 }
@@ -178,11 +212,104 @@ export function Titulo({
 }) {
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
+      <div className="min-w-0">
         <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
         {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
-      {acao}
+      {acao && <div className="flex flex-wrap items-center gap-2">{acao}</div>}
+    </div>
+  );
+}
+
+/** Barra de progresso com rótulo (valor e %). */
+export function Barra({
+  v,
+  t,
+  cor = "bg-primary",
+  largura = "w-24",
+}: {
+  v: number;
+  t: number;
+  cor?: string;
+  largura?: string;
+}) {
+  const p = t ? Math.round((100 * v) / t) : 0;
+  return (
+    <span className="inline-flex items-center gap-2" title={`${v} de ${t} (${p}%)`}>
+      <span className={cx("h-1.5 overflow-hidden rounded-full bg-muted", largura)}>
+        <span className={cx("block h-full rounded-full", cor)} style={{ width: `${p}%` }} />
+      </span>
+      <span className="text-xs tabular-nums text-muted-foreground">{p}%</span>
+    </span>
+  );
+}
+
+/** Estado vazio elegante (sem dados fictícios). */
+export function Vazio({
+  titulo,
+  texto,
+  icone,
+}: {
+  titulo: string;
+  texto?: ReactNode;
+  icone?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center">
+      {icone && <span className="mb-1 text-muted-foreground [&_svg]:h-6 [&_svg]:w-6">{icone}</span>}
+      <p className="text-sm font-medium">{titulo}</p>
+      {texto && <p className="max-w-sm text-xs text-muted-foreground">{texto}</p>}
+    </div>
+  );
+}
+
+/** Select nativo estilizado (acessível por teclado; usado nos filtros). */
+export function Seletor<V extends string>({
+  rotulo,
+  valor,
+  opcoes,
+  onChange,
+  className,
+  todos = "Todos",
+}: {
+  rotulo: string;
+  todos?: string;
+  valor: V | "" | undefined;
+  opcoes: readonly (readonly [V, string])[];
+  onChange: (v: V | "") => void;
+  className?: string;
+}) {
+  return (
+    <label
+      className={cx(
+        "flex min-w-0 flex-col gap-1 text-xs font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {rotulo}
+      <select
+        value={valor ?? ""}
+        onChange={(e) => onChange(e.target.value as V | "")}
+        className="h-9 w-full min-w-0 rounded-lg border bg-card px-2.5 text-sm font-normal text-foreground shadow-[var(--glow-sm)] focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+      >
+        <option value="">{todos}</option>
+        {opcoes.map(([v, l]) => (
+          <option key={v} value={v}>
+            {l}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** Contêiner de tabela: a rolagem horizontal fica restrita à tabela. */
+export function Tabela({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cx("dcs-tabela rounded-xl border bg-card shadow-[var(--glow-sm)]", className)}>
+      <table className="w-full border-collapse text-sm [&_td]:border-t [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-left [&_th]:text-xs [&_th]:font-semibold [&_th]:text-muted-foreground [&_tbody_tr:hover]:bg-surface-2">
+        {children}
+      </table>
     </div>
   );
 }
@@ -199,16 +326,29 @@ export function Estado({
   children: ReactNode;
 }) {
   if (carregando)
-    return <div className="py-16 text-center text-sm text-muted-foreground">Carregando…</div>;
+    return (
+      <div
+        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+        aria-busy="true"
+        aria-label="Carregando"
+      >
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="h-[116px] animate-pulse rounded-xl border bg-card" />
+        ))}
+      </div>
+    );
   if (erro)
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+      <div
+        role="alert"
+        className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+      >
         Não foi possível carregar: {(erro as Error).message ?? "erro"}
       </div>
     );
   if (vazio)
     return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground">
         {vazio}
       </div>
     );

@@ -11,7 +11,7 @@ import { Pagina, Cabecalho } from "@/components/munim/PaginaVazia";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
 import { Button } from "@/components/ui/button";
 
-export const Route=createFileRoute("/_authenticated/cliente/$dealId")({head:()=>({meta:[{title:"Cliente 360 — Munin CS"},{name:"description",content:"Visão completa do cliente na Central CS Dinamize: contrato, contato, atividades e risco."},{property:"og:title",content:"Cliente 360 — Munin CS"},{property:"og:description",content:"Visão 360 do cliente de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Cliente360});
+export const Route=createFileRoute("/_authenticated/cliente/$dealId")({head:()=>({meta:[{title:"Cliente 360 — Dinamize CS"},{name:"description",content:"Visão completa do cliente na Central CS Dinamize: contrato, contato, atividades e risco."},{property:"og:title",content:"Cliente 360 — Dinamize CS"},{property:"og:description",content:"Visão 360 do cliente de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Cliente360});
 
 function Item({k,v}:{k:string;v:React.ReactNode}){return <div className="min-w-0"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="mt-1 break-words text-sm">{v}</dd></div>;}
 function Cliente360(){

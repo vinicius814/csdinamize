@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_authenticated/cancelamentos")({
     pipeline: ["15", "16", "both"].includes(String(s["pipeline"])) ? s["pipeline"] as Busca["pipeline"] : undefined,
     owner: Number.isInteger(Number(s["owner"])) && Number(s["owner"]) > 0 ? Number(s["owner"]) : undefined,
   }),
-  head: () => ({ meta: [{ title: "Cancelamentos — Munin CS" }, { name: "description", content: "Negócios cancelados mês a mês, pela data de entrada em Cancelados, com o CS responsável na data." }, { property: "og:title", content: "Cancelamentos — Munin CS" }, { property: "og:description", content: "Cancelamentos mensais de Customer Success." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Cancelamentos — Dinamize CS" }, { name: "description", content: "Negócios cancelados mês a mês, pela data de entrada em Cancelados, com o CS responsável na data." }, { property: "og:title", content: "Cancelamentos — Dinamize CS" }, { property: "og:description", content: "Cancelamentos mensais de Customer Success." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Cancelamentos,
 });
 

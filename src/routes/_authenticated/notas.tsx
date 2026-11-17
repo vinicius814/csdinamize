@@ -17,9 +17,9 @@ export const Route = createFileRoute("/_authenticated/notas")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Notas — Munin" },
+      { title: "Notas — Dinamize CS" },
       { name: "description", content: "Seu Segundo Cérebro ao vivo: as notas em Markdown do seu Google Drive." },
-      { property: "og:title", content: "Notas — Munin" },
+      { property: "og:title", content: "Notas — Dinamize CS" },
       { property: "og:description", content: "Seu Segundo Cérebro ao vivo: as notas em Markdown do seu Google Drive." },
     ],
   }),

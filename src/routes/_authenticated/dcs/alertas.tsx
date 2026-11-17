@@ -1,11 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { useAlertas } from "@/lib/dcs/dados";
 import type { DcsAlerta } from "@/lib/dcs/db";
-import { dataBR, dataHoraBR, Estado, Selo, Titulo, type Tom } from "@/components/dcs/ui";
+import {
+  dataBR,
+  dataHoraBR,
+  Estado,
+  Kpi,
+  Selo,
+  Tabela,
+  Titulo,
+  type Tom,
+} from "@/components/dcs/ui";
 import { Filtro } from "./carteira";
 
-export const Route = createFileRoute("/_authenticated/dcs/alertas")({ component: Alertas });
+export const Route = createFileRoute("/_authenticated/dcs/alertas")({
+  validateSearch: (x: Record<string, unknown>): { tipo?: string | undefined } => ({
+    tipo: typeof x["tipo"] === "string" && x["tipo"] ? x["tipo"] : undefined,
+  }),
+  component: Alertas,
+});
 
 const TIPO: Record<DcsAlerta["tipo"], [string, Tom]> = {
   oportunidade_critica: ["Ação crítica em aberto", "critico"],
@@ -16,7 +29,9 @@ const TIPO: Record<DcsAlerta["tipo"], [string, Tom]> = {
 
 function Alertas() {
   const q = useAlertas();
-  const [tipo, setTipo] = useState("");
+  const tipo = Route.useSearch().tipo ?? "";
+  const nav = Route.useNavigate();
+  const setTipo = (t: string) => void nav({ search: { tipo: t || undefined }, replace: true });
   const lista = (q.data ?? []).filter((a) => !tipo || a.tipo === tipo);
   return (
     <>
@@ -24,6 +39,23 @@ function Alertas() {
         titulo="Alertas e pendências"
         sub={`Recalculados diariamente. Última geração: ${dataHoraBR(q.data?.[0]?.gerado_em)}.`}
       />
+      <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {(Object.entries(TIPO) as [DcsAlerta["tipo"], [string, Tom]][]).map(([k, [rot]]) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setTipo(tipo === k ? "" : k)}
+            aria-pressed={tipo === k}
+            className="h-full text-left"
+          >
+            <Kpi
+              rotulo={rot}
+              valor={(q.data ?? []).filter((a) => a.tipo === k).length}
+              tom={tipo === k ? "marca" : "neutro"}
+            />
+          </button>
+        ))}
+      </div>
       <div className="mb-4 flex gap-2">
         <Filtro
           valor={tipo}
@@ -40,38 +72,36 @@ function Alertas() {
         erro={q.error}
         vazio={!q.isLoading && !lista.length && "Nenhum alerta."}
       >
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/60 text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2">Tipo</th>
-                <th className="px-3 py-2">Cliente</th>
-                <th className="px-3 py-2">Responsável</th>
-                <th className="px-3 py-2">Detalhe</th>
+        <Tabela>
+          <thead className="bg-surface-2">
+            <tr>
+              <th>Tipo</th>
+              <th>Cliente</th>
+              <th>Responsável</th>
+              <th>Detalhe</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((a) => (
+              <tr key={a.id} className="border-t">
+                <td>
+                  <Selo tom={TIPO[a.tipo][1]}>{TIPO[a.tipo][0]}</Selo>
+                </td>
+                <td>
+                  <Link
+                    to="/dcs/cliente/$key"
+                    params={{ key: a.cliente_key }}
+                    className="hover:text-primary"
+                  >
+                    {a.cliente?.nome ?? a.cliente_key}
+                  </Link>
+                </td>
+                <td>{a.cliente?.owner_nome ?? "—"}</td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{detalhe(a)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {lista.map((a) => (
-                <tr key={a.id} className="border-t">
-                  <td className="px-3 py-2">
-                    <Selo tom={TIPO[a.tipo][1]}>{TIPO[a.tipo][0]}</Selo>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Link
-                      to="/dcs/cliente/$key"
-                      params={{ key: a.cliente_key }}
-                      className="hover:text-primary"
-                    >
-                      {a.cliente?.nome ?? a.cliente_key}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2">{a.cliente?.owner_nome ?? "—"}</td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">{detalhe(a)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Tabela>
       </Estado>
     </>
   );

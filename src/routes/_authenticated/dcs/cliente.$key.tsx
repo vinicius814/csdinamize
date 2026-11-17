@@ -33,11 +33,15 @@ import {
   SeloPrioridade,
 } from "@/components/dcs/ui";
 
-export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({ component: Cliente });
+type Aba = "diagnostico" | "plano" | "historico" | "mensagens";
+export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({
+  validateSearch: (s: Record<string, unknown>): { aba?: Aba | undefined } => ({
+    aba: (["plano", "historico", "mensagens"] as const).find((a) => a === s["aba"]),
+  }),
+  component: Cliente,
+});
 
 const A = M.artefato;
-type Aba = "diagnostico" | "plano" | "historico" | "mensagens";
-
 function Cliente() {
   const { key } = Route.useParams();
   const { session, perfil } = useAuth();
@@ -47,7 +51,12 @@ function Cliente() {
   const conf = useConfig();
   const acesso = useAcessoDcs();
   const iniciar = useIniciarAnalise();
-  const [aba, setAba] = useState<Aba>("diagnostico");
+  const busca = Route.useSearch();
+  const navegar = Route.useNavigate();
+  const aba: Aba = busca.aba ?? "diagnostico";
+  const setAba = (a: Aba) =>
+    void navegar({ search: { aba: a === "diagnostico" ? undefined : a }, replace: true });
+  const podeEditar = !!acesso.data?.editar;
   const recarregar = () => {
     void qc.invalidateQueries({ queryKey: ["dcs"] });
   };
@@ -87,56 +96,87 @@ function Cliente() {
             to="/dcs/carteira"
             className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" /> Carteira
+            <ArrowLeft className="h-4 w-4" /> Carteira de clientes
           </Link>
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{dados.cliente.nome}</h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                {dados.cliente.codigo && <span>#{dados.cliente.codigo}</span>}
-                <span>Responsável: {dados.cliente.owner_nome ?? "—"}</span>
-                <span>{(A.STAGES as Record<number, string>)[dados.cliente.stage_id]?.trim()}</span>
-                {acesso.data?.financeiro && <span>Valor no Pipedrive: {moeda(dados.mrr)}</span>}
-                {!dados.cliente.ativo && <Selo tom="aviso">Inativo na carteira</Selo>}
+          <section className="mb-5 rounded-xl border bg-card p-5 shadow-[var(--glow-sm)]">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold tracking-tight">{dados.cliente.nome}</h1>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                  {dados.cliente.codigo && <span>Código {dados.cliente.codigo}</span>}
+                  <span>Responsável: {dados.cliente.owner_nome ?? "—"}</span>
+                  <span>
+                    {(A.STAGES as Record<number, string>)[dados.cliente.stage_id]?.trim()}
+                  </span>
+                  {!dados.cliente.ativo && <Selo tom="aviso">Inativo na carteira</Selo>}
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <a href={pipedriveDeal(dados.cliente.deal_id)} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="mr-1 h-4 w-4" /> Abrir no Pipedrive
+                  </Button>
+                </a>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {cob && <SeloCobertura k={cob.k} dias={cob.dias} />}
-              <span className="text-xs text-muted-foreground">
-                Último contato efetivo: {dataBR(dados.cobertura?.data_contato_efetivo)}
-              </span>
-              <a href={pipedriveDeal(dados.cliente.deal_id)} target="_blank" rel="noreferrer">
-                <Button variant="outline" size="sm">
-                  <ExternalLink className="mr-1 h-4 w-4" /> Pipedrive
-                </Button>
-              </a>
-            </div>
-          </div>
-          <div className="mb-4 flex gap-1 border-b">
-            {(
-              [
-                ["diagnostico", "Diagnóstico"],
-                [
-                  "plano",
-                  `Plano de ação (${dados.acoes.filter((a) => !a.obsoleta && !["implementado", "nao_aprovado"].includes(a.status)).length})`,
-                ],
-                ["historico", `Histórico (${dados.diagnosticos.length})`],
-                ["mensagens", "Mensagens"],
-              ] as [Aba, string][]
-            ).map(([k, r]) => (
-              <button
-                key={k}
-                onClick={() => setAba(k)}
-                className={cx(
-                  "-mb-px border-b-2 px-3 py-2 text-sm",
-                  aba === k
-                    ? "border-primary font-medium"
-                    : "border-transparent text-muted-foreground hover:text-foreground",
+            <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-4 text-sm sm:grid-cols-3 xl:grid-cols-6">
+              <Dado rotulo="Índice">
+                {atual?.status === "concluido" ? (
+                  <Indice
+                    valor={atual.indice}
+                    faixa={(atual.derivado as { band?: string } | null)?.band ?? null}
+                  />
+                ) : atual ? (
+                  <span className="text-muted-foreground">Em análise</span>
+                ) : (
+                  <span className="text-muted-foreground">Sem diagnóstico</span>
                 )}
-              >
-                {r}
-              </button>
-            ))}
+              </Dado>
+              <Dado rotulo="% analisado">
+                {atual?.completude != null ? `${atual.completude}%` : "—"}
+              </Dado>
+              <Dado rotulo="Cobertura">
+                {cob ? <SeloCobertura k={cob.k} dias={cob.dias} /> : "—"}
+              </Dado>
+              <Dado rotulo="Último contato efetivo">
+                {dataBR(dados.cobertura?.data_contato_efetivo)}
+              </Dado>
+              <Dado rotulo="Próximo contato">{dataBR(dados.cobertura?.proximo?.date)}</Dado>
+              <Dado rotulo="Valor (Pipedrive)">
+                {acesso.data?.financeiro ? moeda(dados.mrr) : "Restrito"}
+              </Dado>
+            </dl>
+          </section>
+          <div className="dcs-tabela mb-4 border-b" role="tablist" aria-label="Seções do cliente">
+            <div className="flex min-w-max gap-1">
+              {(
+                [
+                  ["diagnostico", "Diagnóstico"],
+                  [
+                    "plano",
+                    `Plano de ação (${dados.acoes.filter((a) => !a.obsoleta && !["implementado", "nao_aprovado"].includes(a.status)).length})`,
+                  ],
+                  ["mensagens", "Comunicação"],
+                  ["historico", `Histórico (${dados.diagnosticos.length})`],
+                ] as [Aba, string][]
+              ).map(([k, r]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={aba === k}
+                  onClick={() => setAba(k)}
+                  className={cx(
+                    "-mb-px border-b-2 px-3 py-2 text-sm",
+                    aba === k
+                      ? "border-primary font-medium text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
           {aba === "diagnostico" &&
@@ -152,7 +192,7 @@ function Cliente() {
                     <Indice valor={atual.indice} />
                   </div>
                 )}
-                {dados.cliente.ativo && (
+                {dados.cliente.ativo && podeEditar && (
                   <Button className="mt-4" onClick={comecar} disabled={iniciar.isPending}>
                     {atual ? `Iniciar ciclo ${atual.ciclo + 1}` : "Iniciar análise"}
                   </Button>
@@ -164,10 +204,12 @@ function Cliente() {
                   </p>
                 )}
               </div>
-            ) : atual.analista_id !== eu && acesso.data?.perfil !== "admin" ? (
+            ) : (atual.analista_id !== eu && acesso.data?.perfil !== "admin") || !podeEditar ? (
               <>
-                <div className="mb-3 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
-                  Análise em andamento por outro analista. Você vê em modo leitura.
+                <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-800">
+                  {podeEditar
+                    ? "Análise em andamento por outro analista. Você vê em modo leitura."
+                    : "Seu perfil permite apenas consulta."}
                 </div>
                 <EditorDiagnostico
                   key={atual.id + atual.versao}
@@ -177,6 +219,7 @@ function Cliente() {
                   cliente={dados.cliente}
                   analistaNome=""
                   acoes={dados.acoes}
+                  anterior={dados.diagnosticos[1] ?? null}
                   onMudou={recarregar}
                 />
               </>
@@ -189,6 +232,7 @@ function Cliente() {
                 cliente={dados.cliente}
                 analistaNome={perfil?.nome ?? ""}
                 acoes={dados.acoes}
+                anterior={dados.diagnosticos[1] ?? null}
                 onMudou={recarregar}
               />
             ))}
@@ -199,6 +243,15 @@ function Cliente() {
         </>
       )}
     </Estado>
+  );
+}
+
+function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+      <dd className="mt-0.5 font-medium">{children}</dd>
+    </div>
   );
 }
 

@@ -13,9 +13,9 @@ import { PageSkeleton } from "@/components/munim/PageSkeleton";
 export const Route = createFileRoute("/_authenticated/conexoes")({
   head: () => ({
     meta: [
-      { title: "Conexões — Munin" },
+      { title: "Conexões — Dinamize CS" },
       { name: "description", content: "A integração corporativa da Central CS e as suas contas pessoais (agenda e e-mail)." },
-      { property: "og:title", content: "Conexões — Munin" },
+      { property: "og:title", content: "Conexões — Dinamize CS" },
       { property: "og:description", content: "Conecte suas ferramentas ao Munin em poucos cliques." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

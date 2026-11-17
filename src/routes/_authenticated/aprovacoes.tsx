@@ -14,9 +14,9 @@ export const Route = createFileRoute("/_authenticated/aprovacoes")({
     meta: [
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { title: "Aprovações — Munin" },
+      { title: "Aprovações — Dinamize CS" },
       { name: "description", content: "As ações que o Munin preparou para você aprovar: atividades, notas, rascunhos e eventos." },
-      { property: "og:title", content: "Aprovações — Munin" },
+      { property: "og:title", content: "Aprovações — Dinamize CS" },
       { property: "og:description", content: "As ações que o Munin preparou para você aprovar." },
     ],
   }),

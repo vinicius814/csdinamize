@@ -11,7 +11,7 @@ import { CS_ONBOARDING_STAGES, CS_PIPELINES, CS_ONBOARDING_LEGADO_DIAS, csDia, c
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
-export const Route=createFileRoute("/_authenticated/onboarding-cs")({head:()=>({meta:[{title:"Onboarding — Munin CS"},{name:"description",content:"Kanban de onboarding da Dinamize com prazos e atrasos."},{property:"og:title",content:"Onboarding — Munin CS"},{property:"og:description",content:"Projetos de onboarding de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Onboarding});
+export const Route=createFileRoute("/_authenticated/onboarding-cs")({head:()=>({meta:[{title:"Onboarding — Dinamize CS"},{name:"description",content:"Kanban de onboarding da Dinamize com prazos e atrasos."},{property:"og:title",content:"Onboarding — Dinamize CS"},{property:"og:description",content:"Projetos de onboarding de Customer Success."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary"}]}),component:Onboarding});
 function Onboarding(){
  const {session}=useAuth();const cs=useCSData();const rr=useServerFn(readRegrasCS);const regras=useQuery({queryKey:["cs-regras",session?.user.id],queryFn:()=>rr()});
  const ent=useServerFn(onboardingEntradasCS);const entradas=useQuery({queryKey:["cs-onb-entradas",session?.user.id,cs.data?.lastSuccess],enabled:!!cs.data,staleTime:5*60_000,queryFn:()=>ent()});

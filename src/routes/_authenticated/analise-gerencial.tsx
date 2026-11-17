@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/analise-gerencial")({
     pipeline: ["15", "16", "both"].includes(String(s["pipeline"])) ? s["pipeline"] as "15" | "16" | "both" : undefined, owner: /^\d+$/.test(String(s["owner"] ?? "")) ? String(s["owner"]) : undefined,
     aba: ["evolucao", "receita", "desempenho", "onboarding"].includes(String(s["aba"])) ? s["aba"] as Aba : undefined,
   }),
-  head: () => ({ meta: [{ title: "Análise Gerencial — Munin CS" }, { name: "description", content: "Evolução anual, receita e retenção, desempenho por CS e onboarding, com qualidade dos dados." }, { property: "og:title", content: "Análise Gerencial — Munin CS" }, { property: "og:description", content: "Análise gerencial da operação de Customer Success." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Análise Gerencial — Dinamize CS" }, { name: "description", content: "Evolução anual, receita e retenção, desempenho por CS e onboarding, com qualidade dos dados." }, { property: "og:title", content: "Análise Gerencial — Dinamize CS" }, { property: "og:description", content: "Análise gerencial da operação de Customer Success." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Analise,
 });
 
