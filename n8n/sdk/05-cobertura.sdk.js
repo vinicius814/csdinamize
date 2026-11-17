@@ -18,6 +18,8 @@ const agendamento = trigger({
   config: { name: 'Seg a sex 07:20 e 13:20', parameters: { rule: { interval: [{ field: 'cronExpression', expression: '0 20 7,13 * * 1-5' }] } } }
 });
 const manual = trigger({ type: 'n8n-nodes-base.manualTrigger', version: 1, config: { name: 'Execução manual' } });
+// Pedido feito pelo botão "Atualizar carteira" do Dinamize CS (atendido pelo workflow 11).
+const pedido = trigger({ type: 'n8n-nodes-base.executeWorkflowTrigger', version: 1.1, config: { name: 'Pedido do Dinamize CS', parameters: { inputSource: 'passthrough' } } });
 
 const abrir = node({
   type: 'n8n-nodes-base.httpRequest', version: 4.4,
@@ -200,4 +202,6 @@ export default workflow('dcs-05', 'Dinamize CS | 05 — Cobertura de Customer Su
   .to(agregar)
   .to(ok.onTrue(publicar).onFalse(falhar))
   .add(manual)
+  .to(abrir)
+  .add(pedido)
   .to(abrir);

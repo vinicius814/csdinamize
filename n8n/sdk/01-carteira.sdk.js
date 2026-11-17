@@ -8,6 +8,8 @@ const credPipedrive = { pipedriveApi: { id: 'RLiF1ChIGaWvWg1f', name: 'Pipedrive
 const agendamento = trigger({ type: 'n8n-nodes-base.scheduleTrigger', version: 1.3,
   config: { name: 'Diário 05:40', parameters: { rule: { interval: [{ field: 'cronExpression', expression: '0 40 5 * * *' }] } } } });
 const manual = trigger({ type: 'n8n-nodes-base.manualTrigger', version: 1, config: { name: 'Execução manual' } });
+// Pedido feito pelo botão "Atualizar carteira" do Dinamize CS (atendido pelo workflow 11).
+const pedido = trigger({ type: 'n8n-nodes-base.executeWorkflowTrigger', version: 1.1, config: { name: 'Pedido do Dinamize CS', parameters: { inputSource: 'passthrough' } } });
 const abrir = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: { name: 'Abrir sincronização', parameters: {
   method: 'POST', url: SB + 'dcs_iniciar_sync', authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',
   sendBody: true, contentType: 'json', specifyBody: 'json', jsonBody: '{"p_tipo":"carteira","p_modo":"completa"}',
@@ -92,4 +94,5 @@ const falhar = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: 
 
 export default workflow('dcs-01', 'Dinamize CS | 01 — Sincronização completa da carteira')
   .add(agendamento).to(abrir).to(usuarios).to(negocios).to(consolidar).to(ok.onTrue(publicar).onFalse(falhar))
-  .add(manual).to(abrir);
+  .add(manual).to(abrir)
+  .add(pedido).to(abrir);
