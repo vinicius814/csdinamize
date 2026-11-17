@@ -10,7 +10,7 @@
 | D6 | 16/11/2026 | Sincronização central do Munin (`cs-sync.server.ts`, `cs_snapshot`) mantida; carteira DCS vem pelo n8n | n8n é obrigatório para o DCS; o Munin atende outras telas | revisar ao descontinuar telas do Munin |
 | D7 | 16/11/2026 | "Incremental" relê o funil inteiro (poucas páginas) e grava só o que mudou; nunca inativa | consolidar todos os negócios de cada organização sem dados parciais | ativa |
 | D8 | 16/11/2026 | Escrita no Pipedrive desligada (`dcs_config.pipedrive_escrita=false`); jobs aguardam liberação de admin | briefing: gravações reais só com autorização | ativa |
-| D9 | 16/11/2026 | Dados do artefato não acessíveis pelo conector; migração via exportações CSV do próprio artefato (carteira, histórico, planos) ou exportação do banco pelo dono | o HTML não contém os registros | pendente |
+| D9 | 17/11/2026 | Sem migração de dados do artefato: ele lia direto do Pipedrive e não teve atualizações; o Dinamize CS busca os mesmos dados pela integração | confirmado pelo Vinícius em 17/11/2026 | encerrada |
 | D10 | 16/11/2026 | Perfil admin do DCS herda de admin/superadmin do Munin | evitar segunda fonte de autoridade para administradores | ativa |
 | D11 | 16/11/2026 | Classificação do n8n distingue "tentativa" (palavra de exclusão) de "ignorar" | briefing pede identificar tentativas sem sucesso; para contato efetivo as duas equivalem | ativa |
 | D12 | 17/11/2026 | Migration `dcs_fundacao` aplicada no Supabase "Munim V2" (versão 20261117142211; arquivo renomeado para casar com a versão e evitar reaplicação). Inclui revogação de privilégios padrão (TRUNCATE etc.) de anon/authenticated | acesso ao Supabase liberado; mudança aditiva com rollback | aplicada |
