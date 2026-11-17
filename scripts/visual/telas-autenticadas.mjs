@@ -44,7 +44,8 @@ for (const [n, w, h] of vps) {
     const req = route.request(); const url = new URL(req.url());
     const one = (req.headers()["accept"] || "").includes("vnd.pgrst.object");
     let body = [];
-    if (url.pathname.startsWith("/rest/v1/rpc/")) body = rpcs[url.pathname.split("/").pop()] ?? [];
+    if (url.pathname.endsWith("/rpc/dcs_iniciar_analise")) body = { ...diags[0], cliente_key: "1", id: "00000000-0000-4000-8000-000000000999", ciclo: 1, status: "em_analise", analista_id: U };
+    else if (url.pathname.startsWith("/rest/v1/rpc/")) body = rpcs[url.pathname.split("/").pop()] ?? [];
     else if (url.pathname.startsWith("/rest/v1/")) { const rows = filtrar(tabelas[url.pathname.split("/").pop()] ?? [], url); body = one ? (rows[0] ?? null) : rows; }
     else if (url.pathname.startsWith("/auth/v1/user")) body = { id: U, email: "teste@exemplo.com", aud: "authenticated", app_metadata: {}, user_metadata: {} };
     if (req.method() === "HEAD") return route.fulfill({ status: 200, headers: { "content-range": "0-0/3", "access-control-allow-origin": "*", "access-control-expose-headers": "content-range" } });
@@ -58,6 +59,13 @@ for (const [n, w, h] of vps) {
     pg.on("console", (m) => { if (m.type() === "error") erros.push("console:" + m.text().slice(0, 300)); });
     await pg.goto("http://127.0.0.1:5173" + p, { waitUntil: "networkidle", timeout: 90000 }).catch(() => {});
     await pg.waitForTimeout(2500);
+    if (process.env.INICIAR) {
+      const chamadas = [];
+      pg.on("request", (q) => { if (/rpc\/dcs_iniciar_analise/.test(q.url())) chamadas.push(q.postData()); });
+      await pg.getByRole("button", { name: "Iniciar análise" }).first().click();
+      await pg.waitForTimeout(2500);
+      console.log("INICIAR rpc_chamada=" + chamadas.length + " corpo=" + chamadas[0] + " url_final=" + pg.url());
+    }
     if (process.env.CLIQUE) { await pg.getByRole("tab", { name: /Automa/ }).first().click().catch(() => {}); await pg.waitForTimeout(800); }
     if (process.env.LARGO) console.log(await pg.evaluate(() => { const cw = document.documentElement.clientWidth; let e = document.querySelector("table"); const out = []; while (e) { out.push(e); e = e.parentElement; } return out.slice(0, 9).map((e) => e.tagName + "." + String(e.className).slice(0, 90) + " w=" + Math.round(e.getBoundingClientRect().width) + " sw=" + e.scrollWidth).join("\n"); }));
     const r = await pg.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, munin: /Munin|Wojtec/.test(document.body.innerText), path: location.pathname, txt: document.body.innerText.slice(0, 80).replace(/\n/g, " ") }));

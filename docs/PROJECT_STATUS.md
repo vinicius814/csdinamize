@@ -1,5 +1,22 @@
 # Status do projeto
 
+**Fase atual (17/11/2026, tarde):** auditoria funcional na branch `dinamize-cs/auditoria-funcional` (merge na `main`). Matriz: `docs/FUNCTIONAL_AUDIT.md`.
+- Causa do problema: carteira sem ação de início (nenhuma chamada de início chegou ao Supabase). Corrigido com coluna de ações.
+- Ciclo completo validado no Supabase real (12 passos, transação desfeita). Login real pendente de homologação manual.
+
+## Homologação manual (Vinícius, conta atual)
+1. Carteira → em um cliente "Aguardando", **Iniciar análise** → abre a ficha; status "Em andamento"; voltar à carteira e conferir.
+2. Preencher itens nas 7 categorias, a matriz de automações e a janela do carrinho; aguardar "Salvo"; **recarregar a página** e conferir; sair e entrar de novo.
+3. Concluir → índice, plano de ação; editar uma ação (prioridade, prazo); criar uma **Nova ação**.
+4. Histórico; **Reabrir análise…** (motivo) e concluir de novo; **Iniciar nova rodada**.
+5. Visão geral: conferir que a análise concluída entrou nos indicadores.
+6. Configurações → Cobertura: classificar os 3 tipos pendentes e publicar.
+7. n8n: em 01, 04, 05, 08, 10 e 11, Settings → Error workflow = "Dinamize CS | 07 — Monitoramento e falhas".
+Observação: os passos 1–4 gravam em um cliente real escolhido por você.
+
+---
+## Histórico anterior
+
 **Fase atual (17/11/2026):** transformação completa em produto único "Dinamize CS" na branch `dinamize-cs/full-product-redesign`
 (backup da main anterior: `backup/pre-redesign-2026-11-17` = 4d12750). Banco e n8n já atualizados (mudanças aditivas). Sem publicação definitiva.
 

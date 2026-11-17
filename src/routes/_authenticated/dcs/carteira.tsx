@@ -498,6 +498,8 @@ function Carteira() {
                     className={cx(
                       "whitespace-nowrap border-b px-3 py-2.5 text-xs font-semibold text-muted-foreground",
                       c.direita ? "text-right" : "text-left",
+                      c.id === "acoes" &&
+                        "right-0 z-20 shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
                     )}
                   >
                     {c.ordem ? (
@@ -545,7 +547,9 @@ function Carteira() {
                           className={cx(
                             "border-t px-3 py-2.5",
                             c.direita && "text-right tabular-nums",
-                            c.id !== "cliente" && "whitespace-nowrap",
+                            c.id === "cliente" ? "min-w-[220px]" : "whitespace-nowrap",
+                            c.id === "acoes" &&
+                              "sticky right-0 z-10 bg-card shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
                           )}
                         >
                           {c.celula(l, ctx)}
