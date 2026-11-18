@@ -1,5 +1,33 @@
 # Status do projeto
 
+**Fase atual (18/11/2026, 15h):** Dinamize CS **Beta 1.0** na branch `dinamize-cs/finalizacao-beta` (pushed), aguardando homologação.
+Banco já migrado (20261118163544/163708/163837). `main` (preview) ainda sem o Beta. Decisões D33–D37.
+Documentos: `FINAL_SECURITY_AUDIT.md`, `AUTHENTICATION_AND_INVITATIONS.md`, `PRODUCTION_DATA_CLEANUP.md`, `USER_GUIDE.md`, `DEPLOYMENT.md`, `/CHANGELOG.md`.
+
+## Entregue (implementado + testado)
+- Convite em 5 etapas, permissões granulares, Google / link por e-mail / senha provisória, troca obrigatória no banco, redefinir acesso,
+  desativação com encerramento de sessões, logs de segurança, Master protegido.
+- Cadastro público bloqueado no banco; exportações e rotas/funções legadas bloqueadas; tabelas legadas restritas.
+- Marca (tokens oficiais), selo Beta, e-commerce, Sobre o sistema; dicas; onboarding com tours por perfil; central de ajuda; feedback.
+- Limpeza dos testes com backup (`dcs_backup.*_20261118`).
+- Testes: vitest 278; pglite 127; banco real (transação desfeita) cenários 1–8 ok; tsc 0; build ok; visual 1440/390 px.
+
+## Depende do Vinícius
+1. **Repositório GitHub público** (achado alto A-08): tornar privado.
+2. **Transferir o Master** para vinicius.alves@dinamize.net pela interface (Usuários → Gerenciar → Tornar Master principal).
+3. Homologar no preview após o merge (roteiro em AUTHENTICATION_AND_INVITATIONS.md, inclusive senha provisória com um colega).
+4. Supabase Auth: *Leaked password protection*, *Max rows* 1000, redirect `/definir-senha`.
+5. Enviar os arquivos oficiais do logotipo (o site bloqueou o download) → `public/marca/`.
+6. Decidir: atividade 159570 no Pipedrive; contas antigas (externa desativada e a `.com`); ativar o registro no Pipedrive.
+7. Revisão jurídica de Termos/Privacidade (não realizada).
+8. n8n: definir o 07 como Error workflow nos demais.
+
+## Próxima ação objetiva
+Autorizar o merge fast-forward na `main` (atualiza o preview do Lovable, sem publicar) → homologação → Publish.
+
+---
+## Histórico anterior
+
 **Fase atual (18/11/2026):** evolução funcional na branch `dinamize-cs/evolucao-operacional`. Decisões D27–D32; auditoria de UX em
 `docs/UX_OPERATIONAL_AUDIT.md`. Banco aplicado: `dcs_evolucao` (20261118144532) e `dcs_meu_acesso_pipedrive` (20261118150803).
 n8n: workflow 06 (`5sMpOPysvKwcNSmf`) ativo; só processa registros liberados.
