@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AguardandoRouteImport } from './routes/aguardando'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DefinirSenhaRouteImport } from './routes/definir-senha'
 import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as TermosRouteImport } from './routes/termos'
@@ -37,6 +38,7 @@ import { Route as AuthenticatedProjetosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRetornosRouteImport } from './routes/_authenticated/retornos'
 import { Route as AuthenticatedClienteDealIdRouteImport } from './routes/_authenticated/cliente.$dealId'
 import { Route as AuthenticatedDcsIndexRouteImport } from './routes/_authenticated/dcs/index'
+import { Route as AuthenticatedDcsAjudaRouteImport } from './routes/_authenticated/dcs/ajuda'
 import { Route as AuthenticatedDcsAlertasRouteImport } from './routes/_authenticated/dcs/alertas'
 import { Route as AuthenticatedDcsAnalisesRouteImport } from './routes/_authenticated/dcs/analises'
 import { Route as AuthenticatedDcsCarteiraRouteImport } from './routes/_authenticated/dcs/carteira'
@@ -67,6 +69,11 @@ const AguardandoRoute = AguardandoRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DefinirSenhaRoute = DefinirSenhaRouteImport.update({
+  id: '/definir-senha',
+  path: '/definir-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacidadeRoute = PrivacidadeRouteImport.update({
@@ -202,6 +209,11 @@ const AuthenticatedDcsIndexRoute = AuthenticatedDcsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedDcsRouteRoute,
 } as any)
+const AuthenticatedDcsAjudaRoute = AuthenticatedDcsAjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => AuthenticatedDcsRouteRoute,
+} as any)
 const AuthenticatedDcsAlertasRoute = AuthenticatedDcsAlertasRouteImport.update({
   id: '/alertas',
   path: '/alertas',
@@ -305,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
@@ -328,6 +341,7 @@ export interface FileRoutesByFullPath {
   '/projetos': typeof AuthenticatedProjetosRoute
   '/retornos': typeof AuthenticatedRetornosRoute
   '/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
+  '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
@@ -350,6 +364,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
@@ -373,6 +388,7 @@ export interface FileRoutesByTo {
   '/retornos': typeof AuthenticatedRetornosRoute
   '/': typeof AuthenticatedIndexRoute
   '/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
+  '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
@@ -397,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/aguardando': typeof AguardandoRoute
   '/auth': typeof AuthRoute
+  '/definir-senha': typeof DefinirSenhaRoute
   '/privacidade': typeof PrivacidadeRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
@@ -421,6 +438,7 @@ export interface FileRoutesById {
   '/_authenticated/retornos': typeof AuthenticatedRetornosRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/cliente/$dealId': typeof AuthenticatedClienteDealIdRoute
+  '/_authenticated/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/_authenticated/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/_authenticated/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
   '/_authenticated/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
@@ -446,6 +464,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aguardando'
     | '/auth'
+    | '/definir-senha'
     | '/privacidade'
     | '/reset-password'
     | '/termos'
@@ -469,6 +488,7 @@ export interface FileRouteTypes {
     | '/projetos'
     | '/retornos'
     | '/cliente/$dealId'
+    | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
     | '/dcs/carteira'
@@ -491,6 +511,7 @@ export interface FileRouteTypes {
   to:
     | '/aguardando'
     | '/auth'
+    | '/definir-senha'
     | '/privacidade'
     | '/reset-password'
     | '/termos'
@@ -514,6 +535,7 @@ export interface FileRouteTypes {
     | '/retornos'
     | '/'
     | '/cliente/$dealId'
+    | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
     | '/dcs/carteira'
@@ -537,6 +559,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/aguardando'
     | '/auth'
+    | '/definir-senha'
     | '/privacidade'
     | '/reset-password'
     | '/termos'
@@ -561,6 +584,7 @@ export interface FileRouteTypes {
     | '/_authenticated/retornos'
     | '/_authenticated/'
     | '/_authenticated/cliente/$dealId'
+    | '/_authenticated/dcs/ajuda'
     | '/_authenticated/dcs/alertas'
     | '/_authenticated/dcs/analises'
     | '/_authenticated/dcs/carteira'
@@ -585,6 +609,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AguardandoRoute: typeof AguardandoRoute
   AuthRoute: typeof AuthRoute
+  DefinirSenhaRoute: typeof DefinirSenhaRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermosRoute: typeof TermosRoute
@@ -616,6 +641,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/definir-senha': {
+      id: '/definir-senha'
+      path: '/definir-senha'
+      fullPath: '/definir-senha'
+      preLoaderRoute: typeof DefinirSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacidade': {
@@ -793,6 +825,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsIndexRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/ajuda': {
+      id: '/_authenticated/dcs/ajuda'
+      path: '/ajuda'
+      fullPath: '/dcs/ajuda'
+      preLoaderRoute: typeof AuthenticatedDcsAjudaRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/alertas': {
       id: '/_authenticated/dcs/alertas'
       path: '/alertas'
@@ -916,6 +955,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedDcsRouteRouteChildren {
+  AuthenticatedDcsAjudaRoute: typeof AuthenticatedDcsAjudaRoute
   AuthenticatedDcsAlertasRoute: typeof AuthenticatedDcsAlertasRoute
   AuthenticatedDcsAnalisesRoute: typeof AuthenticatedDcsAnalisesRoute
   AuthenticatedDcsCarteiraRoute: typeof AuthenticatedDcsCarteiraRoute
@@ -932,6 +972,7 @@ interface AuthenticatedDcsRouteRouteChildren {
 }
 
 const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
+  AuthenticatedDcsAjudaRoute: AuthenticatedDcsAjudaRoute,
   AuthenticatedDcsAlertasRoute: AuthenticatedDcsAlertasRoute,
   AuthenticatedDcsAnalisesRoute: AuthenticatedDcsAnalisesRoute,
   AuthenticatedDcsCarteiraRoute: AuthenticatedDcsCarteiraRoute,
@@ -1007,6 +1048,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AguardandoRoute: AguardandoRoute,
   AuthRoute: AuthRoute,
+  DefinirSenhaRoute: DefinirSenhaRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermosRoute: TermosRoute,

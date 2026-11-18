@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { accountQueryOptions } from "@/lib/account-query";
+import { aplicarConvite } from "@/lib/dcs/convite";
 import { PageSkeleton } from "@/components/munim/PageSkeleton";
 import { destination } from "@/lib/access";
 import { destinoLegado } from "@/lib/legado";
@@ -25,20 +25,12 @@ export const Route = createFileRoute("/_authenticated")({
     if (erro) throw redirect({ to: "/auth", search: { erro } });
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth", search: {} });
-    let access = await context.queryClient.ensureQueryData(
-      accountQueryOptions(data.session.user.id),
-    );
-    if (access.status === "pendente") {
-      // Pré-cadastro do Dinamize CS: o banco compara o e-mail verificado do login e aplica as permissões definidas.
-      const r = await (supabase.rpc as unknown as (f: string) => Promise<{ data: unknown }>)(
-        "dcs_reivindicar_acesso",
-      ).catch(() => ({ data: false }));
-      if (r.data === true)
-        access = await context.queryClient.fetchQuery({
-          ...accountQueryOptions(data.session.user.id),
-          staleTime: 0,
-        });
-    }
+    const access = await aplicarConvite(context.queryClient, data.session.user.id);
+    // Troca de senha obrigatória (senha provisória ou convite por e-mail): o banco já bloqueia os dados; aqui só direcionamos.
+    const seg = await (
+      supabase.rpc as unknown as (f: string) => Promise<{ data: { pendente?: boolean } | null }>
+    )("dcs_situacao_senha").catch(() => ({ data: null }));
+    if (seg.data?.pendente) throw redirect({ to: "/definir-senha" as never });
     const to = destination(access.status, access.accepted, access.onboarded, access.role);
     if (to !== "/" && location.pathname !== to && location.pathname !== "/admin")
       throw redirect({ to });

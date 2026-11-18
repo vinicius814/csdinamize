@@ -184,6 +184,11 @@ export type DcsUsuario = {
   modulos: string[] | null;
   pipedrive_user_id: number | null;
   master_principal: boolean;
+  permissoes?: Record<string, boolean>;
+  troca_senha?: boolean;
+  provisoria_expira_em?: string | null;
+  convidado_por?: string | null;
+  criado_em?: string | null;
 };
 export type DcsPreCadastro = {
   email: string;
@@ -203,6 +208,11 @@ export type DcsPreCadastro = {
   aplicado_em: string | null;
   aplicado_user: string | null;
   revogado_em: string | null;
+  permissoes?: Record<string, boolean>;
+  modulos?: string[] | null;
+  expira_em?: string | null;
+  metodo?: "google" | "email" | "senha";
+  revogado_por?: string | null;
 };
 export type StatusUtilizacao = "nao_verificado" | "em_uso" | "sem_uso";
 export type Acompanhamento = "aguardando" | "em_dia" | "retomada_em_andamento" | "retomada";
@@ -258,6 +268,10 @@ export type MeuAcesso = {
   editar: boolean;
   exportar: boolean;
   modulos: string[] | null;
+  pipedrive?: number | null;
+  troca_senha?: boolean;
+  beta?: boolean;
+  permissoes?: Record<string, boolean>;
 };
 
 type T<R> = { Row: R; Insert: Partial<R>; Update: Partial<R>; Relationships: [] };

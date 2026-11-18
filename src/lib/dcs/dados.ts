@@ -23,6 +23,8 @@ async function ok<R>(p: PromiseLike<{ data: R | null; error: unknown }>): Promis
   return data as R;
 }
 
+export type Permissao =
+  "concluir" | "planos" | "redistribuir" | "usuarios" | "config" | "integracoes";
 export function useAcessoDcs() {
   return useQuery({
     queryKey: ["dcs", "acesso"],
@@ -36,8 +38,10 @@ export function useAcessoDcs() {
         editar: !!a?.editar,
         exportar: !!a?.exportar,
         modulos: a?.modulos ?? null,
-        pipedrive: ((a as { pipedrive?: number | null } | null)?.pipedrive ?? null) as
-          number | null,
+        pipedrive: a?.pipedrive ?? null,
+        trocaSenha: !!a?.troca_senha,
+        beta: a?.beta !== false,
+        permissoes: (a?.permissoes ?? {}) as Partial<Record<Permissao, boolean>>,
       };
     },
     staleTime: 5 * 60_000,
@@ -941,5 +945,196 @@ export function useEventosUtilizacaoPeriodo(desde: string) {
           .order("em", { ascending: false })
           .limit(2000),
       )) as DcsUtilizacaoEvento[],
+  });
+}
+
+// ---------- Beta: convites, credenciais, logs, feedback, onboarding, configurações da versão ----------
+type RpcLivre = (
+  f: string,
+  a?: Record<string, unknown>,
+) => PromiseLike<{ data: unknown; error: unknown }>;
+const rpc = <R>(f: string, a?: Record<string, unknown>) =>
+  ok((dcs.rpc as unknown as RpcLivre)(f, a)) as Promise<R>;
+
+export type FormAcesso = {
+  email: string;
+  nome: string;
+  perfil: "admin" | "cs" | "contas";
+  financeiro: boolean;
+  editar: boolean;
+  carteiras: number[];
+  clientes: string[];
+  modulos: string[] | null;
+  permissoes: Partial<Record<Permissao, boolean>>;
+  pipedrive: number | null;
+  metodo: "google" | "email" | "senha";
+  validade_dias: number;
+  ativo: boolean;
+};
+export function useSalvarAcesso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (f: FormAcesso) =>
+      rpc<{ modo: "aplicado" | "convite"; user_id?: string; email?: string; expira_em?: string }>(
+        "dcs_salvar_acesso",
+        { p: f },
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "pre-cadastros"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "logs-seguranca"] });
+    },
+  });
+}
+export function useDefinirStatusUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (a: { user: string; ativo: boolean }) =>
+      rpc("dcs_definir_status_usuario", { p_user: a.user, p_ativo: a.ativo }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "logs-seguranca"] });
+    },
+  });
+}
+export type LogSeguranca = {
+  em: string;
+  ator: string | null;
+  entidade: string;
+  entidade_id: string | null;
+  acao: string;
+  dados: Record<string, unknown> | null;
+};
+export function useLogsSeguranca(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "logs-seguranca"],
+    enabled: ativo,
+    queryFn: () => rpc<LogSeguranca[]>("dcs_logs_seguranca", { p_limite: 300 }),
+  });
+}
+export type Feedback = {
+  id: number;
+  user_id: string;
+  criado_em: string;
+  tipo: string;
+  descricao: string;
+  funcionalidade: string | null;
+  pagina: string | null;
+  versao: string | null;
+  status: "novo" | "analisado" | "resolvido";
+};
+export function useFeedbacks(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "feedbacks"],
+    enabled: ativo,
+    queryFn: async () =>
+      (await ok(
+        (
+          dcs.from("dcs_feedback" as never) as unknown as {
+            select: (c: string) => {
+              order: (
+                c: string,
+                o: object,
+              ) => { limit: (n: number) => PromiseLike<{ data: unknown; error: unknown }> };
+            };
+          }
+        )
+          .select("*")
+          .order("criado_em", { ascending: false })
+          .limit(500),
+      )) as Feedback[],
+  });
+}
+export function useEnviarFeedback() {
+  return useMutation({
+    mutationFn: (f: {
+      tipo: string;
+      descricao: string;
+      funcionalidade: string;
+      pagina: string;
+      versao: string;
+    }) =>
+      rpc<number>("dcs_enviar_feedback", {
+        p_tipo: f.tipo,
+        p_descricao: f.descricao,
+        p_funcionalidade: f.funcionalidade,
+        p_pagina: f.pagina,
+        p_versao: f.versao,
+      }),
+  });
+}
+export function useAtualizarFeedback() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (a: { id: number; status: string }) =>
+      rpc("dcs_atualizar_feedback", { p_id: a.id, p_status: a.status }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "feedbacks"] }),
+  });
+}
+export type EstadoTour = {
+  tour: string;
+  versao: number;
+  etapas_concluidas: string[];
+  etapa_atual: string | null;
+  estado: "em_andamento" | "pausado" | "concluido" | "dispensado";
+  concluido_em: string | null;
+};
+export function useOnboarding(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "onboarding"],
+    enabled: ativo,
+    queryFn: async () => {
+      const rows = (await ok(
+        (
+          dcs.from("dcs_onboarding" as never) as unknown as {
+            select: (c: string) => PromiseLike<{ data: unknown; error: unknown }>;
+          }
+        ).select("*"),
+      )) as EstadoTour[];
+      return new Map(rows.map((r) => [r.tour, r]));
+    },
+  });
+}
+export function useSalvarOnboarding() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (t: {
+      tour: string;
+      versao: number;
+      estado: EstadoTour["estado"];
+      etapa: string | null;
+      concluidas: string[];
+    }) =>
+      rpc("dcs_salvar_onboarding", {
+        p_tour: t.tour,
+        p_versao: t.versao,
+        p_estado: t.estado,
+        p_etapa: t.etapa,
+        p_concluidas: t.concluidas,
+        p_prefs: {},
+      }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "onboarding"] }),
+  });
+}
+export type ConfigProduto = {
+  beta: { ativo: boolean } | null;
+  acesso: { validade_convite_dias: number; senha_provisoria_horas: number } | null;
+};
+export function useConfigProduto(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "config-produto"],
+    enabled: ativo,
+    queryFn: () => rpc<ConfigProduto | null>("dcs_config_produto"),
+  });
+}
+export function useDefinirConfigProduto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (a: { chave: "beta" | "acesso"; valor: Record<string, unknown> }) =>
+      rpc("dcs_definir_config_produto", { p_chave: a.chave, p_valor: a.valor }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "config-produto"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "acesso"] });
+    },
   });
 }
