@@ -95,7 +95,7 @@ function VisaoGeral() {
       />
       <BarraFiltros f={f} set={set} todos={b.todos} nomes={b.nomes} />
       <Estado carregando={b.carregando} erro={b.erro}>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div data-tour="kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Kpi
             rotulo="Clientes e-commerce"
             valor={k.clientes}

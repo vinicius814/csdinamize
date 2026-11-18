@@ -1,4 +1,5 @@
 import { useAcessoDcs, useEscritaPipedrive, useDefinirEscritaPipedrive } from "@/lib/dcs/dados";
+import { ComDica } from "@/components/dcs/Ajuda";
 import { createFileRoute } from "@tanstack/react-router";
 import { Database, RefreshCw, Workflow, Building2 } from "lucide-react";
 import { toast } from "sonner";
@@ -171,7 +172,9 @@ function Integracoes() {
           })}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
-          <Painel titulo="Operações pendentes (Pipedrive)">
+          <Painel
+            titulo={<ComDica termo="registroPipedrive">Operações pendentes (Pipedrive)</ComDica>}
+          >
             {!q.data?.jobs.length ? (
               <p className="text-sm text-muted-foreground">
                 Nenhuma operação. A gravação de atividades no Pipedrive está desativada até

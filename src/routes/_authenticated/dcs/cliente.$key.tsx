@@ -1,3 +1,5 @@
+import { Dica } from "@/components/dcs/Ajuda";
+import { DICA_KPI, type Termo } from "@/lib/dcs/ajuda";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -364,10 +366,19 @@ function Cliente() {
   );
 }
 
+const DICA_DADO: Record<string, Termo> = {
+  ...DICA_KPI,
+  "% analisado": "analisado",
+  Utilização: "semUso",
+  "Próximo contato": "diasSemContato",
+};
 function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <dt className="text-xs text-muted-foreground">{rotulo}</dt>
+      <dt className="flex items-center gap-1 text-xs text-muted-foreground">
+        {rotulo}
+        {DICA_DADO[rotulo] && <Dica termo={DICA_DADO[rotulo]} rotulo={rotulo} />}
+      </dt>
       <dd className="mt-0.5 font-medium">{children}</dd>
     </div>
   );

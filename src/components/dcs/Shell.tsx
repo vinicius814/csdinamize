@@ -7,6 +7,7 @@ import {
   ChevronsRight,
   LogOut,
   Menu,
+  LifeBuoy,
   RefreshCw,
   Settings2,
   UserRound,
@@ -34,7 +35,11 @@ import {
 import { MODULOS_POR_PERFIL } from "@/lib/dcs/motor";
 import { CargasAutomaticas } from "@/components/munim/CargasAutomaticas";
 import { Marca } from "./Marca";
-import { NAV, PERFIL_ROTULO, tituloDaRota, type ItemNav } from "./navegacao";
+import { itemPermitido, NAV, PERFIL_ROTULO, tituloDaRota, type ItemNav } from "./navegacao";
+import { MENU } from "@/lib/dcs/ajuda";
+import { OnboardingProvider } from "./Onboarding";
+import { Feedback } from "./Feedback";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cx, dataHoraBR } from "./ui";
 
 const CHAVE_RECOLHIDO = "dcs:menu-recolhido";
@@ -78,7 +83,7 @@ function ListaNav({ recolhido, aoNavegar }: { recolhido?: boolean; aoNavegar?: (
   const mods: readonly string[] = perfil
     ? (acesso.data?.modulos ?? MODULOS_POR_PERFIL[perfil])
     : [];
-  const itens = NAV.filter((i) => mods.includes(i.mod));
+  const itens = NAV.filter((i) => itemPermitido(i, mods, acesso.data?.permissoes));
   const cont = useContadores(!!perfil);
   if (acesso.isLoading)
     return (
@@ -107,49 +112,81 @@ function ListaNav({ recolhido, aoNavegar }: { recolhido?: boolean; aoNavegar?: (
                   {i.grupo}
                 </p>
               ))}
-            <Link
-              to={i.to}
-              onClick={aoNavegar}
-              aria-current={ativo ? "page" : undefined}
-              title={recolhido ? i.rotulo : undefined}
-              className={cx(
-                "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
-                ativo
-                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                  : "text-foreground/80 hover:bg-muted hover:text-foreground",
-                recolhido && "justify-center px-0",
-              )}
-            >
-              <Icone
-                className={cx(
-                  "h-[18px] w-[18px] shrink-0",
-                  ativo ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
-                )}
-              />
-              {!recolhido && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
-              {qtd > 0 &&
-                (recolhido ? (
-                  <span
-                    className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary"
-                    aria-label={`${qtd} pendentes`}
-                  />
-                ) : (
-                  <span
+            <Tooltip delayDuration={500}>
+              <TooltipTrigger asChild>
+                <Link
+                  to={i.to}
+                  onClick={aoNavegar}
+                  aria-current={ativo ? "page" : undefined}
+                  aria-description={MENU[i.to]}
+                  className={cx(
+                    "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
+                    ativo
+                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                      : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                    recolhido && "justify-center px-0",
+                  )}
+                >
+                  <Icone
                     className={cx(
-                      "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-                      ativo
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground",
+                      "h-[18px] w-[18px] shrink-0",
+                      ativo ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                     )}
-                  >
-                    {qtd > 99 ? "99+" : qtd}
-                  </span>
-                ))}
-            </Link>
+                  />
+                  {!recolhido && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
+                  {qtd > 0 &&
+                    (recolhido ? (
+                      <span
+                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary"
+                        aria-label={`${qtd} pendentes`}
+                      />
+                    ) : (
+                      <span
+                        className={cx(
+                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                          ativo
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {qtd > 99 ? "99+" : qtd}
+                      </span>
+                    ))}
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[260px] text-xs leading-snug">
+                {recolhido && <span className="block font-semibold">{i.rotulo}</span>}
+                {MENU[i.to]}
+              </TooltipContent>
+            </Tooltip>
           </div>
         );
       })}
     </nav>
+  );
+}
+
+/** Acesso permanente à ajuda/tour e ao canal de feedback da versão Beta. */
+function LinksAjuda({ recolhido, aoNavegar }: { recolhido?: boolean; aoNavegar?: () => void }) {
+  const acesso = useAcessoDcs();
+  if (!acesso.data?.perfil) return null;
+  const cls = cx(
+    "flex h-8 w-full items-center gap-2 rounded-lg px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground",
+    recolhido && "justify-center",
+  );
+  return (
+    <div className="mb-1 grid gap-0.5">
+      <Link
+        to="/dcs/ajuda"
+        onClick={aoNavegar}
+        className={cls}
+        title={recolhido ? "Ajuda e tour guiado" : undefined}
+        data-tour="ajuda"
+      >
+        <LifeBuoy className="h-4 w-4" /> {!recolhido && "Ajuda e tour guiado"}
+      </Link>
+      <Feedback recolhido={recolhido} className={cls} />
+    </div>
   );
 }
 
@@ -201,7 +238,10 @@ function RodapeUsuario({ recolhido }: { recolhido?: boolean }) {
         <DropdownMenuItem onClick={() => navigate({ to: "/dcs/minha-conta" })}>
           <UserRound className="mr-2 h-4 w-4" /> Minha conta
         </DropdownMenuItem>
-        {acesso.data?.perfil === "admin" && (
+        <DropdownMenuItem onClick={() => navigate({ to: "/dcs/ajuda" })}>
+          <LifeBuoy className="mr-2 h-4 w-4" /> Ajuda e tour guiado
+        </DropdownMenuItem>
+        {acesso.data?.permissoes.config && (
           <DropdownMenuItem onClick={() => navigate({ to: "/dcs/configuracoes" })}>
             <Settings2 className="mr-2 h-4 w-4" /> Configurações
           </DropdownMenuItem>
@@ -238,7 +278,7 @@ function StatusIntegracoes() {
   return (
     <div className="flex items-center gap-2">
       <Link
-        to={acesso.data.perfil === "admin" ? "/dcs/integracoes" : "/dcs"}
+        to={acesso.data.permissoes.integracoes ? "/dcs/integracoes" : "/dcs"}
         className="hidden items-center gap-3 rounded-lg border bg-card px-3 py-1.5 text-xs lg:flex"
         title={`Pipedrive (carteira): ${ESTADO[pd].rotulo}${ultimaPD ? ` · ${dataHoraBR(ultimaPD)}` : ""}\nn8n (cobertura): ${ESTADO[d?.cobertura.estado ?? "indisponivel"].rotulo}${ultimaCob ? ` · ${dataHoraBR(ultimaCob)}` : ""}`}
       >
@@ -268,7 +308,7 @@ function StatusIntegracoes() {
         title={ESTADO[geral].rotulo}
         aria-label={`Integrações: ${ESTADO[geral].rotulo}`}
       />
-      {acesso.data.perfil === "admin" && (
+      {acesso.data.permissoes.integracoes && (
         <button
           type="button"
           disabled={ocupado}
@@ -340,6 +380,16 @@ function Notificacoes() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={400}>
+      <OnboardingProvider>
+        <ShellInterno>{children}</ShellInterno>
+      </OnboardingProvider>
+    </TooltipProvider>
+  );
+}
+
+function ShellInterno({ children }: { children: ReactNode }) {
   const [recolhido, setRecolhido] = useState(false);
   const [aberto, setAberto] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -389,6 +439,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <ListaNav recolhido={recolhido} />
         </div>
         <div className="border-t p-3">
+          <LinksAjuda recolhido={recolhido} />
           <RodapeUsuario recolhido={recolhido} />
           <button
             type="button"
@@ -420,6 +471,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <ListaNav aoNavegar={() => setAberto(false)} />
           </div>
           <div className="border-t p-3">
+            <LinksAjuda aoNavegar={() => setAberto(false)} />
             <RodapeUsuario />
           </div>
         </SheetContent>

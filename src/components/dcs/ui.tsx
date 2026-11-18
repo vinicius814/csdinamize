@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Dica } from "./Ajuda";
+import { DICA_KPI, type Termo } from "@/lib/dcs/ajuda";
 import { Link } from "@tanstack/react-router";
 import type * as M from "@/lib/dcs/motor";
 import type { StatusAnalise } from "@/lib/dcs/dados";
@@ -120,7 +122,9 @@ export function Kpi({
   search,
   icone,
   tom = "neutro",
+  dica,
 }: {
+  dica?: Termo | null;
   rotulo: string;
   valor: ReactNode;
   detalhe?: ReactNode;
@@ -140,7 +144,7 @@ export function Kpi({
   const corpo = (
     <div className="flex h-full min-h-[116px] flex-col rounded-xl border bg-card p-4 shadow-[var(--glow-sm)] transition-[border-color,box-shadow] hover:border-primary/40 hover:shadow-[var(--glow)]">
       <div className="flex items-start justify-between gap-2">
-        <div className="text-[13px] font-medium text-muted-foreground">{rotulo}</div>
+        <div className="pr-5 text-[13px] font-medium text-muted-foreground">{rotulo}</div>
         {icone && (
           <span
             className={cx(
@@ -156,12 +160,23 @@ export function Kpi({
       <div className="mt-0.5 min-h-[16px] text-xs text-muted-foreground">{detalhe}</div>
     </div>
   );
-  return to ? (
+  const termo = dica === null ? undefined : (dica ?? DICA_KPI[rotulo]);
+  const cartao = to ? (
     <Link to={to as never} search={search as never} className="block h-full rounded-xl">
       {corpo}
     </Link>
   ) : (
     corpo
+  );
+  if (!termo) return cartao;
+  // A ajuda fica fora do link (não navega ao abrir) e posicionada junto ao rótulo.
+  return (
+    <div className="relative h-full">
+      {cartao}
+      <span className={cx("absolute top-3.5", icone ? "right-14" : "right-3")}>
+        <Dica termo={termo} rotulo={rotulo} />
+      </span>
+    </div>
   );
 }
 
@@ -201,6 +216,16 @@ export function Painel({
   );
 }
 
+/** Ajuda ao lado do título das páginas cujo conceito central merece explicação. */
+const DICA_TITULO: Record<string, Termo> = {
+  "Alertas e pendências": "revisaoVencida",
+  "Planos de ação": "statusRecomendacao",
+  "Cobertura de CS": "contatoEfetivo",
+  "Integrações e monitoramento": "sincronizacao",
+  "Usuários e permissões": "permissoesAdmin",
+  "Minhas análises": "statusDiagnostico",
+  "Histórico de diagnósticos": "reaproveitamento",
+};
 export function Titulo({
   titulo,
   sub,
@@ -213,7 +238,10 @@ export function Titulo({
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+        <h1 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
+          {titulo}
+          {DICA_TITULO[titulo] && <Dica termo={DICA_TITULO[titulo]} rotulo={titulo} />}
+        </h1>
         {sub && <p className="mt-1 text-sm text-muted-foreground">{sub}</p>}
       </div>
       {acao && <div className="flex flex-wrap items-center gap-2">{acao}</div>}

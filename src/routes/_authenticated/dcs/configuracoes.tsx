@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, History, Save } from "lucide-react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/dcs/db";
+import { useAcessoDcs, useConfigProduto, useDefinirConfigProduto } from "@/lib/dcs/dados";
+import { BETA } from "@/lib/dcs/ajuda";
 import {
   useAnalistas,
   useConfig,
@@ -115,6 +117,7 @@ function Configuracoes() {
           </>
         }
       />
+      <ProdutoAcesso />
       <Estado carregando={conf.isLoading || !c} erro={conf.error}>
         {c && (
           <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
@@ -729,5 +732,91 @@ function ConfigSemUso({
         </div>
       </Painel>
     </>
+  );
+}
+
+/** Parâmetros do produto (somente Administrador Master; validados em dcs_definir_config_produto). */
+function ProdutoAcesso() {
+  const acesso = useAcessoDcs();
+  const master = !!acesso.data?.master;
+  const q = useConfigProduto(master);
+  const definir = useDefinirConfigProduto();
+  const [dias, setDias] = useState<number | null>(null);
+  const [horas, setHoras] = useState<number | null>(null);
+  if (!master || !q.data) return null;
+  const beta = q.data.beta?.ativo !== false;
+  const d = dias ?? q.data.acesso?.validade_convite_dias ?? 7;
+  const h = horas ?? q.data.acesso?.senha_provisoria_horas ?? 48;
+  const salvar = (chave: "beta" | "acesso", valor: Record<string, unknown>, msg: string) =>
+    definir.mutate(
+      { chave, valor },
+      { onSuccess: () => toast.success(msg), onError: (e) => toast.error(mensagemErro(e)) },
+    );
+  return (
+    <Painel titulo="Produto e acesso (Administrador Master)" className="mb-5">
+      <div className="grid gap-4 md:grid-cols-3">
+        <label className="flex items-start justify-between gap-3 rounded-lg border p-3">
+          <span>
+            <span className="block text-sm font-medium">Exibir selo Beta</span>
+            <span className="block text-xs text-muted-foreground">{BETA}</span>
+          </span>
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 accent-[var(--primary)]"
+            checked={beta}
+            disabled={definir.isPending}
+            onChange={(e) =>
+              salvar(
+                "beta",
+                { ativo: e.target.checked },
+                e.target.checked ? "Selo Beta exibido." : "Selo Beta ocultado.",
+              )
+            }
+          />
+        </label>
+        <label className="grid gap-1 rounded-lg border p-3 text-sm font-medium">
+          Validade padrão do convite (dias)
+          <input
+            type="number"
+            min={1}
+            max={30}
+            value={d}
+            onChange={(e) => setDias(Number(e.target.value))}
+            className="h-9 w-28 rounded-lg border bg-card px-2 text-sm font-normal"
+          />
+          <span className="text-xs font-normal text-muted-foreground">Entre 1 e 30 dias.</span>
+        </label>
+        <label className="grid gap-1 rounded-lg border p-3 text-sm font-medium">
+          Validade da senha provisória (horas)
+          <input
+            type="number"
+            min={1}
+            max={168}
+            value={h}
+            onChange={(e) => setHoras(Number(e.target.value))}
+            className="h-9 w-28 rounded-lg border bg-card px-2 text-sm font-normal"
+          />
+          <span className="text-xs font-normal text-muted-foreground">
+            Padrão 48 h; máximo 7 dias.
+          </span>
+        </label>
+      </div>
+      {(dias !== null || horas !== null) && (
+        <button
+          type="button"
+          disabled={definir.isPending}
+          onClick={() =>
+            salvar(
+              "acesso",
+              { validade_convite_dias: d, senha_provisoria_horas: h },
+              "Prazos de acesso atualizados.",
+            )
+          }
+          className="mt-3 h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+        >
+          Salvar prazos de acesso
+        </button>
+      )}
+    </Painel>
   );
 }

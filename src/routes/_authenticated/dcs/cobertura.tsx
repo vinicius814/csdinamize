@@ -1,3 +1,4 @@
+import { ComDica } from "@/components/dcs/Ajuda";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { Search } from "lucide-react";
@@ -207,7 +208,10 @@ function Cobertura() {
             )}
           </div>
           <div className="space-y-4">
-            <Painel titulo="Cobertura por responsável" sub="Em dia + atenção">
+            <Painel
+              titulo={<ComDica termo="cobertura">Cobertura por responsável</ComDica>}
+              sub="Em dia + atenção"
+            >
               <ul className="space-y-2.5 text-sm">
                 {r.resp.map((x) => (
                   <li key={x.nome} className="flex items-center justify-between gap-3">

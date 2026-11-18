@@ -18,6 +18,7 @@ import {
   type ConteudoDiag,
 } from "@/lib/dcs/dados";
 import { cx, Indice, Painel, SeloPrioridade } from "./ui";
+import { ComDica, Dica } from "./Ajuda";
 
 const A = M.artefato;
 type Item = {
@@ -360,7 +361,7 @@ export function EditorDiagnostico(props: {
         </Painel>
       </div>
       <aside className="grid content-start gap-4 md:grid-cols-2 min-[1600px]:grid-cols-1">
-        <Painel titulo="Índice de aproveitamento">
+        <Painel titulo={<ComDica termo="indice">Índice de aproveitamento</ComDica>}>
           <div className="flex items-baseline justify-between">
             <Indice
               valor={sc.score}
@@ -368,7 +369,13 @@ export function EditorDiagnostico(props: {
               preliminar={sc.preliminary}
               indisponivel={sc.unavailable}
             />
-            <span className="text-xs text-muted-foreground">{sc.completion}% analisado</span>
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+              {sc.completion}% analisado{" "}
+              <Dica
+                termo={sc.preliminary ? "preliminar" : "analisado"}
+                rotulo={sc.preliminary ? "Índice preliminar" : "Percentual analisado"}
+              />
+            </span>
           </div>
           <div className="mt-3 h-1.5 overflow-hidden rounded bg-muted">
             <div className="h-full bg-primary" style={{ width: `${sc.completion}%` }} />
@@ -1269,7 +1276,10 @@ function MetricasV2({
   return (
     <div className="mb-4 space-y-3 rounded-lg border p-3">
       <div>
-        <p className="mb-2 text-xs font-semibold">Últimos 60 dias</p>
+        <p className="mb-2 flex items-center gap-1 text-xs font-semibold">
+          Últimos 60 dias <Dica termo="entregabilidade60" rotulo="Entregabilidade de 60 dias" />{" "}
+          <Dica termo="frequencia" rotulo="Frequência média semanal" />
+        </p>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {periodo.filter((x) => x.principal).map(campo)}
         </div>
