@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { ShieldAlert } from "lucide-react";
 import { useAcessoDcs } from "@/lib/dcs/dados";
 import { MODULOS_POR_PERFIL } from "@/lib/dcs/motor";
-import { NAV } from "@/components/dcs/navegacao";
+import { itemPermitido, NAV } from "@/components/dcs/navegacao";
 
 export const Route = createFileRoute("/_authenticated/dcs")({
   head: () => ({ meta: [{ title: "Dinamize CS — Plano de Ação e Diagnóstico de Contas" }] }),
@@ -27,7 +27,7 @@ function Layout() {
   const item = [...NAV]
     .sort((a, b) => b.to.length - a.to.length)
     .find((i) => (i.exato ? path === i.to || path === i.to + "/" : path.startsWith(i.to)));
-  if (item && !mods.includes(item.mod))
+  if (item && !itemPermitido(item, mods, acesso.data?.permissoes))
     return (
       <Aviso
         titulo="Área restrita"

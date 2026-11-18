@@ -23,7 +23,19 @@ export type ItemNav = {
   grupo: string;
   contador?: "alertas" | "analises" | "atrasadas";
   exato?: boolean;
+  /** Áreas administrativas: além do módulo, exigem a permissão (Beta, D34). O banco revalida. */
+  permissao?: "usuarios" | "config" | "integracoes";
 };
+
+/** Item visível para o acesso atual: módulo do perfil + permissão administrativa, quando houver. */
+export function itemPermitido(
+  i: ItemNav,
+  mods: readonly string[],
+  permissoes: Partial<Record<string, boolean>> | undefined,
+): boolean {
+  if (i.permissao) return !!permissoes?.[i.permissao];
+  return mods.includes(i.mod);
+}
 export const NAV: ItemNav[] = [
   {
     to: "/dcs",
@@ -91,6 +103,7 @@ export const NAV: ItemNav[] = [
     icone: Users,
     mod: "usuarios",
     grupo: "Administração",
+    permissao: "usuarios",
   },
   {
     to: "/dcs/configuracoes",
@@ -98,6 +111,7 @@ export const NAV: ItemNav[] = [
     icone: Settings2,
     mod: "configuracoes",
     grupo: "Administração",
+    permissao: "config",
   },
   {
     to: "/dcs/integracoes",
@@ -105,6 +119,7 @@ export const NAV: ItemNav[] = [
     icone: PlugZap,
     mod: "configuracoes",
     grupo: "Administração",
+    permissao: "integracoes",
   },
 ];
 
@@ -116,6 +131,7 @@ export function tituloDaRota(path: string): string {
     .find((i) => (i.exato ? path === i.to || path === i.to + "/" : path.startsWith(i.to)));
   if (item) return item.rotulo;
   if (path.startsWith("/dcs/minha-conta")) return "Minha conta";
+  if (path.startsWith("/dcs/ajuda")) return "Ajuda e tour guiado";
   return "Dinamize CS";
 }
 export const PERFIL_ROTULO = {

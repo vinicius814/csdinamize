@@ -4,7 +4,9 @@ import { useAuth } from "@/lib/auth";
 import { useAcessoDcs } from "@/lib/dcs/dados";
 import { MODULOS_POR_PERFIL } from "@/lib/dcs/motor";
 import { NAV, PERFIL_ROTULO } from "@/components/dcs/navegacao";
-import { Painel, Selo, Titulo } from "@/components/dcs/ui";
+import { dataBR, Painel, Selo, Titulo } from "@/components/dcs/ui";
+import { SeloBeta, SeloEcommerce } from "@/components/dcs/Ajuda";
+import { BUILD_ID, COMMIT, DATA_VERSAO, NOME_COMPLETO, VERSAO } from "@/lib/versao";
 
 export const Route = createFileRoute("/_authenticated/dcs/minha-conta")({ component: MinhaConta });
 
@@ -15,7 +17,10 @@ function MinhaConta() {
   const google = session?.user.app_metadata?.["provider"] === "google";
   return (
     <>
-      <Titulo titulo="Minha conta" sub="Seus dados de acesso e permissões no Dinamize CS." />
+      <Titulo
+        titulo="Minha conta e sobre o sistema"
+        sub="Seus dados de acesso, permissões e a versão do Dinamize CS."
+      />
       <div className="grid gap-4 lg:grid-cols-2">
         <Painel titulo="Identificação">
           <dl className="grid gap-3 text-sm">
@@ -54,12 +59,25 @@ function MinhaConta() {
             {(
               [
                 ["financeiro", "Ver valores dos negócios"],
-                ["editar", "Editar diagnósticos e planos"],
-                ["exportar", "Exportar listas"],
+                ["editar", "Editar diagnósticos"],
               ] as const
             ).map(([k, r]) => (
               <li key={k} className="flex items-center justify-between rounded-lg border px-3 py-2">
                 {r} {a?.[k] ? <Selo tom="ok">Sim</Selo> : <Selo>Não</Selo>}
+              </li>
+            ))}
+            {(
+              [
+                ["concluir", "Concluir diagnósticos"],
+                ["planos", "Administrar planos de ação"],
+                ["redistribuir", "Redistribuir análises"],
+                ["usuarios", "Administrar usuários"],
+                ["config", "Acessar configurações"],
+                ["integracoes", "Acessar integrações"],
+              ] as const
+            ).map(([k, r]) => (
+              <li key={k} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                {r} {a?.permissoes[k] ? <Selo tom="ok">Sim</Selo> : <Selo>Não</Selo>}
               </li>
             ))}
           </ul>
@@ -73,8 +91,31 @@ function MinhaConta() {
           </div>
           <p className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4" /> As permissões são aplicadas pelo banco de dados em
-            cada operação.
+            cada operação. Exportação de dados não existe no Dinamize CS.
           </p>
+        </Painel>
+        <Painel titulo="Sobre o sistema" className="lg:col-span-2">
+          <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4" id="sobre">
+            {(
+              [
+                ["Produto", NOME_COMPLETO],
+                ["Versão", VERSAO],
+                ["Status", a?.beta === false ? "Versão estável" : "Beta — em evolução contínua"],
+                ["Segmento atendido", "E-commerce (exclusivo)"],
+                ["Data da versão", dataBR(DATA_VERSAO)],
+                ["Identificador do build", BUILD_ID],
+                ["Commit", COMMIT],
+              ] as const
+            ).map(([r, v]) => (
+              <div key={r}>
+                <dt className="text-xs text-muted-foreground">{r}</dt>
+                <dd className="break-all font-medium">{v}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <SeloBeta /> <SeloEcommerce />
+          </div>
         </Painel>
       </div>
     </>

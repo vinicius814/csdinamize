@@ -10,9 +10,11 @@ describe("rotas legadas do Munin (D23)", () => {
     expect(destinoLegado("/configuracoes", "user")).toBe("/dcs/minha-conta");
     expect(destinoLegado("/aprovacoes/", "admin")).toBe("/dcs/alertas");
   });
-  it("relatórios de CS legados só para administradores", () => {
-    expect(destinoLegado("/cancelamentos", "admin")).toBeNull();
-    expect(destinoLegado("/cancelamentos", "superadmin")).toBeNull();
+  it("Beta (D33): relatórios e administração legados bloqueados para todos, inclusive administradores", () => {
+    expect(destinoLegado("/cancelamentos", "admin")).toBe("/dcs");
+    expect(destinoLegado("/cancelamentos", "superadmin")).toBe("/dcs");
+    expect(destinoLegado("/admin", "superadmin")).toBe("/dcs");
+    expect(destinoLegado("/carteiras-cs", "admin")).toBe("/dcs");
     expect(destinoLegado("/cancelamentos", "user")).toBe("/dcs");
     expect(destinoLegado("/cliente/123", "user")).toBe("/dcs");
     expect(destinoLegado("/carteira", "user")).toBe("/dcs/carteira");

@@ -3,7 +3,7 @@ import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/dcs/db";
-import { ArrowDown, ArrowUp, Columns3, Download, ExternalLink, Layers, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, Columns3, ExternalLink, Layers, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -424,16 +424,6 @@ function Carteira() {
     return m;
   }, [linhas]);
 
-  const exportar = () => {
-    const ex = cols.filter((c) => c.id !== "acoes");
-    const csv = [ex.map((c) => c.rotulo), ...linhas.map((l) => ex.map((c) => c.csv(l, ctx)))]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
-      .join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
-    a.download = `carteira-dinamize-cs-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-  };
   const ordenar = (id: string) => setOrdem((o) => ({ id, inv: o.id === id ? !o.inv : false }));
 
   return (
@@ -475,21 +465,11 @@ function Carteira() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            {acesso.data?.exportar && (
-              <button
-                type="button"
-                onClick={exportar}
-                disabled={!linhas.length}
-                className="inline-flex h-9 items-center gap-2 rounded-lg border bg-card px-3 text-sm hover:border-primary/40 disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" /> Exportar CSV
-              </button>
-            )}
           </>
         }
       />
       <div className="dcs-tabela mb-4 border-b" role="tablist" aria-label="Visões da carteira">
-        <div className="flex min-w-max gap-1">
+        <div className="flex min-w-max gap-1" data-tour="aba-semuso">
           {(
             [
               [undefined, "Todos os clientes"],
@@ -523,7 +503,10 @@ function Carteira() {
         />
       ) : (
         <>
-          <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl border bg-card p-3 shadow-[var(--glow-sm)] md:grid-cols-3 xl:grid-cols-6">
+          <div
+            data-tour="filtros-carteira"
+            className="mb-4 grid grid-cols-2 gap-3 rounded-xl border bg-card p-3 shadow-[var(--glow-sm)] md:grid-cols-3 xl:grid-cols-6"
+          >
             <label className="col-span-2 flex flex-col gap-1 text-xs font-medium text-muted-foreground md:col-span-1 xl:col-span-2">
               Cliente ou código
               <span className="relative">
@@ -703,7 +686,7 @@ function Carteira() {
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody data-tour="acoes-linha">
                   {pag.map((l, i) => {
                     const grupo = l.c.owner_nome ?? "—";
                     const novo =
