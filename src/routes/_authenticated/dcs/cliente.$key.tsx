@@ -36,6 +36,7 @@ const buscaCarteira = () => {
 import { PainelUtilizacao, RegistroPipedrive } from "@/components/dcs/Utilizacao";
 import * as SU from "@/lib/dcs/semuso";
 import { EditorDiagnostico } from "@/components/dcs/Diagnostico";
+import { Evolucao } from "@/components/dcs/Evolucao";
 import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { NovaAcao } from "@/components/dcs/NovaAcao";
 import {
@@ -52,10 +53,10 @@ import {
   SeloPrioridade,
 } from "@/components/dcs/ui";
 
-type Aba = "diagnostico" | "plano" | "historico" | "mensagens";
+type Aba = "diagnostico" | "plano" | "evolucao" | "historico" | "mensagens";
 export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({
   validateSearch: (s: Record<string, unknown>): { aba?: Aba | undefined } => ({
-    aba: (["plano", "historico", "mensagens"] as const).find((a) => a === s["aba"]),
+    aba: (["plano", "evolucao", "historico", "mensagens"] as const).find((a) => a === s["aba"]),
   }),
   component: Cliente,
 });
@@ -235,6 +236,7 @@ function Cliente() {
                     "plano",
                     `Plano de ação (${dados.acoes.filter((a) => !a.obsoleta && !["implementado", "nao_aprovado"].includes(a.status)).length})`,
                   ],
+                  ["evolucao", "Evolução"],
                   ["mensagens", "Comunicação"],
                   ["historico", `Histórico (${dados.diagnosticos.length})`],
                 ] as [Aba, string][]
@@ -358,6 +360,9 @@ function Cliente() {
             ))}
 
           {aba === "plano" && <Plano clienteKey={key} acoes={dados.acoes} />}
+          {aba === "evolucao" && (
+            <Evolucao nome={dados.cliente.nome} diags={dados.diagnosticos} acoes={dados.acoes} />
+          )}
           {aba === "historico" && <Historico diags={dados.diagnosticos} eu={eu} cfg={cfg} />}
           {aba === "mensagens" && <Mensagens nome={dados.cliente.nome} diag={atual} cfg={cfg} />}
         </>
