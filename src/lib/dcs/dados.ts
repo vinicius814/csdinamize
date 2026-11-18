@@ -587,35 +587,6 @@ export function useResponsaveisPD(ativo: boolean) {
     queryFn: async () => ok(dcs.rpc("dcs_responsaveis_admin")),
   });
 }
-export function useSalvarPermissoes() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (u: {
-      user_id: string;
-      perfil: "admin" | "cs" | "contas";
-      financeiro: boolean;
-      pode_editar: boolean;
-      pode_exportar: boolean;
-      ativo: boolean;
-      carteiras: number[];
-      clientes: string[];
-    }) =>
-      ok(
-        dcs.rpc("dcs_salvar_permissoes", {
-          p_user: u.user_id,
-          p_perfil: u.perfil,
-          p_financeiro: u.financeiro,
-          p_editar: u.pode_editar,
-          p_exportar: u.pode_exportar,
-          p_ativo: u.ativo,
-          p_carteiras: u.carteiras,
-          p_clientes: u.clientes,
-          p_modulos: null,
-        }),
-      ),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] }),
-  });
-}
 export function useAuditoria(entidade: string, ativo: boolean) {
   return useQuery({
     queryKey: ["dcs", "auditoria", entidade],
@@ -730,30 +701,6 @@ export type NovoUsuario = {
   clientes: string[];
   pipedrive_user_id: number | null;
 };
-export function useSalvarUsuario() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (u: NovoUsuario) =>
-      ok(
-        dcs.rpc("dcs_salvar_usuario", {
-          p_email: u.email,
-          p_nome: u.nome || null,
-          p_perfil: u.perfil,
-          p_financeiro: u.financeiro,
-          p_editar: u.pode_editar,
-          p_exportar: u.pode_exportar,
-          p_ativo: u.ativo,
-          p_carteiras: u.carteiras,
-          p_clientes: u.clientes,
-          p_pipedrive: u.pipedrive_user_id,
-        }),
-      ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
-      void qc.invalidateQueries({ queryKey: ["dcs", "pre-cadastros"] });
-    },
-  });
-}
 export function usePreCadastros(ativo: boolean) {
   return useQuery({
     queryKey: ["dcs", "pre-cadastros"],

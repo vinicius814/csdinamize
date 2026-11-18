@@ -1,4 +1,4 @@
--- Reversão de 20261118200000_dcs_beta_acesso (gerada a partir das migrações anteriores).
+-- Reversão de 20261118163544_dcs_beta_acesso (gerada a partir das migrações anteriores).
 
 -- Não remove tabelas/colunas novas (dados de onboarding, feedback e segurança ficam preservados).
 
