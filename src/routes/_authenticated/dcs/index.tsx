@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useAcessoDcs } from "@/lib/dcs/dados";
 import { IndicadoresSemUso } from "@/components/dcs/Utilizacao";
+import { MinhaOperacaoHoje } from "@/components/dcs/Hoje";
 import * as I from "@/lib/dcs/indicadores";
 import {
   BarraFiltros,
@@ -93,6 +94,7 @@ function VisaoGeral() {
         titulo="Visão geral"
         sub="Acompanhamento e inteligência da operação de Customer Success da carteira e-commerce."
       />
+      <MinhaOperacaoHoje />
       <BarraFiltros f={f} set={set} todos={b.todos} nomes={b.nomes} />
       <Estado carregando={b.carregando} erro={b.erro}>
         <div data-tour="kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

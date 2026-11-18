@@ -58,6 +58,8 @@ export const TERMOS = {
     "Reincidência: o mesmo problema apareceu de novo em um ciclo posterior, depois de ter sido tratado ou registrado antes.",
   prioridade:
     "Prioridade da recomendação (crítica, alta, média, baixa): definida pela metodologia conforme o impacto do problema; pode ser ajustada no plano de ação.",
+  prioridadeOperacional:
+    "Prioridade operacional: indica por que o cliente precisa de atenção agora (revisão vencida, contato atrasado, ação crítica ou atrasada, análise parada, conta sem uso a revisar, ganhos rápidos). Cada critério soma pontos conforme o peso definido em Configurações e aparece como motivo. É diferente do índice de aproveitamento e não indica chance de cancelamento. Valores comerciais não entram no cálculo.",
   frequencia:
     "Frequência média semanal = disparos dos últimos 60 dias ÷ (60 ÷ 7). Calculada pelo número de disparos (campanhas), nunca pelo volume de mensagens. Pode ser preenchida manualmente.",
   entregabilidade60:

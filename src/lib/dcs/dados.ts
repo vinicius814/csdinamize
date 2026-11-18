@@ -77,6 +77,10 @@ export interface LinhaCarteira {
   status: StatusAnalise;
   acoesAbertas: number;
   maxPrioridade: M.Prioridade | null;
+  /** Ações abertas com prazo vencido, críticas abertas e ganhos rápidos abertos (priorização operacional, D38). */
+  acoesAtrasadas: number;
+  acoesCriticas: number;
+  ganhosRapidos: number;
 }
 
 /** Carteira visível ao usuário (a RLS limita clientes e valores; ~centenas de linhas, filtro no cliente). */
@@ -96,7 +100,7 @@ export function useCarteira(incluirInativos = false) {
         ok(
           dcs
             .from("dcs_acoes")
-            .select("cliente_key,prioridade,status,obsoleta")
+            .select("cliente_key,prioridade,status,obsoleta,prazo,ganho_rapido")
             .eq("obsoleta", false),
         ),
         ok(
@@ -114,12 +118,19 @@ export function useCarteira(incluirInativos = false) {
       const cobBy = new Map(cob.map((x) => [x.key, x]));
       const diagBy = new Map<string, DcsDiagnostico>();
       for (const d of diags) if (!diagBy.has(d.cliente_key)) diagBy.set(d.cliente_key, d);
-      const ac = new Map<string, { n: number; p: M.Prioridade | null }>();
+      const ac = new Map<
+        string,
+        { n: number; p: M.Prioridade | null; atr: number; crit: number; gr: number }
+      >();
       const ordem: M.Prioridade[] = ["critica", "alta", "media", "baixa"];
+      const hojeAc = hojeSP();
       for (const a of acoes) {
         if (a.status === "implementado" || a.status === "nao_aprovado") continue;
-        const v = ac.get(a.cliente_key) ?? { n: 0, p: null };
+        const v = ac.get(a.cliente_key) ?? { n: 0, p: null, atr: 0, crit: 0, gr: 0 };
         v.n++;
+        if (a.prazo && a.prazo < hojeAc) v.atr++;
+        if (a.prioridade === "critica") v.crit++;
+        if (a.ganho_rapido) v.gr++;
         if (!v.p || ordem.indexOf(a.prioridade) < ordem.indexOf(v.p)) v.p = a.prioridade;
         ac.set(a.cliente_key, v);
       }
@@ -153,6 +164,9 @@ export function useCarteira(incluirInativos = false) {
           status,
           acoesAbertas: ac.get(c.key)?.n ?? 0,
           maxPrioridade: ac.get(c.key)?.p ?? null,
+          acoesAtrasadas: ac.get(c.key)?.atr ?? 0,
+          acoesCriticas: ac.get(c.key)?.crit ?? 0,
+          ganhosRapidos: ac.get(c.key)?.gr ?? 0,
         };
       });
     },

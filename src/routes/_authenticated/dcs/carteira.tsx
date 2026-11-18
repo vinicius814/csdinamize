@@ -20,11 +20,14 @@ import {
 } from "@/components/dcs/Utilizacao";
 import * as SU from "@/lib/dcs/semuso";
 import type { DcsUtilizacao } from "@/lib/dcs/db";
+import { prioridadeCliente, type Prioridade as PriOp } from "@/lib/dcs/prioridade";
+import { pesosConfig } from "@/components/dcs/Hoje";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   useAcessoDcs,
   useAnalistas,
   useAtribuirAnalise,
+  useConfig,
   useDestinosAnalise,
   useUtilizacao,
   useCarteira,
@@ -76,14 +79,19 @@ export const Route = createFileRoute("/_authenticated/dcs/carteira")({
 
 const POR_PAGINA = 50;
 const PO = { critica: 0, alta: 1, media: 2, baixa: 3 } as const;
-type Ctx = { fin: boolean; nomes: Map<string, string>; uso: Map<string, DcsUtilizacao> };
+type Ctx = {
+  fin: boolean;
+  nomes: Map<string, string>;
+  uso: Map<string, DcsUtilizacao>;
+  pri: Map<string, PriOp>;
+};
 type Coluna = {
   id: string;
   rotulo: string;
   fixa?: boolean;
   fin?: boolean;
   direita?: boolean;
-  ordem?: (a: LinhaCarteira, b: LinhaCarteira) => number;
+  ordem?: (a: LinhaCarteira, b: LinhaCarteira, c: Ctx) => number;
   celula: (l: LinhaCarteira, c: Ctx) => ReactNode;
   csv: (l: LinhaCarteira, c: Ctx) => string | number;
 };
@@ -218,8 +226,41 @@ const COLUNAS: Coluna[] = [
     csv: (l) => opp(l) ?? "",
   },
   {
+    id: "atencao",
+    rotulo: "Atenção",
+    // Prioridade operacional (D38): pontos com motivos explícitos; valor comercial não entra.
+    ordem: (a, b, c) => (c.pri.get(b.c.key)?.pontos ?? 0) - (c.pri.get(a.c.key)?.pontos ?? 0),
+    celula: (l, c) => {
+      const p = c.pri.get(l.c.key);
+      if (!p || !p.pontos) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span
+          className="inline-flex max-w-[240px] items-center gap-1.5"
+          title={p.motivos.map((m) => `${m.texto} (+${m.peso})`).join("\n")}
+        >
+          <span
+            className={
+              "h-2 w-2 shrink-0 rounded-full " +
+              (p.nivel === "alta"
+                ? "bg-red-500"
+                : p.nivel === "media"
+                  ? "bg-amber-400"
+                  : "bg-gray-400")
+            }
+            aria-hidden
+          />
+          <span className="truncate text-xs">{p.motivos[0]!.texto}</span>
+          {p.motivos.length > 1 && (
+            <span className="text-[11px] text-muted-foreground">+{p.motivos.length - 1}</span>
+          )}
+        </span>
+      );
+    },
+    csv: (l, c) => c.pri.get(l.c.key)?.pontos ?? 0,
+  },
+  {
     id: "prioridade",
-    rotulo: "Prioridade",
+    rotulo: "Prioridade das ações",
     ordem: (a, b) =>
       (a.maxPrioridade ? PO[a.maxPrioridade] : 9) - (b.maxPrioridade ? PO[b.maxPrioridade] : 9),
     celula: (l) =>
@@ -280,6 +321,7 @@ const COLUNAS: Coluna[] = [
 ];
 const PADRAO = [
   "cliente",
+  "atencao",
   "utilizacao",
   "responsavel",
   "valor",
@@ -306,9 +348,17 @@ function Carteira() {
   const q = useCarteira(!!busca.inativos);
   const util = useUtilizacao();
   const usoMap = useMemo(() => util.data ?? new Map<string, DcsUtilizacao>(), [util.data]);
-  const ctx: Ctx = { fin, nomes: nomes.data ?? new Map(), uso: usoMap };
-  // Sem permissão financeira a ordem padrão é alfabética (não permite inferir valores).
-  const [ordem, setOrdem] = useState<{ id: string; inv: boolean }>({ id: "valor", inv: false });
+  const conf = useConfig();
+  const priMap = useMemo(() => {
+    const hoje = hojeSP();
+    const pesos = pesosConfig(conf.data?.cfg);
+    return new Map(
+      (q.data ?? []).map((l) => [l.c.key, prioridadeCliente(l, usoMap.get(l.c.key), hoje, pesos)]),
+    );
+  }, [q.data, usoMap, conf.data]);
+  const ctx: Ctx = { fin, nomes: nomes.data ?? new Map(), uso: usoMap, pri: priMap };
+  // Ordem padrão: atenção (prioridade operacional, sem valores). Valor só como coluna para quem tem permissão.
+  const [ordem, setOrdem] = useState<{ id: string; inv: boolean }>({ id: "atencao", inv: false });
   const [visiveis, setVisiveis] = useState<string[]>(PADRAO);
   const [agrupar, setAgrupar] = useState(false);
   const [pagina, setPagina] = useState(0);
@@ -405,10 +455,10 @@ function Carteira() {
     const col = COLUNAS.find((c) => c.id === ordemEfetiva.id);
     const cmp = col?.ordem ?? COLUNAS[0]!.ordem!;
     const sinal = ordemEfetiva.inv ? -1 : 1;
-    r.sort((a, b) => sinal * cmp(a, b) || a.c.nome.localeCompare(b.c.nome));
+    r.sort((a, b) => sinal * cmp(a, b, ctx) || a.c.nome.localeCompare(b.c.nome));
     if (agrupar) r.sort((a, b) => (a.c.owner_nome ?? "").localeCompare(b.c.owner_nome ?? ""));
     return r;
-  }, [q.data, busca, ordemEfetiva.id, ordemEfetiva.inv, agrupar, usoMap]);
+  }, [q.data, busca, ordemEfetiva.id, ordemEfetiva.inv, agrupar, usoMap, priMap]); // eslint-disable-line react-hooks/exhaustive-deps
   const nSemUso = (q.data ?? []).filter((l) => usoMap.get(l.c.key)?.status === "sem_uso").length;
   const total = linhas.reduce((s, l) => s + (l.mrr ?? 0), 0);
   const pag = agrupar ? linhas : linhas.slice(pagina * POR_PAGINA, (pagina + 1) * POR_PAGINA);
