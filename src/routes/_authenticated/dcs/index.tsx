@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { useAcessoDcs } from "@/lib/dcs/dados";
+import { IndicadoresSemUso } from "@/components/dcs/Utilizacao";
 import * as I from "@/lib/dcs/indicadores";
 import {
   BarraFiltros,
@@ -187,7 +188,10 @@ function VisaoGeral() {
                 />
               )}
             </Painel>
-            <Painel titulo="Produtividade por analista" sub="Análises concluídas no período">
+            <Painel
+              titulo="Produtividade por analista"
+              sub="Diagnósticos completos concluídos no período"
+            >
               {r.prod.length ? (
                 <Ranking
                   itens={r.prod.map((p) => ({
@@ -330,6 +334,17 @@ function VisaoGeral() {
           </div>
         </Secao>
 
+        <Secao
+          titulo="Contas sem utilização"
+          link={{
+            to: "/dcs/carteira",
+            rotulo: "Ver fila de acompanhamento",
+            search: { visao: "sem_uso" },
+          }}
+        >
+          <IndicadoresSemUso base={b.base} fin={fin} desde={b.desde} />
+        </Secao>
+
         <Secao titulo="Cobertura de CS" link={{ to: "/dcs/cobertura", rotulo: "Ver cobertura" }}>
           <div className="grid gap-4 xl:grid-cols-3">
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 xl:col-span-2">
@@ -438,7 +453,7 @@ function Secao({
   children,
 }: {
   titulo: string;
-  link?: { to: string; rotulo: string };
+  link?: { to: string; rotulo: string; search?: Record<string, string> };
   children: React.ReactNode;
 }) {
   return (
@@ -448,6 +463,7 @@ function Secao({
         {link && (
           <Link
             to={link.to as never}
+            search={link.search as never}
             className="text-sm font-medium text-primary hover:text-primary-hover"
           >
             {link.rotulo} →

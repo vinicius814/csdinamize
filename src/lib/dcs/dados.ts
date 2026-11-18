@@ -1,6 +1,7 @@
 /** Consultas e mutações do Dinamize CS (React Query). Cálculos sempre pelo motor (motor.ts). */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as M from "./motor";
+import * as SU from "./semuso";
 import {
   dcs,
   type DcsSolicitacao,
@@ -9,6 +10,10 @@ import {
   type DcsCliente,
   type DcsCobertura,
   type DcsDiagnostico,
+  type DcsPreCadastro,
+  type DcsUtilizacao,
+  type DcsUtilizacaoEvento,
+  type StatusRegistro,
 } from "./db";
 
 const hojeSP = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
@@ -48,6 +53,7 @@ export function useConfig() {
         regrasId: r?.id ?? null,
         versao: r?.versao ?? "1",
         cfg: M.mesclarConfig(r?.config ?? null),
+        semUso: SU.lerConfig(r?.config ?? null),
       };
     },
     staleTime: 10 * 60_000,
@@ -636,10 +642,19 @@ export function useVersoesRegras(ativo: boolean) {
 export function usePublicarRegras() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (cfg: M.Config) =>
-      ok(
-        dcs.rpc("dcs_publicar_regras", { p_config: cfg as never, p_metodologia: M.REGRAS_VERSAO }),
-      ),
+    mutationFn: async (x: M.Config | { cfg: M.Config; semUso: SU.ConfigSemUso }) => {
+      // A seção semUso não faz parte do Config do artefato: preserva a publicada quando não for alterada.
+      const atual =
+        qc.getQueryData<{ semUso: SU.ConfigSemUso }>(["dcs", "config"])?.semUso ?? SU.CONFIG_PADRAO;
+      const [cfg, semUso] =
+        "semUso" in x && "cfg" in x ? [x.cfg, x.semUso] : [x as M.Config, atual];
+      return ok(
+        dcs.rpc("dcs_publicar_regras", {
+          p_config: { ...cfg, semUso } as never,
+          p_metodologia: M.REGRAS_VERSAO,
+        }),
+      );
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["dcs"] });
     },
@@ -695,3 +710,234 @@ export const paraIndicador = (x: LinhaCarteira) => ({
   acoesAbertas: x.acoesAbertas,
   maxPrioridade: x.maxPrioridade,
 });
+
+// ---------- Usuários: pré-cadastro, convite, Master ----------
+export type NovoUsuario = {
+  email: string;
+  nome: string;
+  perfil: "admin" | "cs" | "contas";
+  financeiro: boolean;
+  pode_editar: boolean;
+  pode_exportar: boolean;
+  ativo: boolean;
+  carteiras: number[];
+  clientes: string[];
+  pipedrive_user_id: number | null;
+};
+export function useSalvarUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (u: NovoUsuario) =>
+      ok(
+        dcs.rpc("dcs_salvar_usuario", {
+          p_email: u.email,
+          p_nome: u.nome || null,
+          p_perfil: u.perfil,
+          p_financeiro: u.financeiro,
+          p_editar: u.pode_editar,
+          p_exportar: u.pode_exportar,
+          p_ativo: u.ativo,
+          p_carteiras: u.carteiras,
+          p_clientes: u.clientes,
+          p_pipedrive: u.pipedrive_user_id,
+        }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "pre-cadastros"] });
+    },
+  });
+}
+export function usePreCadastros(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "pre-cadastros"],
+    enabled: ativo,
+    queryFn: async () =>
+      (await ok(
+        dcs.from("dcs_pre_cadastros").select("*").order("criado_em", { ascending: false }),
+      )) as DcsPreCadastro[],
+  });
+}
+export function useAcaoPreCadastro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ email, acao }: { email: string; acao: "revogar" | "convite" }) =>
+      acao === "revogar"
+        ? ok(dcs.rpc("dcs_revogar_pre_cadastro", { p_email: email }))
+        : ok(dcs.rpc("dcs_registrar_convite", { p_email: email })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "pre-cadastros"] }),
+  });
+}
+export function useTransferirMaster() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (novo: string) => ok(dcs.rpc("dcs_transferir_master", { p_novo: novo })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs"] }),
+  });
+}
+
+// ---------- Registro do diagnóstico no Pipedrive ----------
+export function useStatusRegistro(diagId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["dcs", "registro", diagId],
+    enabled: !!diagId,
+    refetchInterval: (q) => {
+      const st = (q.state.data as StatusRegistro | null | undefined)?.status;
+      return st === "pendente" || st === "processando" ? 15000 : false;
+    },
+    queryFn: async () =>
+      (await ok(
+        dcs.rpc("dcs_status_registro", { p_diag: diagId as string }),
+      )) as StatusRegistro | null,
+  });
+}
+export function useReprocessarRegistro() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (diagId: string) =>
+      ok(dcs.rpc("dcs_reprocessar_registro", { p_diag: diagId })),
+    onSuccess: (_r, id) => void qc.invalidateQueries({ queryKey: ["dcs", "registro", id] }),
+  });
+}
+
+// ---------- Contas sem utilização ----------
+export function useUtilizacao() {
+  return useQuery({
+    queryKey: ["dcs", "utilizacao"],
+    queryFn: async () => {
+      const rows = (await ok(dcs.from("dcs_utilizacao").select("*"))) as DcsUtilizacao[];
+      return new Map(rows.map((r) => [r.cliente_key, r]));
+    },
+  });
+}
+export function useEventosUtilizacao(key: string | null) {
+  return useQuery({
+    queryKey: ["dcs", "utilizacao-eventos", key],
+    enabled: !!key,
+    queryFn: async () =>
+      (await ok(
+        dcs
+          .from("dcs_utilizacao_eventos")
+          .select("*")
+          .eq("cliente_key", key as string)
+          .order("em", { ascending: false })
+          .limit(50),
+      )) as DcsUtilizacaoEvento[],
+  });
+}
+export type MarcacaoSemUso = {
+  key: string;
+  ultima: string | null;
+  desconhecida: boolean;
+  motivo: string;
+  obs: string;
+  evidencias: string;
+  responsavel: string | null;
+  proxima: string;
+  acao: string;
+  intervalo: number | null;
+};
+export function useMarcarSemUso() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: MarcacaoSemUso) =>
+      ok(
+        dcs.rpc("dcs_marcar_sem_utilizacao", {
+          p_key: m.key,
+          p_ultima: m.desconhecida ? null : m.ultima,
+          p_desconhecida: m.desconhecida,
+          p_motivo: m.motivo,
+          p_obs: m.obs || null,
+          p_evidencias: m.evidencias || null,
+          p_responsavel: m.responsavel,
+          p_proxima: m.proxima,
+          p_acao: m.acao || null,
+          p_intervalo: m.intervalo,
+        }),
+      ),
+    onSuccess: (_r, m) => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao-eventos", m.key] });
+    },
+  });
+}
+export function useRevisarUtilizacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (r: {
+      key: string;
+      resultado: "continua" | "parcial" | "retomou" | "nao_validado";
+      ultima: string | null;
+      obs: string;
+      proxima: string | null;
+    }) =>
+      ok(
+        dcs.rpc("dcs_revisar_utilizacao", {
+          p_key: r.key,
+          p_resultado: r.resultado,
+          p_ultima: r.ultima,
+          p_obs: r.obs || null,
+          p_proxima: r.resultado === "retomou" ? null : r.proxima,
+        }),
+      ),
+    onSuccess: (_r, v) => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao-eventos", v.key] });
+    },
+  });
+}
+export function useConfirmarUtilizacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ key, obs }: { key: string; obs: string }) =>
+      ok(dcs.rpc("dcs_confirmar_utilizacao", { p_key: key, p_obs: obs || null })),
+    onSuccess: (_r, v) => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "utilizacao-eventos", v.key] });
+    },
+  });
+}
+
+/** Gravação real no Pipedrive (dcs_config.pipedrive_escrita): leitura para admins, alteração só pelo Master (banco revalida). */
+export function useEscritaPipedrive(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "escrita-pipedrive"],
+    enabled: ativo,
+    queryFn: async () => {
+      const r = await ok<{ valor: { ativa?: boolean } } | null>(
+        dcs
+          .from("dcs_config" as never)
+          .select("valor")
+          .eq("chave", "pipedrive_escrita")
+          .maybeSingle() as never,
+      );
+      return !!r?.valor?.ativa;
+    },
+  });
+}
+export function useDefinirEscritaPipedrive() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ativa: boolean) =>
+      ok(dcs.rpc("dcs_definir_escrita_pipedrive", { p_ativa: ativa })),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "escrita-pipedrive"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "integracoes"] });
+    },
+  });
+}
+
+export function useEventosUtilizacaoPeriodo(desde: string) {
+  return useQuery({
+    queryKey: ["dcs", "utilizacao-eventos-periodo", desde],
+    queryFn: async () =>
+      (await ok(
+        dcs
+          .from("dcs_utilizacao_eventos")
+          .select("*")
+          .gte("em", desde)
+          .order("em", { ascending: false })
+          .limit(2000),
+      )) as DcsUtilizacaoEvento[],
+  });
+}

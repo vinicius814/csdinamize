@@ -68,7 +68,8 @@ export function EditorDiagnostico(props: {
   const antes = props.anterior?.itens as Record<string, M.ItemResp> | undefined;
   // Transição segura (D27): análise em andamento ainda na metodologia v1 passa para a v2 ao ser aberta
   // por quem pode editar, preservando todos os dados (rel/jan e métricas de 30/90 dias ficam guardados).
-  const migrar = editavel && diag.status === "em_analise" && diag.meta?.["metodologia"] !== M.METODOLOGIA_V2;
+  const migrar =
+    editavel && diag.status === "em_analise" && diag.meta?.["metodologia"] !== M.METODOLOGIA_V2;
   const [conteudo, setConteudo] = useState<ConteudoDiag>(() => {
     const c = {
       itens: diag.itens ?? {},
@@ -239,13 +240,12 @@ export function EditorDiagnostico(props: {
             />
           }
         >
-          {aba === "ent" && (
-            v2 ? (
+          {aba === "ent" &&
+            (v2 ? (
               <MetricasV2 conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
             ) : (
               <Metricas conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
-            )
-          )}
+            ))}
           {(MAINS_BY_CAT[aba] ?? []).some((it) => it.matrix) && (
             <MatrizAutomacoes
               v2={v2}
@@ -366,7 +366,13 @@ export function EditorDiagnostico(props: {
                 }),
                 ...props.acoes
                   .filter((a) => a.manual && !a.obsoleta)
-                  .map((a) => ({ acao: a.acao, prioridade: a.prioridade, responsavel: a.responsavel, prazo: a.prazo, status: a.status })),
+                  .map((a) => ({
+                    acao: a.acao,
+                    prioridade: a.prioridade,
+                    responsavel: a.responsavel,
+                    prazo: a.prazo,
+                    status: a.status,
+                  })),
               ];
               return M.relatorioDiagnostico({
                 cliente: props.cliente.nome,
@@ -1009,34 +1015,34 @@ function MatrizAutomacoes({
                     </td>
                   ))}
                   {!v2 && (
-                  <td className="px-2 py-2 text-center">
-                    {win1 ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min={0}
-                          aria-label={`${it.l} — janela de atribuição em dias`}
-                          className={cx(
-                            "h-7 w-14 px-1 text-center text-xs",
-                            o.jan != null &&
-                              o.jan !== "" &&
-                              Number(o.jan) !== 1 &&
-                              "border-red-400",
-                          )}
-                          disabled={!editavel || !!dep}
-                          value={o.jan ?? ""}
-                          onChange={(e) =>
-                            setItem(it.key, {
-                              jan: e.target.value === "" ? null : Number(e.target.value),
-                            })
-                          }
-                        />
-                        <span className="text-[11px] text-muted-foreground">d</span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
+                    <td className="px-2 py-2 text-center">
+                      {win1 ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min={0}
+                            aria-label={`${it.l} — janela de atribuição em dias`}
+                            className={cx(
+                              "h-7 w-14 px-1 text-center text-xs",
+                              o.jan != null &&
+                                o.jan !== "" &&
+                                Number(o.jan) !== 1 &&
+                                "border-red-400",
+                            )}
+                            disabled={!editavel || !!dep}
+                            value={o.jan ?? ""}
+                            onChange={(e) =>
+                              setItem(it.key, {
+                                jan: e.target.value === "" ? null : Number(e.target.value),
+                              })
+                            }
+                          />
+                          <span className="text-[11px] text-muted-foreground">d</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                   )}
                   <td className="px-2 py-2">
                     <span
@@ -1110,39 +1116,58 @@ function MetricasV2({
   const set = (patch: Record<string, unknown>) =>
     mudar((c) => {
       const atual = { ...((c.metricas["m60"] as Record<string, unknown>) ?? {}), ...patch };
-      if ("disparos" in patch && atual["freq_manual"] !== true) atual["freq_sem"] = M.frequenciaSemanal(atual["disparos"]) ?? "";
+      if ("disparos" in patch && atual["freq_manual"] !== true)
+        atual["freq_sem"] = M.frequenciaSemanal(atual["disparos"]) ?? "";
       return { ...c, metricas: { ...c.metricas, m60: atual } };
     });
   const campo = (x: (typeof M.METRICAS_V2)[number]) => {
     const v = (m[x.k] ?? "") as string | number;
     const ref = refs[x.k];
     const fora =
-      ref && v !== "" && ((ref.min != null && Number(v) < ref.min) || (ref.max != null && Number(v) > ref.max));
+      ref &&
+      v !== "" &&
+      ((ref.min != null && Number(v) < ref.min) || (ref.max != null && Number(v) > ref.max));
     const auto = x.k === "freq_sem" && !manual && m["disparos"] !== "" && m["disparos"] != null;
     return (
       <label key={x.k} className="grid min-w-0 gap-1 text-xs">
         <span className="flex items-center justify-between gap-1 text-muted-foreground">
           <span className="truncate">{x.rotulo}</span>
           {ref && (
-            <span className="shrink-0 text-[10px]">{ref.min != null ? `≥ ${ref.min}` : `≤ ${ref.max}`}</span>
+            <span className="shrink-0 text-[10px]">
+              {ref.min != null ? `≥ ${ref.min}` : `≤ ${ref.max}`}
+            </span>
           )}
         </span>
         <Input
           type={x.tipo === "d" ? "date" : "number"}
           step={x.tipo === "dec" ? "0.1" : "any"}
           min={0}
-          className={cx("h-8 text-sm", fora && "border-red-400 text-red-700", auto && "bg-surface-2")}
+          className={cx(
+            "h-8 text-sm",
+            fora && "border-red-400 text-red-700",
+            auto && "bg-surface-2",
+          )}
           disabled={!editavel}
           value={v}
           onChange={(e) =>
-            x.k === "freq_sem" ? set({ freq_sem: e.target.value, freq_manual: e.target.value !== "" }) : set({ [x.k]: e.target.value })
+            x.k === "freq_sem"
+              ? set({ freq_sem: e.target.value, freq_manual: e.target.value !== "" })
+              : set({ [x.k]: e.target.value })
           }
         />
         {x.k === "freq_sem" && (
           <span className="text-[10px] text-muted-foreground">
-            {auto ? "Calculada: disparos ÷ (60 ÷ 7)" : manual ? "Preenchida manualmente" : "Informe os disparos para calcular"}
+            {auto
+              ? "Calculada: disparos ÷ (60 ÷ 7)"
+              : manual
+                ? "Preenchida manualmente"
+                : "Informe os disparos para calcular"}
             {manual && editavel && (
-              <button type="button" className="ml-1 text-primary" onClick={() => set({ freq_manual: false, disparos: m["disparos"] ?? "" })}>
+              <button
+                type="button"
+                className="ml-1 text-primary"
+                onClick={() => set({ freq_manual: false, disparos: m["disparos"] ?? "" })}
+              >
                 recalcular
               </button>
             )}
@@ -1158,10 +1183,16 @@ function MetricasV2({
     <div className="mb-4 space-y-3 rounded-lg border p-3">
       <div>
         <p className="mb-2 text-xs font-semibold">Últimos 60 dias</p>
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{periodo.filter((x) => x.principal).map(campo)}</div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {periodo.filter((x) => x.principal).map(campo)}
+        </div>
         <details className="mt-2">
-          <summary className="cursor-pointer text-xs text-muted-foreground">Bounces, descadastros e spam</summary>
-          <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">{periodo.filter((x) => !x.principal).map(campo)}</div>
+          <summary className="cursor-pointer text-xs text-muted-foreground">
+            Bounces, descadastros e spam
+          </summary>
+          <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {periodo.filter((x) => !x.principal).map(campo)}
+          </div>
         </details>
       </div>
       <div className="border-t pt-3">
@@ -1170,10 +1201,10 @@ function MetricasV2({
       </div>
       {temAntigas && (
         <p className="text-[11px] text-muted-foreground">
-          Métricas de 30/90 dias registradas antes da mudança de metodologia ficam preservadas no histórico e não são convertidas.
+          Métricas de 30/90 dias registradas antes da mudança de metodologia ficam preservadas no
+          histórico e não são convertidas.
         </p>
       )}
     </div>
   );
 }
-

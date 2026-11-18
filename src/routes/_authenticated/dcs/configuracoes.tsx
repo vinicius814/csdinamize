@@ -1,3 +1,4 @@
+import * as SU from "@/lib/dcs/semuso";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, History, Save } from "lucide-react";
@@ -8,6 +9,7 @@ import {
   useConfig,
   usePublicarRegras,
   useTiposAtividade,
+  useResponsaveisPD,
   useVersoesRegras,
 } from "@/lib/dcs/dados";
 import { artefato as A, mesclarConfig, type Config } from "@/lib/dcs/motor";
@@ -25,6 +27,7 @@ const SECOES = [
   ["entregabilidade", "Entregabilidade"],
   ["cobertura", "Cobertura e atividades"],
   ["carteira", "Carteira e Pipedrive"],
+  ["semuso", "Contas sem utilização"],
   ["versoes", "Versões"],
 ] as const;
 type Secao = (typeof SECOES)[number][0];
@@ -53,11 +56,18 @@ function Configuracoes() {
   const publicar = usePublicarRegras();
   const [secao, setSecao] = useState<Secao>("metodologia");
   const [c, setC] = useState<Config | null>(null);
+  const [su, setSu] = useState<SU.ConfigSemUso | null>(null);
   useEffect(() => {
     if (conf.data && !c) setC(structuredClone(conf.data.cfg));
-  }, [conf.data, c]);
+    if (conf.data && !su) setSu(structuredClone(conf.data.semUso));
+  }, [conf.data, c, su]);
+  const resps = useResponsaveisPD(secao === "semuso");
   const erros = useMemo(() => (c ? validarConfig(c) : []), [c]);
-  const alterado = !!c && !!conf.data && JSON.stringify(c) !== JSON.stringify(conf.data.cfg);
+  const alterado =
+    !!c &&
+    !!conf.data &&
+    (JSON.stringify(c) !== JSON.stringify(conf.data.cfg) ||
+      JSON.stringify(su) !== JSON.stringify(conf.data.semUso));
   const up = (f: (x: Config) => void) =>
     setC((x: Config | null) => {
       const n = structuredClone(x!) as Config;
@@ -66,8 +76,12 @@ function Configuracoes() {
     });
   const enviar = () =>
     c &&
-    publicar.mutate(c, {
-      onSuccess: () => (toast.success("Nova versão das regras publicada."), setC(null)),
+    publicar.mutate(su ? { cfg: c, semUso: su } : c, {
+      onSuccess: () => (
+        toast.success("Nova versão das regras publicada."),
+        setC(null),
+        setSu(null)
+      ),
       onError: (e) => toast.error(mensagemErro(e)),
     });
   return (
@@ -80,7 +94,10 @@ function Configuracoes() {
             {alterado && (
               <button
                 type="button"
-                onClick={() => setC(structuredClone(conf.data!.cfg))}
+                onClick={() => (
+                  setC(structuredClone(conf.data!.cfg)),
+                  setSu(structuredClone(conf.data!.semUso))
+                )}
                 className="h-9 rounded-lg border px-3 text-sm hover:border-primary"
               >
                 Descartar alterações
@@ -370,11 +387,18 @@ function Configuracoes() {
                       />
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">
-                      Credenciais e agendamentos ficam no n8n. A gravação no Pipedrive continua
-                      desativada até autorização.
+                      Credenciais e agendamentos ficam no n8n. O registro automático dos
+                      diagnósticos no Pipedrive é ativado pelo Administrador Master em Integrações.
                     </p>
                   </Painel>
                 </>
+              )}
+              {secao === "semuso" && su && (
+                <ConfigSemUso
+                  su={su}
+                  setSu={setSu}
+                  resps={(resps.data ?? []).filter((r) => r.ativo)}
+                />
               )}
               {secao === "versoes" && (
                 <Painel
@@ -565,5 +589,145 @@ function TiposAtividade({ c, up }: { c: Config; up: (f: (x: Config) => void) => 
         })}
       </div>
     </Painel>
+  );
+}
+
+/** Periodicidade e motivos das contas sem utilização (§9–10). Publicado junto com as regras (versionado). */
+function ConfigSemUso({
+  su,
+  setSu,
+  resps,
+}: {
+  su: SU.ConfigSemUso;
+  setSu: (v: SU.ConfigSemUso) => void;
+  resps: { pipedrive_user_id: number; nome: string }[];
+}) {
+  const up = (f: (x: SU.ConfigSemUso) => void) => {
+    const n = structuredClone(su);
+    f(n);
+    setSu(n);
+  };
+  const dias = (v: number) => (Number.isFinite(v) && v >= 1 && v <= 365 ? Math.round(v) : NaN);
+  return (
+    <>
+      <Painel
+        titulo="Periodicidade do acompanhamento"
+        sub="Ordem de prioridade: cliente → motivo → criticidade → carteira → faixa de valor → padrão. Deixe em branco para herdar."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Numero
+            rotulo="Intervalo padrão"
+            valor={su.padrao}
+            sufixo="dias"
+            onChange={(v) => up((x) => (x.padrao = dias(v) || 30))}
+          />
+          <Numero
+            rotulo="Criticidade crítica"
+            valor={su.porCriticidade.critica}
+            sufixo="dias"
+            onChange={(v) =>
+              up((x) =>
+                dias(v) ? (x.porCriticidade.critica = dias(v)) : delete x.porCriticidade.critica,
+              )
+            }
+          />
+          <Numero
+            rotulo="Criticidade alta"
+            valor={su.porCriticidade.alta}
+            sufixo="dias"
+            onChange={(v) =>
+              up((x) =>
+                dias(v) ? (x.porCriticidade.alta = dias(v)) : delete x.porCriticidade.alta,
+              )
+            }
+          />
+        </div>
+      </Painel>
+      <Painel
+        titulo="Motivos"
+        sub="Lista exibida no formulário; o intervalo por motivo é opcional."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Lista
+            rotulo="Motivos"
+            valor={su.motivos}
+            onChange={(v) => up((x) => (x.motivos = v.length ? v : [...SU.MOTIVOS]))}
+          />
+          <div className="space-y-2">
+            {su.motivos.map((m) => (
+              <Numero
+                key={m}
+                rotulo={m}
+                valor={su.porMotivo[m]}
+                sufixo="dias"
+                onChange={(v) =>
+                  up((x) => (dias(v) ? (x.porMotivo[m] = dias(v)) : delete x.porMotivo[m]))
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </Painel>
+      <Painel titulo="Por carteira (responsável de CS)">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {resps.map((r) => (
+            <Numero
+              key={r.pipedrive_user_id}
+              rotulo={r.nome}
+              valor={su.porCarteira[String(r.pipedrive_user_id)]}
+              sufixo="dias"
+              onChange={(v) =>
+                up((x) =>
+                  dias(v)
+                    ? (x.porCarteira[String(r.pipedrive_user_id)] = dias(v))
+                    : delete x.porCarteira[String(r.pipedrive_user_id)],
+                )
+              }
+            />
+          ))}
+        </div>
+      </Painel>
+      <Painel
+        titulo="Por faixa de valor comercial"
+        sub="Valor do negócio no Pipedrive (só aplicado quando o usuário pode ver valores)."
+      >
+        <div className="space-y-2">
+          {su.porFaixa.map((f, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
+              <Numero
+                rotulo="A partir de (R$)"
+                valor={f.min}
+                onChange={(v) => up((x) => (x.porFaixa[i]!.min = Number.isFinite(v) ? v : null))}
+              />
+              <Numero
+                rotulo="Até (R$, exclusivo)"
+                valor={f.max}
+                onChange={(v) => up((x) => (x.porFaixa[i]!.max = Number.isFinite(v) ? v : null))}
+              />
+              <Numero
+                rotulo="Intervalo"
+                valor={f.dias}
+                sufixo="dias"
+                onChange={(v) => up((x) => (x.porFaixa[i]!.dias = dias(v) || 30))}
+              />
+              <button
+                type="button"
+                onClick={() => up((x) => x.porFaixa.splice(i, 1))}
+                className="h-9 rounded-lg border px-3 text-sm hover:border-red-300"
+              >
+                Remover
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => up((x) => x.porFaixa.push({ min: null, max: null, dias: su.padrao }))}
+            className="h-9 rounded-lg border px-3 text-sm hover:border-primary"
+          >
+            Adicionar faixa
+          </button>
+        </div>
+      </Painel>
+    </>
   );
 }

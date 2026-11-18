@@ -1,3 +1,4 @@
+import { IndicadoresSemUso } from "@/components/dcs/Utilizacao";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BarChart3, Gauge, Lightbulb, TrendingDown, TrendingUp, Wrench } from "lucide-react";
@@ -384,6 +385,11 @@ function Inteligencia() {
             )}
           </Painel>
         </div>
+
+        <section className="mt-8">
+          <h2 className="mb-3 text-base font-semibold">Contas sem utilização</h2>
+          <IndicadoresSemUso base={b.base} fin={fin} desde={b.desde} completo />
+        </section>
 
         <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>
           <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">

@@ -23,6 +23,8 @@ import {
   type StatusAnalise,
 } from "@/lib/dcs/dados";
 import { cx } from "./ui";
+import { FormSemUso } from "./Utilizacao";
+import type { DcsUtilizacao } from "@/lib/dcs/db";
 
 type Props = {
   clienteKey: string;
@@ -34,6 +36,15 @@ type Props = {
   compacto?: boolean;
   /** Quando já está na ficha do cliente, troca de aba em vez de navegar. */
   aoAbrirAba?: (aba: "diagnostico" | "plano" | "historico") => void;
+  /** Contas sem utilização: habilita "Marcar sem utilização" e troca a ação principal por "Revisar utilização". */
+  utilizacao?:
+    | {
+        atual: DcsUtilizacao | null;
+        ownerId: number | null;
+        mrr: number | null;
+        criticidade?: "critica" | "alta" | null;
+      }
+    | undefined;
 };
 
 /**
@@ -48,7 +59,10 @@ export function AcoesAnalise({
   diag,
   compacto,
   aoAbrirAba,
+  utilizacao,
 }: Props) {
+  const [formUso, setFormUso] = useState(false);
+  const semUso = utilizacao?.atual?.status === "sem_uso";
   const { session } = useAuth();
   const eu = session?.user.id;
   const acesso = useAcessoDcs().data;
@@ -127,8 +141,33 @@ export function AcoesAnalise({
       extras.push({ rotulo: "Reabrir análise…", fazer: () => setDialogo("reabrir"), perigo: true });
   }
 
+  if (utilizacao && ativo && editar && status !== "em_andamento") {
+    if (semUso) {
+      principal = {
+        rotulo: "Revisar utilização",
+        fazer: () => abrir("diagnostico"),
+        destaque: true,
+      };
+      extras.unshift({ rotulo: "Editar acompanhamento…", fazer: () => setFormUso(true) });
+    } else extras.push({ rotulo: "Marcar sem utilização…", fazer: () => setFormUso(true) });
+  }
+
   return (
     <div className={cx("inline-flex items-center", compacto ? "gap-1" : "gap-2")}>
+      {utilizacao && (
+        <FormSemUso
+          aberto={formUso}
+          fechar={() => setFormUso(false)}
+          cliente={{
+            key: clienteKey,
+            nome: clienteNome,
+            ownerId: utilizacao.ownerId,
+            mrr: utilizacao.mrr,
+            criticidade: utilizacao.criticidade ?? null,
+          }}
+          atual={utilizacao.atual}
+        />
+      )}
       {principal && (
         <button
           type="button"

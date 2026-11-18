@@ -25,6 +25,7 @@ const TIPO: Record<DcsAlerta["tipo"], [string, Tom]> = {
   acao_atrasada: ["Ação atrasada", "alerta"],
   revisao_vencida: ["Revisão vencida", "aviso"],
   cobertura_critica: ["Cobertura crítica", "critico"],
+  utilizacao_revisao: ["Conta sem utilização: revisão vencida", "critico"],
 };
 
 function Alertas() {
@@ -114,6 +115,8 @@ function detalhe(a: DcsAlerta) {
       : "Sem data de contato efetivo";
   if (a.tipo === "revisao_vencida")
     return `Revisão prevista para ${dataBR(String(d["proxima_revisao"] ?? ""))}`;
+  if (a.tipo === "utilizacao_revisao")
+    return `${String(d["motivo"] ?? "Sem utilização")} — revisão prevista para ${dataBR(String(d["proxima_revisao"] ?? ""))}`;
   if (a.tipo === "acao_atrasada")
     return `${String(d["acao"] ?? "")} — prazo ${dataBR(String(d["prazo"] ?? ""))}`;
   return String(d["acao"] ?? "");

@@ -298,6 +298,7 @@ const ROTULO_ALERTA: Record<string, string> = {
   acao_atrasada: "Ações atrasadas",
   cobertura_critica: "Cobertura crítica",
   oportunidade_critica: "Oportunidades críticas",
+  utilizacao_revisao: "Contas sem utilização para revisar",
 };
 function Notificacoes() {
   const alertas = useAlertas();

@@ -119,7 +119,12 @@ export type DcsSync = {
 };
 export type DcsAlerta = {
   id: number;
-  tipo: "revisao_vencida" | "acao_atrasada" | "cobertura_critica" | "oportunidade_critica";
+  tipo:
+    | "revisao_vencida"
+    | "acao_atrasada"
+    | "cobertura_critica"
+    | "oportunidade_critica"
+    | "utilizacao_revisao";
   cliente_key: string;
   referencia: string | null;
   detalhe: Record<string, unknown> | null;
@@ -177,6 +182,74 @@ export type DcsUsuario = {
   carteiras: number[];
   clientes: string[];
   modulos: string[] | null;
+  pipedrive_user_id: number | null;
+  master_principal: boolean;
+};
+export type DcsPreCadastro = {
+  email: string;
+  nome: string | null;
+  perfil: "admin" | "cs" | "contas";
+  financeiro: boolean;
+  pode_editar: boolean;
+  pode_exportar: boolean;
+  ativo: boolean;
+  carteiras: number[];
+  clientes: string[];
+  pipedrive_user_id: number | null;
+  criado_por: string | null;
+  criado_em: string;
+  atualizado_em: string;
+  convite_enviado_em: string | null;
+  aplicado_em: string | null;
+  aplicado_user: string | null;
+  revogado_em: string | null;
+};
+export type StatusUtilizacao = "nao_verificado" | "em_uso" | "sem_uso";
+export type Acompanhamento = "aguardando" | "em_dia" | "retomada_em_andamento" | "retomada";
+export type DcsUtilizacao = {
+  cliente_key: string;
+  status: StatusUtilizacao;
+  acompanhamento: Acompanhamento | null;
+  sem_uso_desde: string | null;
+  ultima_utilizacao: string | null;
+  ultima_desconhecida: boolean;
+  motivo: string | null;
+  observacoes: string | null;
+  evidencias: string | null;
+  acao_retomada: string | null;
+  responsavel_id: string | null;
+  proxima_revisao: string | null;
+  intervalo_dias: number | null;
+  ultimo_acompanhamento: string | null;
+  recuperado_em: string | null;
+  atualizado_em: string;
+  atualizado_por: string | null;
+  versao: number;
+};
+export type DcsUtilizacaoEvento = {
+  id: number;
+  cliente_key: string;
+  em: string;
+  ator: string | null;
+  tipo: "marcar" | "revisar" | "em_uso" | "editar";
+  resultado: "continua" | "parcial" | "retomou" | "nao_validado" | null;
+  dados: Json;
+};
+export type StatusRegistro = {
+  status:
+    | "sem_registro"
+    | "aguardando_autorizacao"
+    | "pendente"
+    | "processando"
+    | "concluido"
+    | "falha"
+    | "ambiguo";
+  tentativas?: number;
+  erro?: string | null;
+  atualizado_em?: string;
+  activity_id?: number | null;
+  deal_id?: number | null;
+  escrita_ativa?: boolean;
 };
 export type MeuAcesso = {
   perfil: "admin" | "cs" | "contas" | null;
@@ -250,6 +323,9 @@ export type DcsDatabase = {
         origem: "template" | "ia" | "editado";
         criado_em: string;
       }>;
+      dcs_pre_cadastros: T<DcsPreCadastro>;
+      dcs_utilizacao: T<DcsUtilizacao>;
+      dcs_utilizacao_eventos: T<DcsUtilizacaoEvento>;
       dcs_diagnosticos_eventos: T<{
         id: number;
         diagnostico_id: string;
@@ -281,6 +357,57 @@ export type DcsDatabase = {
         Returns: undefined;
       };
       dcs_solicitar_sync: { Args: { p_tipo: string }; Returns: string };
+      dcs_salvar_usuario: {
+        Args: {
+          p_email: string;
+          p_nome: string | null;
+          p_perfil: string;
+          p_financeiro: boolean;
+          p_editar: boolean;
+          p_exportar: boolean;
+          p_ativo: boolean;
+          p_carteiras: number[];
+          p_clientes: string[];
+          p_pipedrive: number | null;
+        };
+        Returns: { modo: "aplicado" | "pre_cadastro"; user_id?: string; email?: string };
+      };
+      dcs_revogar_pre_cadastro: { Args: { p_email: string }; Returns: undefined };
+      dcs_registrar_convite: { Args: { p_email: string }; Returns: undefined };
+      dcs_reivindicar_acesso: { Args: Record<string, never>; Returns: boolean };
+      dcs_transferir_master: { Args: { p_novo: string }; Returns: undefined };
+      dcs_status_registro: { Args: { p_diag: string }; Returns: StatusRegistro | null };
+      dcs_reprocessar_registro: { Args: { p_diag: string }; Returns: string };
+      dcs_definir_escrita_pipedrive: { Args: { p_ativa: boolean }; Returns: undefined };
+      dcs_marcar_sem_utilizacao: {
+        Args: {
+          p_key: string;
+          p_ultima: string | null;
+          p_desconhecida: boolean;
+          p_motivo: string;
+          p_obs: string | null;
+          p_evidencias: string | null;
+          p_responsavel: string | null;
+          p_proxima: string;
+          p_acao: string | null;
+          p_intervalo: number | null;
+        };
+        Returns: undefined;
+      };
+      dcs_revisar_utilizacao: {
+        Args: {
+          p_key: string;
+          p_resultado: string;
+          p_ultima: string | null;
+          p_obs: string | null;
+          p_proxima: string | null;
+        };
+        Returns: undefined;
+      };
+      dcs_confirmar_utilizacao: {
+        Args: { p_key: string; p_obs: string | null };
+        Returns: undefined;
+      };
       dcs_atribuir_analise: { Args: { p_key: string; p_para: string }; Returns: DcsDiagnostico };
       dcs_transferir_analise: {
         Args: { p_id: string; p_para: string; p_motivo: string };
@@ -303,7 +430,13 @@ export type DcsDatabase = {
       dcs_publicar_regras: { Args: { p_config: Json; p_metodologia: string }; Returns: string };
       dcs_responsaveis_admin: {
         Args: Record<string, never>;
-        Returns: { pipedrive_user_id: number; nome: string; ativo: boolean; visto_em: string }[];
+        Returns: {
+          pipedrive_user_id: number;
+          nome: string;
+          email: string | null;
+          ativo: boolean;
+          visto_em: string;
+        }[];
       };
       dcs_iniciar_analise: { Args: { p_key: string }; Returns: DcsDiagnostico };
       dcs_salvar_diagnostico: {

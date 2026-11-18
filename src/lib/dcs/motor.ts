@@ -49,17 +49,47 @@ export interface Diagnostico {
 export const METODOLOGIA_V2 = "v2-2026-11";
 export const ehV2 = (d: Diagnostico | undefined) => d?.meta?.metodologia === METODOLOGIA_V2;
 /** Indicadores do período de 60 dias e da fotografia atual da conta (v2). */
-export const METRICAS_V2: { k: string; rotulo: string; tipo: "n" | "p" | "d" | "dec"; grupo: "periodo" | "atual"; principal: boolean }[] = [
+export const METRICAS_V2: {
+  k: string;
+  rotulo: string;
+  tipo: "n" | "p" | "d" | "dec";
+  grupo: "periodo" | "atual";
+  principal: boolean;
+}[] = [
   { k: "sent", rotulo: "Volume de e-mails enviados", tipo: "n", grupo: "periodo", principal: true },
-  { k: "deliv", rotulo: "Taxa de entregabilidade (%)", tipo: "p", grupo: "periodo", principal: true },
-  { k: "open", rotulo: "Taxa de abertura (%) — auxiliar", tipo: "p", grupo: "periodo", principal: true },
+  {
+    k: "deliv",
+    rotulo: "Taxa de entregabilidade (%)",
+    tipo: "p",
+    grupo: "periodo",
+    principal: true,
+  },
+  {
+    k: "open",
+    rotulo: "Taxa de abertura (%) — auxiliar",
+    tipo: "p",
+    grupo: "periodo",
+    principal: true,
+  },
   { k: "click", rotulo: "Taxa de cliques (%)", tipo: "p", grupo: "periodo", principal: true },
   { k: "hard", rotulo: "Hard bounce (%)", tipo: "p", grupo: "periodo", principal: false },
   { k: "soft", rotulo: "Soft bounce (%)", tipo: "p", grupo: "periodo", principal: false },
   { k: "unsub", rotulo: "Descadastros (%)", tipo: "p", grupo: "periodo", principal: false },
   { k: "spam", rotulo: "Denúncias de spam (%)", tipo: "p", grupo: "periodo", principal: false },
-  { k: "disparos", rotulo: "Disparos/campanhas no período", tipo: "n", grupo: "periodo", principal: true },
-  { k: "freq_sem", rotulo: "Frequência média de envios por semana", tipo: "dec", grupo: "periodo", principal: true },
+  {
+    k: "disparos",
+    rotulo: "Disparos/campanhas no período",
+    tipo: "n",
+    grupo: "periodo",
+    principal: true,
+  },
+  {
+    k: "freq_sem",
+    rotulo: "Frequência média de envios por semana",
+    tipo: "dec",
+    grupo: "periodo",
+    principal: true,
+  },
   { k: "base", rotulo: "Tamanho da base", tipo: "n", grupo: "atual", principal: true },
   { k: "engaged", rotulo: "Contatos engajados", tipo: "n", grupo: "atual", principal: false },
   { k: "rest", rotulo: "Base em descanso (%)", tipo: "p", grupo: "atual", principal: false },
@@ -84,7 +114,8 @@ const semRel = (o: ItemResp | undefined): ItemResp | undefined => {
 function paraArtefato(d: Diagnostico): Diagnostico {
   if (!ehV2(d)) return d;
   const items: Record<string, ItemResp> = {};
-  for (const [k, o] of Object.entries(d.items ?? {})) items[k] = (A.ITEM_BY[k]?.matrix ? semRel(o) : o) as ItemResp;
+  for (const [k, o] of Object.entries(d.items ?? {}))
+    items[k] = (A.ITEM_BY[k]?.matrix ? semRel(o) : o) as ItemResp;
   const m60 = d.metrics?.m60 ?? {};
   return { ...d, items, metrics: { m30: { ...m60, freq: m60["freq_sem"] ?? null } } };
 }
@@ -102,7 +133,9 @@ function estadoAutomacaoV2(o: ItemResp | undefined): Estado | null {
  * Transição segura de uma análise em andamento para a v2: preserva tudo (inclusive rel/jan e m30/m90),
  * recalcula só o estado das automações cujo estado era o calculado pela matriz (não sobrescreve ajuste manual).
  */
-export function migrarParaV2<T extends { itens: Record<string, ItemResp>; meta: Record<string, unknown> }>(c: T, agora = new Date().toISOString()): T {
+export function migrarParaV2<
+  T extends { itens: Record<string, ItemResp>; meta: Record<string, unknown> },
+>(c: T, agora = new Date().toISOString()): T {
   if (c.meta?.["metodologia"] === METODOLOGIA_V2) return c;
   const itens = { ...c.itens };
   for (const [k, o] of Object.entries(itens)) {
@@ -121,7 +154,8 @@ export const configPadrao = (): Config => A.mergeCfg(null);
 export const mesclarConfig = (c: unknown): Config => A.mergeCfg(c);
 
 /* ---------- Índice, faixas e recomendações (comportamento original) ---------- */
-export const calcularIndice = (d: Diagnostico, cfg: Config) => A.calcScore(paraArtefato(d).items, cfg);
+export const calcularIndice = (d: Diagnostico, cfg: Config) =>
+  A.calcScore(paraArtefato(d).items, cfg);
 export const faixa = (sc: ReturnType<typeof calcularIndice>, cfg: Config) => A.bandOfSc(sc, cfg);
 export const estadoAutomacao = (o: ItemResp | undefined, v2 = false): Estado | null =>
   v2 ? estadoAutomacaoV2(o) : A.autoState(o);
@@ -226,7 +260,8 @@ export function derivado(d: Diagnostico, cfg: Config) {
 export const pendencias = (d: Diagnostico, cfg: Config) => A.pendingInfo(paraArtefato(d), cfg);
 export const resumoProfissional = (ctx: Parameters<typeof A.buildSummary>[0]) =>
   A.buildSummary({ ...ctx, diag: paraArtefato(ctx.diag as Diagnostico) } as never);
-export const patchEntregabilidade = (d: Diagnostico, cfg: Config) => A.autoEntPatch(paraArtefato(d), cfg);
+export const patchEntregabilidade = (d: Diagnostico, cfg: Config) =>
+  A.autoEntPatch(paraArtefato(d), cfg);
 
 /* ---------- Plano de ação: mesclagem entre ciclos (pura, sem globais) ---------- */
 export interface RecPlano extends Recomendacao {
@@ -641,11 +676,26 @@ export interface CtxRelatorio {
   diag: Diagnostico;
   cfg: Config;
   proximaRevisao: string | null;
-  plano: { acao: string; prioridade: Prioridade; responsavel: string | null; prazo: string | null; status: string }[];
+  plano: {
+    acao: string;
+    prioridade: Prioridade;
+    responsavel: string | null;
+    prazo: string | null;
+    status: string;
+  }[];
 }
-const dataBRr = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
-const PRIO_ROT: Record<Prioridade, string> = { critica: "Crítica", alta: "Alta", media: "Média", baixa: "Baixa" };
-export function relatorioDiagnostico(ctx: CtxRelatorio): { texto: string; secoes: { titulo: string; linhas: string[] }[] } {
+const dataBRr = (iso: string | null | undefined) =>
+  iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
+const PRIO_ROT: Record<Prioridade, string> = {
+  critica: "Crítica",
+  alta: "Alta",
+  media: "Média",
+  baixa: "Baixa",
+};
+export function relatorioDiagnostico(ctx: CtxRelatorio): {
+  texto: string;
+  secoes: { titulo: string; linhas: string[] }[];
+} {
   const d = ctx.diag;
   const sc = calcularIndice(d, ctx.cfg);
   const fx = faixa(sc, ctx.cfg);
@@ -672,24 +722,39 @@ export function relatorioDiagnostico(ctx: CtxRelatorio): { texto: string; secoes
     for (const x of METRICAS_V2) {
       const v = m[x.k];
       if (v === "" || v == null) continue;
-      const fmt = x.tipo === "d" ? dataBRr(String(v)) : x.tipo === "p" ? `${String(v).replace(".", ",")}%` : String(v).replace(".", ",");
-      indicadores.push(`${x.rotulo.replace(" (%)", "")}${x.grupo === "periodo" ? " (últimos 60 dias)" : " (situação atual)"}: ${fmt}`);
+      const fmt =
+        x.tipo === "d"
+          ? dataBRr(String(v))
+          : x.tipo === "p"
+            ? `${String(v).replace(".", ",")}%`
+            : String(v).replace(".", ",");
+      indicadores.push(
+        `${x.rotulo.replace(" (%)", "")}${x.grupo === "periodo" ? " (últimos 60 dias)" : " (situação atual)"}: ${fmt}`,
+      );
     }
   } else {
     const m = d.metrics?.m30 ?? {};
     for (const [k, rot, tipo] of A.METRICS as [string, string, string][]) {
       const v = m[k];
       if (v === "" || v == null) continue;
-      indicadores.push(`${rot.replace(" (%)", "")} (30 dias): ${tipo === "p" ? `${v}%` : tipo === "d" ? dataBRr(String(v)) : v}`);
+      indicadores.push(
+        `${rot.replace(" (%)", "")} (30 dias): ${tipo === "p" ? `${v}%` : tipo === "d" ? dataBRr(String(v)) : v}`,
+      );
     }
   }
   const porPrio = (["critica", "alta", "media", "baixa"] as Prioridade[]).flatMap((p) =>
-    recs.filter((r) => r.priority === p).slice(0, p === "baixa" ? 2 : 5).map((r) => `[${PRIO_ROT[p]}] ${r.action}`),
+    recs
+      .filter((r) => r.priority === p)
+      .slice(0, p === "baixa" ? 2 : 5)
+      .map((r) => `[${PRIO_ROT[p]}] ${r.action}`),
   );
   const plano = ctx.plano
     .filter((a) => !["implementado", "nao_aprovado"].includes(a.status))
     .slice(0, 10)
-    .map((a) => `[${PRIO_ROT[a.prioridade]}] ${a.acao} — responsável: ${a.responsavel || "a definir"}; prazo: ${a.prazo ? dataBRr(a.prazo) : "a definir"}`);
+    .map(
+      (a) =>
+        `[${PRIO_ROT[a.prioridade]}] ${a.acao} — responsável: ${a.responsavel || "a definir"}; prazo: ${a.prazo ? dataBRr(a.prazo) : "a definir"}`,
+    );
   const pend = [
     ...pi.names.slice(0, 12),
     ...(pi.names.length > 12 ? [`e mais ${pi.names.length - 12} item(ns)`] : []),
@@ -728,7 +793,9 @@ export function relatorioDiagnostico(ctx: CtxRelatorio): { texto: string; secoes
     .map((s, i) =>
       [
         s.titulo,
-        ...(s.linhas.length ? s.linhas.map((l) => (i === 0 || s.titulo === "RESUMO DO CENÁRIO ATUAL" ? l : "• " + l)) : ["• Nenhum item registrado nesta análise."]),
+        ...(s.linhas.length
+          ? s.linhas.map((l) => (i === 0 || s.titulo === "RESUMO DO CENÁRIO ATUAL" ? l : "• " + l))
+          : ["• Nenhum item registrado nesta análise."]),
       ].join("\n"),
     )
     .join("\n\n");

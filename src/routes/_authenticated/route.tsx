@@ -25,9 +25,20 @@ export const Route = createFileRoute("/_authenticated")({
     if (erro) throw redirect({ to: "/auth", search: { erro } });
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth", search: {} });
-    const access = await context.queryClient.ensureQueryData(
+    let access = await context.queryClient.ensureQueryData(
       accountQueryOptions(data.session.user.id),
     );
+    if (access.status === "pendente") {
+      // Pré-cadastro do Dinamize CS: o banco compara o e-mail verificado do login e aplica as permissões definidas.
+      const r = await (supabase.rpc as unknown as (f: string) => Promise<{ data: unknown }>)(
+        "dcs_reivindicar_acesso",
+      ).catch(() => ({ data: false }));
+      if (r.data === true)
+        access = await context.queryClient.fetchQuery({
+          ...accountQueryOptions(data.session.user.id),
+          staleTime: 0,
+        });
+    }
     const to = destination(access.status, access.accepted, access.onboarded, access.role);
     if (to !== "/" && location.pathname !== to && location.pathname !== "/admin")
       throw redirect({ to });

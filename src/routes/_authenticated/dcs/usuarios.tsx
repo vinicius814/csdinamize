@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Crown, Info, Lock, Search, UserCheck, Users } from "lucide-react";
+import { Copy, Crown, Lock, Search, UserCheck, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth";
@@ -14,8 +14,12 @@ import {
   useAuditoria,
   useCarteira,
   useResponsaveisPD,
-  useSalvarPermissoes,
   useUsuarios,
+  usePreCadastros,
+  useAcaoPreCadastro,
+  useSalvarUsuario,
+  useTransferirMaster,
+  type NovoUsuario,
 } from "@/lib/dcs/dados";
 import { PERFIL_ROTULO } from "@/components/dcs/navegacao";
 import { cx, dataHoraBR, Estado, Kpi, Selo, Seletor, Tabela, Titulo } from "@/components/dcs/ui";
@@ -43,6 +47,7 @@ function Usuarios() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<"" | "pendente" | "sem" | "ativos">("");
   const [sel, setSel] = useState<DcsUsuario | null>(null);
+  const [novo, setNovo] = useState(false);
   const nomeResp = useMemo(
     () => new Map((resp.data ?? []).map((r) => [r.pipedrive_user_id, r.nome])),
     [resp.data],
@@ -65,14 +70,20 @@ function Usuarios() {
         titulo="Usuários e permissões"
         sub="Perfis, carteiras e permissões do Dinamize CS. Todas as regras são aplicadas também no banco de dados."
       />
-      <div className="mb-5 flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <p>
-          Convites automáticos estão desativados nesta etapa. Novas pessoas entram pela tela de
-          login (Google ou e-mail) e aparecem aqui como
-          <strong> aguardando aprovação</strong>; em seguida, defina o perfil e as carteiras de cada
-          uma. Nenhuma carteira é atribuída automaticamente.
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 text-sm">
+        <p className="max-w-3xl text-muted-foreground">
+          Cadastre a pessoa com antecedência: ao entrar pela primeira vez (Google ou e-mail
+          verificado) com o e-mail autorizado, ela recebe automaticamente o perfil, as carteiras e
+          as permissões definidas aqui. Quem entrar sem cadastro prévio aparece como{" "}
+          <strong>aguardando aprovação</strong>.
         </p>
+        <button
+          type="button"
+          onClick={() => setNovo(true)}
+          className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+        >
+          <UserPlus className="h-4 w-4" /> Novo usuário
+        </button>
       </div>
       <Estado carregando={q.isLoading} erro={q.error}>
         <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -149,6 +160,7 @@ function Usuarios() {
                     {ehMaster(u) ? (
                       <Selo tom="marca">
                         <Crown className="mr-1 h-3 w-3" /> Administrador Master
+                        {u.master_principal ? " · principal" : ""}
                       </Selo>
                     ) : (
                       <span className={cx(!(u.perfil && u.ativo) && "text-muted-foreground")}>
@@ -193,8 +205,10 @@ function Usuarios() {
             })}
           </tbody>
         </Tabela>
+        <PreCadastros nomeResp={nomeResp} />
         <Responsaveis />
       </Estado>
+      <FormUsuario aberto={novo} fechar={() => setNovo(false)} master={!!acesso.data?.master} />
       <Editor
         usuario={sel}
         fechar={() => setSel(null)}
@@ -247,7 +261,16 @@ function Editor({
 }) {
   const { session } = useAuth();
   const qc = useQueryClient();
-  const salvar = useSalvarPermissoes();
+  const salvarU = useSalvarUsuario();
+  const transferir = useTransferirMaster();
+  const [confirmaMaster, setConfirmaMaster] = useState(false);
+  const salvar = {
+    isPending: salvarU.isPending,
+    mutate: (x: Omit<NovoUsuario, "email" | "nome">, o: Parameters<typeof salvarU.mutate>[1]) =>
+      salvarU.mutate({ ...x, email: u?.email ?? "", nome: "" }, o),
+    mutateAsync: (x: Omit<NovoUsuario, "email" | "nome">) =>
+      salvarU.mutateAsync({ ...x, email: u?.email ?? "", nome: "" }),
+  };
   const acao = useServerFn(adminAction);
   const carteira = useCarteira();
   const resp = useResponsaveisPD(!!u);
@@ -261,9 +284,11 @@ function Editor({
     ativo: true,
     carteiras: [] as number[],
     clientes: [] as string[],
+    pipedrive_user_id: null as number | null,
   });
   const [buscaCli, setBuscaCli] = useState("");
   useEffect(() => {
+    setConfirmaMaster(false);
     if (u)
       setF({
         perfil: u.perfil ?? "cs",
@@ -273,6 +298,7 @@ function Editor({
         ativo: !!u.perfil && u.ativo,
         carteiras: u.carteiras,
         clientes: u.clientes,
+        pipedrive_user_id: u.pipedrive_user_id,
       });
     setBuscaCli("");
   }, [u]);
@@ -297,18 +323,15 @@ function Editor({
           .slice(0, 8)
       : [];
   const enviar = () =>
-    salvar.mutate(
-      { user_id: u.user_id, ...f },
-      {
-        onSuccess: () => (toast.success("Permissões salvas."), fechar()),
-        onError: (e) => toast.error(mensagemErro(e)),
-      },
-    );
+    salvar.mutate(f, {
+      onSuccess: () => (toast.success("Permissões salvas."), fechar()),
+      onError: (e) => toast.error(mensagemErro(e)),
+    });
   const conta = async (status: "ativo" | "suspenso") => {
     try {
       await acao({ data: { action: "status", userId: u.user_id, value: status } });
       if (status === "suspenso" && u.perfil && u.ativo)
-        await salvar.mutateAsync({ user_id: u.user_id, ...f, ativo: false });
+        await salvar.mutateAsync({ ...f, ativo: false });
       toast.success(status === "ativo" ? "Conta aprovada." : "Acesso revogado.");
       void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
       fechar();
@@ -370,6 +393,27 @@ function Editor({
               <option value="cs">Analista de CS</option>
               <option value="contas">Analista de contas</option>
               {master && <option value="admin">Administrador</option>}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm">
+            <span className="text-xs font-medium text-muted-foreground">
+              Usuário no Pipedrive (vincula as atividades registradas automaticamente)
+            </span>
+            <select
+              value={f.pipedrive_user_id ?? ""}
+              onChange={(e) =>
+                setF({ ...f, pipedrive_user_id: e.target.value ? Number(e.target.value) : null })
+              }
+              className="h-9 rounded-lg border bg-card px-2"
+            >
+              <option value="">Sem vínculo</option>
+              {(resp.data ?? [])
+                .filter((r) => r.ativo || r.pipedrive_user_id === f.pipedrive_user_id)
+                .map((r) => (
+                  <option key={r.pipedrive_user_id} value={r.pipedrive_user_id}>
+                    {r.nome} · {r.email ?? `#${r.pipedrive_user_id}`}
+                  </option>
+                ))}
             </select>
           </label>
           <div className="grid gap-2 sm:grid-cols-2">
@@ -492,6 +536,55 @@ function Editor({
             </div>
           )}
         </fieldset>
+        {master &&
+          !proprio &&
+          !ehMaster(u) &&
+          u.status === "ativo" &&
+          (u.papel === "admin" || u.perfil === "admin") && (
+            <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/60 p-3 text-sm">
+              <p className="font-medium">Transferir o Administrador Master</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {u.nome || u.email} passa a ser o Master principal. Sua conta continua como
+                Administrador (não é excluída). O banco só aceita se a conta estiver ativa, com
+                e-mail verificado e login Google, e registra a troca na auditoria.
+              </p>
+              {!confirmaMaster ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmaMaster(true)}
+                  className="mt-2 h-8 rounded-lg border bg-card px-3 text-xs font-medium hover:border-primary"
+                >
+                  <Crown className="mr-1 inline h-3.5 w-3.5" /> Tornar Master principal…
+                </button>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={transferir.isPending}
+                    onClick={() =>
+                      transferir.mutate(u.user_id, {
+                        onSuccess: () => (
+                          toast.success("Administrador Master transferido."),
+                          fechar()
+                        ),
+                        onError: (e) => toast.error(mensagemErro(e)),
+                      })
+                    }
+                    className="h-8 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+                  >
+                    {transferir.isPending ? "Transferindo…" : `Confirmar: ${u.email} será o Master`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmaMaster(false)}
+                    className="h-8 rounded-lg border px-3 text-xs"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         <div className="mt-6">
           <h3 className="mb-2 text-sm font-semibold">Histórico de permissões</h3>
           {eventos.length ? (
@@ -527,5 +620,343 @@ function Editor({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/* ---------------- Novo usuário (pré-cadastro) ---------------- */
+const VAZIO: NovoUsuario = {
+  email: "",
+  nome: "",
+  perfil: "cs",
+  financeiro: false,
+  pode_editar: true,
+  pode_exportar: false,
+  ativo: true,
+  carteiras: [],
+  clientes: [],
+  pipedrive_user_id: null,
+};
+function FormUsuario({
+  aberto,
+  fechar,
+  master,
+  inicial,
+}: {
+  aberto: boolean;
+  fechar: () => void;
+  master: boolean;
+  inicial?: NovoUsuario | null;
+}) {
+  const salvar = useSalvarUsuario();
+  const resp = useResponsaveisPD(aberto);
+  const [f, setF] = useState<NovoUsuario>(VAZIO);
+  useEffect(() => {
+    if (aberto) setF(inicial ?? VAZIO);
+  }, [aberto, inicial]);
+  const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim());
+  // Sugere o vínculo do Pipedrive pelo e-mail (mesmo endereço); nunca só pelo nome.
+  useEffect(() => {
+    if (!emailOk || f.pipedrive_user_id) return;
+    const r = (resp.data ?? []).find(
+      (x) => (x.email ?? "").toLowerCase() === f.email.trim().toLowerCase(),
+    );
+    if (r)
+      setF((v) => ({
+        ...v,
+        pipedrive_user_id: r.pipedrive_user_id,
+        carteiras: v.carteiras.length ? v.carteiras : [r.pipedrive_user_id],
+      }));
+  }, [emailOk, f.email, f.pipedrive_user_id, resp.data]);
+  const enviar = () =>
+    salvar.mutate(
+      { ...f, email: f.email.trim().toLowerCase() },
+      {
+        onSuccess: (r) => {
+          toast.success(
+            r.modo === "aplicado"
+              ? "A pessoa já tinha conta: permissões aplicadas."
+              : "Pré-cadastro salvo. As permissões serão aplicadas no primeiro login com este e-mail.",
+          );
+          fechar();
+        },
+        onError: (e) => toast.error(mensagemErro(e)),
+      },
+    );
+  const ck = (k: "financeiro" | "pode_editar" | "pode_exportar" | "ativo", rot: string) => (
+    <label className="flex items-center justify-between gap-3 rounded-lg border p-2.5 text-sm">
+      {rot}
+      <input
+        type="checkbox"
+        className="h-4 w-4 accent-[var(--primary)]"
+        checked={f[k]}
+        onChange={(e) => setF({ ...f, [k]: e.target.checked })}
+      />
+    </label>
+  );
+  return (
+    <Sheet open={aberto} onOpenChange={(o) => !o && fechar()}>
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetTitle className="pr-6 text-base">
+          {inicial ? "Editar pré-cadastro" : "Novo usuário"}
+        </SheetTitle>
+        <p className="mt-1 text-sm text-muted-foreground">
+          A identidade é confirmada pelo login (Google ou e-mail verificado). Nada é enviado
+          automaticamente: use “Copiar convite” para mandar o link de acesso.
+        </p>
+        <div className="mt-5 space-y-3">
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            E-mail *
+            <input
+              type="email"
+              disabled={!!inicial}
+              value={f.email}
+              onChange={(e) => setF({ ...f, email: e.target.value, pipedrive_user_id: null })}
+              className="h-9 rounded-lg border bg-card px-2 text-sm text-foreground disabled:opacity-60"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Nome
+            <input
+              value={f.nome}
+              onChange={(e) => setF({ ...f, nome: e.target.value })}
+              className="h-9 rounded-lg border bg-card px-2 text-sm text-foreground"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Perfil
+            <select
+              value={f.perfil}
+              onChange={(e) => setF({ ...f, perfil: e.target.value as NovoUsuario["perfil"] })}
+              className="h-9 rounded-lg border bg-card px-2 text-sm text-foreground"
+            >
+              <option value="cs">Analista de CS</option>
+              <option value="contas">Analista de contas</option>
+              {master && <option value="admin">Administrador</option>}
+            </select>
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-muted-foreground">
+            Usuário no Pipedrive
+            <select
+              value={f.pipedrive_user_id ?? ""}
+              onChange={(e) =>
+                setF({ ...f, pipedrive_user_id: e.target.value ? Number(e.target.value) : null })
+              }
+              className="h-9 rounded-lg border bg-card px-2 text-sm text-foreground"
+            >
+              <option value="">Sem vínculo</option>
+              {(resp.data ?? [])
+                .filter((r) => r.ativo)
+                .map((r) => (
+                  <option key={r.pipedrive_user_id} value={r.pipedrive_user_id}>
+                    {r.nome} · {r.email ?? `#${r.pipedrive_user_id}`}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {ck("ativo", "Acesso ativo")}
+            {ck("financeiro", "Ver valores")}
+            {ck("pode_editar", "Editar")}
+            {ck("pode_exportar", "Exportar")}
+          </div>
+          {f.perfil !== "admin" && (
+            <div>
+              <p className="mb-1 text-xs font-medium text-muted-foreground">Carteiras</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(resp.data ?? [])
+                  .filter((r) => r.ativo)
+                  .map((r) => {
+                    const on = f.carteiras.includes(r.pipedrive_user_id);
+                    return (
+                      <button
+                        key={r.pipedrive_user_id}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() =>
+                          setF({
+                            ...f,
+                            carteiras: on
+                              ? f.carteiras.filter((x) => x !== r.pipedrive_user_id)
+                              : [...f.carteiras, r.pipedrive_user_id],
+                          })
+                        }
+                        className={cx(
+                          "rounded-full border px-3 py-1 text-sm",
+                          on
+                            ? "border-primary bg-primary-soft text-primary"
+                            : "bg-card hover:border-primary/40",
+                        )}
+                      >
+                        {r.nome}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={!emailOk || salvar.isPending}
+            onClick={enviar}
+            className="h-9 w-full rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+          >
+            {salvar.isPending ? "Salvando…" : "Salvar"}
+          </button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function PreCadastros({ nomeResp }: { nomeResp: Map<number, string> }) {
+  const acesso = useAcessoDcs();
+  const q = usePreCadastros(acesso.data?.perfil === "admin");
+  const acao = useAcaoPreCadastro();
+  const [editar, setEditar] = useState<NovoUsuario | null>(null);
+  const lista = q.data ?? [];
+  if (!lista.length) return null;
+  const copiar = async (email: string) => {
+    const link = `${window.location.origin}/auth`;
+    const texto = `Olá! Seu acesso ao Dinamize CS está liberado. Entre em ${link} com o e-mail ${email} (Google ou e-mail e senha).`;
+    try {
+      await navigator.clipboard.writeText(texto);
+      acao.mutate({ email, acao: "convite" });
+      toast.success("Convite copiado. Envie para a pessoa pelo seu canal habitual.");
+    } catch {
+      toast.error("Não foi possível copiar. Link de acesso: " + link);
+    }
+  };
+  return (
+    <section className="mt-8">
+      <h2 className="mb-1 text-base font-semibold">Pré-cadastros</h2>
+      <p className="mb-3 text-sm text-muted-foreground">
+        Pessoas autorizadas que ainda não entraram, e o histórico dos pré-cadastros aplicados ou
+        revogados.
+      </p>
+      <Tabela>
+        <thead className="bg-surface-2">
+          <tr>
+            <th>E-mail</th>
+            <th>Perfil</th>
+            <th>Carteiras</th>
+            <th>Situação</th>
+            <th>Convite</th>
+            <th>
+              <span className="sr-only">Ações</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {lista.map((p) => {
+            const situacao = p.aplicado_em
+              ? (["Aplicado no login", "ok"] as const)
+              : p.revogado_em
+                ? (["Revogado", "neutro"] as const)
+                : (["Aguardando primeiro login", "aviso"] as const);
+            const aberto = !p.aplicado_em && !p.revogado_em;
+            return (
+              <tr key={p.email}>
+                <td>
+                  <span className="font-medium">{p.nome || p.email}</span>
+                  <span className="block text-xs text-muted-foreground">{p.email}</span>
+                </td>
+                <td>{PERFIL_ROTULO[p.perfil]}</td>
+                <td className="text-xs">
+                  {p.perfil === "admin"
+                    ? "Todas"
+                    : p.carteiras.map((c) => nomeResp.get(c) ?? `#${c}`).join(", ") || "Nenhuma"}
+                </td>
+                <td>
+                  <Selo tom={situacao[1]}>{situacao[0]}</Selo>
+                  <span className="block text-xs text-muted-foreground">
+                    {dataHoraBR(p.aplicado_em ?? p.revogado_em ?? p.criado_em)}
+                  </span>
+                </td>
+                <td className="text-xs text-muted-foreground">
+                  {p.convite_enviado_em ? `Copiado em ${dataHoraBR(p.convite_enviado_em)}` : "—"}
+                </td>
+                <td className="whitespace-nowrap text-right">
+                  {aberto && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => void copiar(p.email)}
+                        className="mr-1 rounded-md border px-2 py-1 text-xs hover:border-primary"
+                      >
+                        <Copy className="mr-1 inline h-3 w-3" />
+                        {p.convite_enviado_em ? "Reenviar convite" : "Copiar convite"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditar({
+                            email: p.email,
+                            nome: p.nome ?? "",
+                            perfil: p.perfil,
+                            financeiro: p.financeiro,
+                            pode_editar: p.pode_editar,
+                            pode_exportar: p.pode_exportar,
+                            ativo: p.ativo,
+                            carteiras: p.carteiras,
+                            clientes: p.clientes,
+                            pipedrive_user_id: p.pipedrive_user_id,
+                          })
+                        }
+                        className="mr-1 rounded-md border px-2 py-1 text-xs hover:border-primary"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          acao.mutate(
+                            { email: p.email, acao: "revogar" },
+                            {
+                              onSuccess: () => toast.success("Pré-cadastro revogado."),
+                              onError: (e) => toast.error(mensagemErro(e)),
+                            },
+                          )
+                        }
+                        className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50"
+                      >
+                        Revogar
+                      </button>
+                    </>
+                  )}
+                  {p.revogado_em && !p.aplicado_em && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditar({
+                          email: p.email,
+                          nome: p.nome ?? "",
+                          perfil: p.perfil,
+                          financeiro: p.financeiro,
+                          pode_editar: p.pode_editar,
+                          pode_exportar: p.pode_exportar,
+                          ativo: true,
+                          carteiras: p.carteiras,
+                          clientes: p.clientes,
+                          pipedrive_user_id: p.pipedrive_user_id,
+                        })
+                      }
+                      className="rounded-md border px-2 py-1 text-xs hover:border-primary"
+                    >
+                      Reativar
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </Tabela>
+      <FormUsuario
+        aberto={!!editar}
+        fechar={() => setEditar(null)}
+        master={!!acesso.data?.master}
+        inicial={editar}
+      />
+    </section>
   );
 }

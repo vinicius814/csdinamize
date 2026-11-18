@@ -18,7 +18,9 @@ import {
   useConfig,
   useIniciarAnalise,
 } from "@/lib/dcs/dados";
-import { useAnalistas } from "@/lib/dcs/dados";
+import { useAnalistas, useUtilizacao } from "@/lib/dcs/dados";
+import { PainelUtilizacao, RegistroPipedrive } from "@/components/dcs/Utilizacao";
+import * as SU from "@/lib/dcs/semuso";
 import { EditorDiagnostico } from "@/components/dcs/Diagnostico";
 import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { NovaAcao } from "@/components/dcs/NovaAcao";
@@ -55,6 +57,7 @@ function Cliente() {
   const acesso = useAcessoDcs();
   const iniciar = useIniciarAnalise();
   const nomesAnalistas = useAnalistas();
+  const util = useUtilizacao();
   const busca = Route.useSearch();
   const navegar = Route.useNavigate();
   const aba: Aba = busca.aba ?? "diagnostico";
@@ -68,6 +71,9 @@ function Cliente() {
   const dados = q.data;
   const atual = dados?.diagnosticos[0] ?? null;
   const cfg = conf.data?.cfg;
+  const uso = util.data?.get(key) ?? null;
+  const ultimoConcluido = dados?.diagnosticos.find((d) => d.status === "concluido") ?? null;
+  const indiceUso = SU.indiceExibido(ultimoConcluido, uso);
   const cob = useMemo(() => {
     if (!dados || !cfg) return null;
     const lim = M.limitesCobertura(
@@ -139,7 +145,19 @@ function Cliente() {
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-4 text-sm sm:grid-cols-3 xl:grid-cols-6">
               <Dado rotulo="Índice">
-                {atual?.status === "concluido" ? (
+                {!indiceUso.disponivel ? (
+                  <span
+                    className="text-muted-foreground"
+                    title="Conta sem utilização: índice não aplicável"
+                  >
+                    Indisponível
+                    {indiceUso.ultimo && (
+                      <span className="block text-xs">
+                        Último {indiceUso.ultimo.valor} · {dataBR(indiceUso.ultimo.data)}
+                      </span>
+                    )}
+                  </span>
+                ) : atual?.status === "concluido" ? (
                   <Indice
                     valor={atual.indice}
                     faixa={(atual.derivado as { band?: string } | null)?.band ?? null}
@@ -165,6 +183,32 @@ function Cliente() {
               </Dado>
             </dl>
           </section>
+          <PainelUtilizacao
+            cliente={{
+              key,
+              nome: dados.cliente.nome,
+              ownerId: dados.cliente.owner_id,
+              mrr: dados.mrr,
+              criticidade: dados.acoes.some(
+                (a) =>
+                  !a.obsoleta &&
+                  a.prioridade === "critica" &&
+                  !["implementado", "nao_aprovado"].includes(a.status),
+              )
+                ? "critica"
+                : dados.acoes.some(
+                      (a) =>
+                        !a.obsoleta &&
+                        a.prioridade === "alta" &&
+                        !["implementado", "nao_aprovado"].includes(a.status),
+                    )
+                  ? "alta"
+                  : null,
+            }}
+            atual={uso}
+            podeEditar={podeEditar && dados.cliente.ativo}
+            ultimoIndice={indiceUso.ultimo}
+          />
           <div className="dcs-tabela mb-4 border-b" role="tablist" aria-label="Seções do cliente">
             <div className="flex min-w-max gap-1">
               {(
@@ -206,12 +250,29 @@ function Cliente() {
                     : "Este cliente ainda não tem diagnóstico."}
                 </p>
                 {atual && (
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
                     <Indice valor={atual.indice} />
+                    <RegistroPipedrive
+                      diagId={atual.id}
+                      dealId={dados.cliente.deal_id}
+                      podeReprocessar={atual.analista_id === eu || acesso.data?.perfil === "admin"}
+                    />
                   </div>
                 )}
+                {uso?.status === "sem_uso" && (
+                  <p className="mt-3 rounded-lg bg-surface-2 p-3 text-sm text-muted-foreground">
+                    Diagnóstico dispensado temporariamente: a conta está sem utilização. Use a
+                    revisão rápida acima; quando a utilização for retomada, a conta volta ao fluxo
+                    normal.
+                  </p>
+                )}
                 {dados.cliente.ativo && podeEditar && (
-                  <Button className="mt-4" onClick={comecar} disabled={iniciar.isPending}>
+                  <Button
+                    className="mt-4"
+                    variant={uso?.status === "sem_uso" ? "outline" : "default"}
+                    onClick={comecar}
+                    disabled={iniciar.isPending}
+                  >
                     {atual ? `Iniciar ciclo ${atual.ciclo + 1}` : "Iniciar análise"}
                   </Button>
                 )}

@@ -1,3 +1,4 @@
+import { useAcessoDcs, useEscritaPipedrive, useDefinirEscritaPipedrive } from "@/lib/dcs/dados";
 import { createFileRoute } from "@tanstack/react-router";
 import { Database, RefreshCw, Workflow, Building2 } from "lucide-react";
 import { toast } from "sonner";
@@ -84,9 +85,7 @@ function Integracoes() {
           >
             Última leitura da carteira: {dataHoraBR(d?.carteira.sucesso?.concluido_em)} ·{" "}
             {d?.carteira.sucesso?.lidos ?? "—"} negócios lidos.
-            <span className="mt-1 block text-xs">
-              Gravação no Pipedrive: <strong>desativada</strong> (aguardando autorização).
-            </span>
+            <EscritaPipedrive />
           </Cartao>
           <Cartao icone={<Workflow />} titulo="n8n" estado={d?.cobertura.estado ?? "indisponivel"}>
             Última cobertura: {dataHoraBR(d?.cobertura.sucesso?.concluido_em)}. O estado é deduzido
@@ -273,5 +272,42 @@ function Cartao({
       </div>
       <p className="mt-3 text-sm text-muted-foreground">{children}</p>
     </section>
+  );
+}
+
+function EscritaPipedrive() {
+  const acesso = useAcessoDcs();
+  const admin = acesso.data?.perfil === "admin";
+  const master = !!acesso.data?.master;
+  const q = useEscritaPipedrive(admin);
+  const definir = useDefinirEscritaPipedrive();
+  const ativa = !!q.data;
+  return (
+    <span className="mt-1 block text-xs">
+      Registro automático dos diagnósticos: <strong>{ativa ? "ativo" : "desativado"}</strong>
+      {ativa
+        ? " (atividade “Análise” concluída no negócio)."
+        : " — os registros ficam pendentes de confirmação."}
+      {master && (
+        <button
+          type="button"
+          disabled={definir.isPending || q.isLoading}
+          onClick={() =>
+            definir.mutate(!ativa, {
+              onSuccess: () =>
+                toast.success(
+                  !ativa
+                    ? "Registro automático ativado para novas conclusões. Registros antigos continuam aguardando liberação."
+                    : "Registro automático desativado.",
+                ),
+              onError: (e) => toast.error(mensagemErro(e)),
+            })
+          }
+          className="mt-1 block rounded-md border px-2 py-1 font-medium hover:border-primary disabled:opacity-60"
+        >
+          {ativa ? "Desativar registro automático" : "Ativar registro automático"}
+        </button>
+      )}
+    </span>
   );
 }
