@@ -56,7 +56,7 @@ export function BarrasSemanais<K extends string>({
           <Legend
             iconType="circle"
             iconSize={8}
-            wrapperStyle={{ fontSize: 12, color: "#1F2430" }}
+            wrapperStyle={{ fontSize: 12, color: "#3D3D3B" }}
           />
           {series.map((s) => (
             <Bar
