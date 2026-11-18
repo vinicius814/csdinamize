@@ -18,7 +18,19 @@ import {
   useConfig,
   useIniciarAnalise,
 } from "@/lib/dcs/dados";
-import { useAnalistas, useUtilizacao } from "@/lib/dcs/dados";
+import { useAnalistas, useUtilizacao, useCarteira } from "@/lib/dcs/dados";
+import { proximoElegivel } from "@/lib/dcs/fila";
+
+const buscaCarteira = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem("dcs:carteira-busca") ?? "{}") as Record<
+      string,
+      unknown
+    >;
+  } catch {
+    return {};
+  }
+};
 import { PainelUtilizacao, RegistroPipedrive } from "@/components/dcs/Utilizacao";
 import * as SU from "@/lib/dcs/semuso";
 import { EditorDiagnostico } from "@/components/dcs/Diagnostico";
@@ -58,6 +70,7 @@ function Cliente() {
   const iniciar = useIniciarAnalise();
   const nomesAnalistas = useAnalistas();
   const util = useUtilizacao();
+  const carteira = useCarteira();
   const busca = Route.useSearch();
   const navegar = Route.useNavigate();
   const aba: Aba = busca.aba ?? "diagnostico";
@@ -104,6 +117,7 @@ function Cliente() {
         <>
           <Link
             to="/dcs/carteira"
+            search={buscaCarteira() as never}
             className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" /> Carteira de clientes
@@ -135,6 +149,7 @@ function Cliente() {
                   }
                   diag={atual}
                   aoAbrirAba={(a) => setAba(a)}
+                  utilizacao={{ atual: uso, ownerId: dados.cliente.owner_id, mrr: dados.mrr }}
                 />
                 <a href={pipedriveDeal(dados.cliente.deal_id)} target="_blank" rel="noreferrer">
                   <Button variant="outline" size="sm">
@@ -259,6 +274,30 @@ function Cliente() {
                     />
                   </div>
                 )}
+                {atual?.status === "concluido" &&
+                  (() => {
+                    const prox = proximoElegivel(
+                      carteira.data ?? [],
+                      util.data ?? new Map(),
+                      key,
+                      dados.cliente.owner_id,
+                    );
+                    return prox ? (
+                      <p className="mt-3 text-sm">
+                        Próximo cliente elegível:{" "}
+                        <Link
+                          to="/dcs/cliente/$key"
+                          params={{ key: prox.c.key }}
+                          className="font-medium text-primary hover:underline"
+                        >
+                          {prox.c.nome} →
+                        </Link>
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({prox.c.owner_nome ?? "sem responsável"}, ainda sem diagnóstico)
+                        </span>
+                      </p>
+                    ) : null;
+                  })()}
                 {uso?.status === "sem_uso" && (
                   <p className="mt-3 rounded-lg bg-surface-2 p-3 text-sm text-muted-foreground">
                     Diagnóstico dispensado temporariamente: a conta está sem utilização. Use a

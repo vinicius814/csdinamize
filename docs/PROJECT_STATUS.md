@@ -1,5 +1,36 @@
 # Status do projeto
 
+**Fase atual (18/11/2026):** evolução funcional na branch `dinamize-cs/evolucao-operacional`. Decisões D27–D32; auditoria de UX em
+`docs/UX_OPERATIONAL_AUDIT.md`. Banco aplicado: `dcs_evolucao` (20261118144532) e `dcs_meu_acesso_pipedrive` (20261118150803).
+n8n: workflow 06 (`5sMpOPysvKwcNSmf`) ativo; só processa registros liberados.
+
+## Entregue nesta fase (implementado + testado)
+- Fase 1, Administração: "Novo usuário" com pré-cadastro aplicado no 1º login com e-mail verificado; convite copiável, reenvio, revogação e
+  histórico; vínculo com o usuário do Pipedrive; transferência do Master pela interface (validações no banco, auditoria).
+- Fase 2, Pipedrive: relatório em 10 seções; atividade "Análise" concluída e idempotente; situação e reprocessamento na ficha; ativação só pelo Master.
+  Homologado no negócio Bebecê (atividade 159570).
+- Fase 3, Metodologia v2 (D27).
+- Fase 4, Contas sem utilização (D29): marcação, revisão rápida, aba na carteira, periodicidade configurável, alertas, indicadores (Visão geral e
+  Inteligência) e produtividade separada.
+- Fase 5, UX: central de trabalho, revisão incremental, próximo cliente elegível, filtros preservados, atribuição em lote.
+- Testes: vitest 270; pglite 85 (30 novos); permissões no banco real com usuários reais em transação desfeita (11 cenários); tsc 0; build ok;
+  visual em 1440 e 390 px.
+
+## Depende do Vinícius
+1. **Transferir o Master**: entrar com vinicius@crmcontent.com → Usuários → "Vinícius Alves" (vinicius.alves@dinamize.net) → "Tornar Master principal…".
+   A conta atual continua como Administrador. Depois, entrar com a conta nova para conferir.
+2. **Registro automático no Pipedrive**: decidir quando ativar (Integrações → "Ativar registro automático", só o Master). Registros antigos
+   (5 aguardando: Bebecê C1/C2, 124499 C1/C2, 140050 C1) continuam parados até serem liberados um a um.
+3. Atividade de teste 159570 no Bebecê: manter ou excluir (relatório no formato anterior).
+4. Homologação visual com dados reais no preview; publicação definitiva só depois.
+5. n8n: definir o 07 como Error workflow em 01, 04, 05, 06, 08, 10 e 11 (o conector não aplica essa opção).
+
+## Próxima ação objetiva
+Vinícius homologa no preview (roteiro acima); depois, merge na `main` e publicação no Lovable.
+
+---
+## Histórico anterior
+
 **Fase atual (17/11/2026, tarde):** auditoria funcional na branch `dinamize-cs/auditoria-funcional` (merge na `main`). Matriz: `docs/FUNCTIONAL_AUDIT.md`.
 - Causa do problema: carteira sem ação de início (nenhuma chamada de início chegou ao Supabase). Corrigido com coluna de ações.
 - Ciclo completo validado no Supabase real (12 passos, transação desfeita). Login real pendente de homologação manual.

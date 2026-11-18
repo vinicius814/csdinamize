@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import * as M from "@/lib/dcs/motor";
+import * as RV from "@/lib/dcs/revisao";
+import { useAuth } from "@/lib/auth";
 import type { DcsAcao, DcsDiagnostico } from "@/lib/dcs/db";
 import { ehConflito, mensagemErro } from "@/lib/dcs/db";
 import {
   concluirAnalise,
+  useAnalistas,
   hojeSP,
   salvarDiagnostico,
   toDiag,
@@ -65,7 +68,9 @@ export function EditorDiagnostico(props: {
   onMudou: () => void;
 }) {
   const { diag, cfg, editavel } = props;
+  const eu = useAuth().session?.user.id ?? null;
   const antes = props.anterior?.itens as Record<string, M.ItemResp> | undefined;
+  const [soAtencao, setSoAtencao] = useState(false);
   // Transição segura (D27): análise em andamento ainda na metodologia v1 passa para a v2 ao ser aberta
   // por quem pode editar, preservando todos os dados (rel/jan e métricas de 30/90 dias ficam guardados).
   const migrar =
@@ -158,14 +163,49 @@ export function EditorDiagnostico(props: {
     mudar((c) => {
       const o = { ...(c.itens[k] ?? {}), ...p };
       if (p.s) delete o.auto;
-      return { ...c, itens: { ...c.itens, [k]: o } };
+      const meta = p.s
+        ? { ...c.meta, revisao: RV.aoAlterar(RV.lerRevisao(c.meta), k, p.s, antes, eu) }
+        : c.meta;
+      return { ...c, meta, itens: { ...c.itens, [k]: o } };
     });
+  // Revisão incremental: confirma igual, revalida ou "não se aplica mais" (registra data e usuário).
+  const revisarItem = (k: string, acao: "igual" | "revalidar" | "nao_aplica") =>
+    mudar((c) => {
+      const itens =
+        acao === "nao_aplica"
+          ? { ...c.itens, [k]: { ...(c.itens[k] ?? {}), s: "na" as M.Estado } }
+          : c.itens;
+      return {
+        ...c,
+        itens,
+        meta: { ...c.meta, revisao: RV.marcar(RV.lerRevisao(c.meta), k, acao, eu) },
+      };
+    });
+  const rev = RV.lerRevisao(conteudo.meta);
+  const filtroAtencao = (it: { key: string }) =>
+    !soAtencao || RV.precisaAtencao(it.key, conteudo.itens, antes, rev);
+  const resumoCat = RV.resumo(
+    (MAINS_BY_CAT[aba] ?? []).map((i) => i.key),
+    conteudo.itens,
+    antes,
+    rev,
+  );
   const setCheck = (k: string, chk: string, v: "s" | "n" | "") =>
     mudar((c) => {
       const o = { ...(c.itens[k] ?? {}), sub: { ...(c.itens[k]?.sub ?? {}), [chk]: v } };
       const st = M.estadoAutomacao(o, v2);
       if (st) o.s = st;
-      return { ...c, itens: { ...c.itens, [k]: o } };
+      const meta = { ...c.meta, revisao: RV.aoAlterar(RV.lerRevisao(c.meta), k, o.s, antes, eu) };
+      return { ...c, meta, itens: { ...c.itens, [k]: o } };
+    });
+  // Confirma de uma vez os itens da matriz que continuam iguais ao ciclo anterior (só os inalterados e ainda sem marca).
+  const confirmarMatrizIgual = (keys: string[]) =>
+    mudar((c) => {
+      let r = RV.lerRevisao(c.meta);
+      for (const k of keys)
+        if (antes?.[k]?.s && !r[k] && (c.itens[k]?.s ?? "") === antes[k]!.s)
+          r = RV.marcar(r, k, "igual", eu);
+      return { ...c, meta: { ...c.meta, revisao: r } };
     });
 
   const d = toDiag(conteudo);
@@ -246,10 +286,48 @@ export function EditorDiagnostico(props: {
             ) : (
               <Metricas conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
             ))}
-          {(MAINS_BY_CAT[aba] ?? []).some((it) => it.matrix) && (
+          {antes && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">
+                Ciclo anterior: {resumoCat.herdados} item(ns) herdado(s) · {resumoCat.confirmados}{" "}
+                confirmado(s) · {resumoCat.alterados} alterado(s) ·{" "}
+                <strong className="text-foreground">{resumoCat.atencao} precisam de atenção</strong>
+              </span>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 accent-[var(--primary)]"
+                  checked={soAtencao}
+                  onChange={(e) => setSoAtencao(e.target.checked)}
+                />
+                Mostrar só o que precisa de atenção
+              </label>
+            </div>
+          )}
+          {antes &&
+            editavel &&
+            (() => {
+              const pend = (MAINS_BY_CAT[aba] ?? []).filter(
+                (it) =>
+                  it.matrix &&
+                  antes[it.key]?.s &&
+                  !rev[it.key] &&
+                  conteudo.itens[it.key]?.s === antes[it.key]!.s,
+              );
+              return pend.length ? (
+                <button
+                  type="button"
+                  onClick={() => confirmarMatrizIgual(pend.map((i) => i.key))}
+                  className="mb-2 rounded-lg border px-2.5 py-1 text-xs hover:border-primary hover:text-primary"
+                >
+                  Confirmar {pend.length} automação(ões) sem mudança desde o ciclo anterior
+                </button>
+              ) : null;
+            })()}
+          {(MAINS_BY_CAT[aba] ?? []).some((it) => it.matrix && filtroAtencao(it)) && (
             <MatrizAutomacoes
               v2={v2}
-              itens={(MAINS_BY_CAT[aba] ?? []).filter((it) => it.matrix)}
+              itens={(MAINS_BY_CAT[aba] ?? []).filter((it) => it.matrix && filtroAtencao(it))}
               valores={conteudo.itens}
               antes={antes}
               editavel={editavel && estado !== "conflito"}
@@ -259,13 +337,15 @@ export function EditorDiagnostico(props: {
           )}
           <div className="divide-y">
             {(MAINS_BY_CAT[aba] ?? [])
-              .filter((it) => !it.matrix)
+              .filter((it) => !it.matrix && filtroAtencao(it))
               .map((it) => (
                 <LinhaItem
                   key={it.key}
                   it={it}
                   itens={conteudo.itens}
                   antes={antes}
+                  marca={rev[it.key]}
+                  revisar={revisarItem}
                   editavel={editavel && estado !== "conflito"}
                   setItem={setItem}
                   setCheck={setCheck}
@@ -511,6 +591,8 @@ function LinhaItem({
   it,
   itens,
   antes,
+  marca,
+  revisar,
   editavel,
   setItem,
   setCheck,
@@ -518,6 +600,8 @@ function LinhaItem({
   it: Item;
   itens: Record<string, M.ItemResp>;
   antes?: Record<string, M.ItemResp> | undefined;
+  marca?: RV.MarcaRevisao | undefined;
+  revisar?: ((k: string, acao: "igual" | "revalidar" | "nao_aplica") => void) | undefined;
   editavel: boolean;
   setItem: (k: string, p: Partial<M.ItemResp>) => void;
   setCheck: (k: string, c: string, v: "s" | "n" | "") => void;
@@ -577,6 +661,9 @@ function LinhaItem({
           editavel={editavel}
         />
       </div>
+      {antes?.[it.key]?.s && (
+        <RevisaoItem k={it.key} marca={marca} revisar={revisar} editavel={editavel} />
+      )}
       {it.matrix && (
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 pl-6 text-xs">
           {(A.MATRIX_COLS as [string, string][]).map(([k, rot]) => (
@@ -1204,6 +1291,59 @@ function MetricasV2({
           Métricas de 30/90 dias registradas antes da mudança de metodologia ficam preservadas no
           histórico e não são convertidas.
         </p>
+      )}
+    </div>
+  );
+}
+
+const ROTULO_MARCA: Record<RV.AcaoRevisao, string> = {
+  igual: "Confirmado igual ao ciclo anterior",
+  alterado: "Alterado neste ciclo",
+  revalidar: "Marcado para revalidar",
+  nao_aplica: "Não se aplica mais",
+};
+/** Ações rápidas para itens herdados do ciclo anterior (registra data e usuário em meta.revisao). */
+function RevisaoItem({
+  k,
+  marca,
+  revisar,
+  editavel,
+}: {
+  k: string;
+  marca?: RV.MarcaRevisao | undefined;
+  revisar?: ((k: string, acao: "igual" | "revalidar" | "nao_aplica") => void) | undefined;
+  editavel: boolean;
+}) {
+  const nomes = useAnalistas().data;
+  const btn = "rounded border px-1.5 py-0.5 hover:border-primary hover:text-primary";
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-6 text-[11px] text-muted-foreground">
+      {marca ? (
+        <span className={cx(marca.acao === "revalidar" && "text-amber-700")}>
+          {ROTULO_MARCA[marca.acao]} · {new Date(marca.em).toLocaleDateString("pt-BR")}
+          {marca.por ? ` · ${nomes?.get(marca.por) ?? "usuário"}` : ""}
+        </span>
+      ) : (
+        <span>Herdado do ciclo anterior — confirme ou ajuste:</span>
+      )}
+      {editavel && revisar && (
+        <>
+          {marca?.acao !== "igual" && (
+            <button type="button" className={btn} onClick={() => revisar(k, "igual")}>
+              Confirmar igual
+            </button>
+          )}
+          {marca?.acao !== "revalidar" && (
+            <button type="button" className={btn} onClick={() => revisar(k, "revalidar")}>
+              Revalidar
+            </button>
+          )}
+          {marca?.acao !== "nao_aplica" && (
+            <button type="button" className={btn} onClick={() => revisar(k, "nao_aplica")}>
+              Não se aplica mais
+            </button>
+          )}
+        </>
       )}
     </div>
   );

@@ -36,6 +36,8 @@ export function useAcessoDcs() {
         editar: !!a?.editar,
         exportar: !!a?.exportar,
         modulos: a?.modulos ?? null,
+        pipedrive: ((a as { pipedrive?: number | null } | null)?.pipedrive ?? null) as
+          number | null,
       };
     },
     staleTime: 5 * 60_000,

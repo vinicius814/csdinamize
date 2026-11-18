@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { toast } from "sonner";
+import { mensagemErro } from "@/lib/dcs/db";
 import { ArrowDown, ArrowUp, Columns3, Download, ExternalLink, Layers, Search } from "lucide-react";
 import {
   DropdownMenu,
@@ -22,6 +24,8 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   useAcessoDcs,
   useAnalistas,
+  useAtribuirAnalise,
+  useDestinosAnalise,
   useUtilizacao,
   useCarteira,
   type LinhaCarteira,
@@ -308,6 +312,36 @@ function Carteira() {
   const [visiveis, setVisiveis] = useState<string[]>(PADRAO);
   const [agrupar, setAgrupar] = useState(false);
   const [pagina, setPagina] = useState(0);
+  // Ações em lote (admin): apenas atribuição de análises ainda não iniciadas. Nada é concluído em massa.
+  const admin = acesso.data?.perfil === "admin";
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [destino, setDestino] = useState("");
+  const [lote, setLote] = useState(false);
+  const destinos = useDestinosAnalise(admin);
+  const atribuir = useAtribuirAnalise();
+  const selecionavel = (l: LinhaCarteira) =>
+    admin && l.c.ativo && l.status === "aguardando" && usoMap.get(l.c.key)?.status !== "sem_uso";
+  const atribuirLote = async () => {
+    if (!destino || !sel.size) return;
+    setLote(true);
+    let okN = 0;
+    const falhas: string[] = [];
+    for (const k of sel) {
+      try {
+        await atribuir.mutateAsync({ key: k, para: destino });
+        okN++;
+      } catch (e) {
+        falhas.push(
+          `${(q.data ?? []).find((l) => l.c.key === k)?.c.nome ?? k}: ${mensagemErro(e)}`,
+        );
+      }
+    }
+    setLote(false);
+    setSel(new Set());
+    if (okN) toast.success(`${okN} análise(s) atribuída(s).`);
+    if (falhas.length)
+      toast.error(`Não atribuídas (${falhas.length}): ${falhas.slice(0, 3).join(" · ")}`);
+  };
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(CHAVE_COLS) ?? "null");
@@ -316,6 +350,14 @@ function Carteira() {
       /* padrão */
     }
   }, []);
+  // Filtros persistentes: a ficha do cliente usa isto para voltar à carteira exatamente como estava.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("dcs:carteira-busca", JSON.stringify(busca));
+    } catch {
+      /* sem armazenamento */
+    }
+  }, [busca]);
   const ordemEfetiva = !fin && ordem.id === "valor" ? { id: "cliente", inv: false } : ordem;
   const cols = COLUNAS.filter((c) => (c.fixa || visiveis.includes(c.id)) && (!c.fin || fin));
   const set = (p: Partial<Busca>) => {
@@ -561,10 +603,67 @@ function Carteira() {
             erro={q.error}
             vazio={!q.isLoading && !linhas.length && "Nenhum cliente encontrado com esses filtros."}
           >
+            {admin && sel.size > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 p-3 text-sm">
+                <span className="font-medium">{sel.size} cliente(s) selecionado(s)</span>
+                <select
+                  aria-label="Analista de destino"
+                  value={destino}
+                  onChange={(e) => setDestino(e.target.value)}
+                  className="h-8 rounded-lg border bg-card px-2 text-sm"
+                >
+                  <option value="">Atribuir a…</option>
+                  {destinos.data.map((u) => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.nome || u.email}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  disabled={!destino || lote}
+                  onClick={() => void atribuirLote()}
+                  className="h-8 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+                >
+                  {lote ? "Atribuindo…" : `Atribuir ${sel.size} análise(s)`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSel(new Set())}
+                  className="h-8 rounded-lg border px-3 text-xs"
+                >
+                  Limpar seleção
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  Só clientes aguardando análise e em utilização podem ser atribuídos em lote.
+                </span>
+              </div>
+            )}
             <div className="dcs-tabela max-h-[calc(100dvh-220px)] rounded-xl border bg-card shadow-[var(--glow-sm)]">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
+                    {admin && (
+                      <th scope="col" className="w-8 border-b px-2 py-2.5">
+                        <input
+                          type="checkbox"
+                          aria-label="Selecionar clientes aguardando análise nesta página"
+                          className="h-4 w-4 accent-[var(--primary)]"
+                          checked={
+                            pag.some(selecionavel) &&
+                            pag.filter(selecionavel).every((l) => sel.has(l.c.key))
+                          }
+                          onChange={(e) => {
+                            const n = new Set(sel);
+                            for (const l of pag.filter(selecionavel)) {
+                              if (e.target.checked) n.add(l.c.key);
+                              else n.delete(l.c.key);
+                            }
+                            setSel(n);
+                          }}
+                        />
+                      </th>
+                    )}
                     {cols.map((c) => (
                       <th
                         key={c.id}
@@ -615,7 +714,7 @@ function Carteira() {
                         {novo && (
                           <tr className="bg-surface-2">
                             <td
-                              colSpan={cols.length}
+                              colSpan={cols.length + (admin ? 1 : 0)}
                               className="border-t px-3 py-2 text-xs font-semibold"
                             >
                               {grupo} · {g?.n} cliente(s){fin ? ` · ${moeda(g?.valor ?? 0)}` : ""}
@@ -623,6 +722,24 @@ function Carteira() {
                           </tr>
                         )}
                         <tr className={cx("hover:bg-surface-2", !l.c.ativo && "opacity-60")}>
+                          {admin && (
+                            <td className="border-t px-2 py-2.5">
+                              {selecionavel(l) && (
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Selecionar ${l.c.nome}`}
+                                  className="h-4 w-4 accent-[var(--primary)]"
+                                  checked={sel.has(l.c.key)}
+                                  onChange={(e) => {
+                                    const n = new Set(sel);
+                                    if (e.target.checked) n.add(l.c.key);
+                                    else n.delete(l.c.key);
+                                    setSel(n);
+                                  }}
+                                />
+                              )}
+                            </td>
+                          )}
                           {cols.map((c) => (
                             <td
                               key={c.id}
@@ -800,7 +917,7 @@ function ContasSemUso({
                 <th className="px-3 py-2 text-right">Dias até a revisão</th>
                 <th className="px-3 py-2">Ação de retomada</th>
                 <th className="px-3 py-2">Acompanhamento</th>
-                <th className="px-3 py-2">
+                <th className="sticky right-0 bg-surface-2 px-3 py-2 shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]">
                   <span className="sr-only">Ações</span>
                 </th>
               </tr>
@@ -849,7 +966,7 @@ function ContasSemUso({
                     <td className="px-3 py-2">
                       <SeloAcompanhamento s={SU.acompanhamento(u, hoje)} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                    <td className="sticky right-0 whitespace-nowrap bg-card px-3 py-2 text-right shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]">
                       <button
                         type="button"
                         onClick={() => setRev(l)}
