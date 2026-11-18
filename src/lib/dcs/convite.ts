@@ -9,11 +9,12 @@ import { accountQueryOptions } from "@/lib/account-query";
 export async function aplicarConvite(qc: QueryClient, userId: string) {
   let a = await qc.ensureQueryData(accountQueryOptions(userId));
   if (a.status === "pendente") {
-    const r = await (supabase.rpc as unknown as (f: string) => Promise<{ data: unknown }>)(
-      "dcs_reivindicar_acesso",
-    ).catch(() => ({
-      data: false,
-    }));
+    // O builder do PostgREST é "thenable" mas não tem .catch: envolve em Promise real.
+    const r = await Promise.resolve(
+      (supabase.rpc as unknown as (f: string) => PromiseLike<{ data: unknown }>)(
+        "dcs_reivindicar_acesso",
+      ),
+    ).catch(() => ({ data: false }));
     if (r.data === true) a = await qc.fetchQuery({ ...accountQueryOptions(userId), staleTime: 0 });
   }
   return a;

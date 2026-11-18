@@ -27,9 +27,14 @@ export const Route = createFileRoute("/_authenticated")({
     if (!data.session) throw redirect({ to: "/auth", search: {} });
     const access = await aplicarConvite(context.queryClient, data.session.user.id);
     // Troca de senha obrigatória (senha provisória ou convite por e-mail): o banco já bloqueia os dados; aqui só direcionamos.
-    const seg = await (
-      supabase.rpc as unknown as (f: string) => Promise<{ data: { pendente?: boolean } | null }>
-    )("dcs_situacao_senha").catch(() => ({ data: null }));
+    // O builder do PostgREST é "thenable", mas não tem .catch: envolve em Promise real.
+    const seg = await Promise.resolve(
+      (
+        supabase.rpc as unknown as (
+          f: string,
+        ) => PromiseLike<{ data: { pendente?: boolean } | null }>
+      )("dcs_situacao_senha"),
+    ).catch(() => ({ data: null }));
     if (seg.data?.pendente) throw redirect({ to: "/definir-senha" as never });
     const to = destination(access.status, access.accepted, access.onboarded, access.role);
     if (to !== "/" && location.pathname !== to && location.pathname !== "/admin")
