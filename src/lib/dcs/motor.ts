@@ -32,9 +32,88 @@ export interface ItemResp {
 }
 export interface Diagnostico {
   items?: Record<string, ItemResp>;
-  metrics?: { m30?: Record<string, number | string | null> };
+  metrics?: {
+    m30?: Record<string, number | string | null>;
+    m90?: Record<string, number | string | null>;
+    m60?: Record<string, number | string | null>;
+  };
   res?: Record<string, unknown> & { unused?: string };
-  meta?: { autosActive?: number | string | null };
+  meta?: { autosActive?: number | string | null; metodologia?: string; migrado_em?: string };
+}
+
+/* ---------- Metodologia v2 (18/11/2026, D27) ----------
+ * - Matriz de automações sem "relatório de conversão" e sem janela de atribuição.
+ * - Entregabilidade com período único de 60 dias (métricas em metrics.m60); m30/m90 antigos ficam preservados e não são convertidos.
+ * - Frequência: média de envios (disparos/campanhas) por semana = disparos no período ÷ (60 ÷ 7).
+ * Ciclos sem meta.metodologia são v1 e continuam calculados exatamente como antes. */
+export const METODOLOGIA_V2 = "v2-2026-11";
+export const ehV2 = (d: Diagnostico | undefined) => d?.meta?.metodologia === METODOLOGIA_V2;
+/** Indicadores do período de 60 dias e da fotografia atual da conta (v2). */
+export const METRICAS_V2: { k: string; rotulo: string; tipo: "n" | "p" | "d" | "dec"; grupo: "periodo" | "atual"; principal: boolean }[] = [
+  { k: "sent", rotulo: "Volume de e-mails enviados", tipo: "n", grupo: "periodo", principal: true },
+  { k: "deliv", rotulo: "Taxa de entregabilidade (%)", tipo: "p", grupo: "periodo", principal: true },
+  { k: "open", rotulo: "Taxa de abertura (%) — auxiliar", tipo: "p", grupo: "periodo", principal: true },
+  { k: "click", rotulo: "Taxa de cliques (%)", tipo: "p", grupo: "periodo", principal: true },
+  { k: "hard", rotulo: "Hard bounce (%)", tipo: "p", grupo: "periodo", principal: false },
+  { k: "soft", rotulo: "Soft bounce (%)", tipo: "p", grupo: "periodo", principal: false },
+  { k: "unsub", rotulo: "Descadastros (%)", tipo: "p", grupo: "periodo", principal: false },
+  { k: "spam", rotulo: "Denúncias de spam (%)", tipo: "p", grupo: "periodo", principal: false },
+  { k: "disparos", rotulo: "Disparos/campanhas no período", tipo: "n", grupo: "periodo", principal: true },
+  { k: "freq_sem", rotulo: "Frequência média de envios por semana", tipo: "dec", grupo: "periodo", principal: true },
+  { k: "base", rotulo: "Tamanho da base", tipo: "n", grupo: "atual", principal: true },
+  { k: "engaged", rotulo: "Contatos engajados", tipo: "n", grupo: "atual", principal: false },
+  { k: "rest", rotulo: "Base em descanso (%)", tipo: "p", grupo: "atual", principal: false },
+  { k: "lastc", rotulo: "Data da última campanha", tipo: "d", grupo: "atual", principal: false },
+];
+/** Frequência semanal a partir da quantidade de disparos nos 60 dias (nunca a partir do volume de mensagens). */
+export function frequenciaSemanal(disparos: unknown): number | null {
+  if (disparos === "" || disparos == null) return null;
+  const n = Number(disparos);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round((n / (60 / 7)) * 10) / 10;
+}
+const semRel = (o: ItemResp | undefined): ItemResp | undefined => {
+  if (!o) return o;
+  const { jan: _jan, ...resto } = o;
+  void _jan;
+  const sub = o.sub ? { ...o.sub } : undefined;
+  if (sub) delete sub.rel;
+  return sub ? { ...resto, sub } : resto;
+};
+/** Visão do diagnóstico no formato do porte original (artefato-v1), conforme a metodologia. */
+function paraArtefato(d: Diagnostico): Diagnostico {
+  if (!ehV2(d)) return d;
+  const items: Record<string, ItemResp> = {};
+  for (const [k, o] of Object.entries(d.items ?? {})) items[k] = (A.ITEM_BY[k]?.matrix ? semRel(o) : o) as ItemResp;
+  const m60 = d.metrics?.m60 ?? {};
+  return { ...d, items, metrics: { m30: { ...m60, freq: m60["freq_sem"] ?? null } } };
+}
+/** Estado da automação pela matriz. v2: Implementada → Ativa → Funcional → Precisa melhorar (sem relatório). */
+function estadoAutomacaoV2(o: ItemResp | undefined): Estado | null {
+  const f = o?.sub ?? {};
+  if (!f.impl && !f.ativa && !f.func && !f.melh) return null;
+  if (f.impl === "n") return "nao_impl";
+  if (f.impl !== "s") return "nao_analisado";
+  if (f.ativa === "n" || f.func === "n") return "nao_funciona";
+  if (f.ativa === "s" && f.func === "s") return f.melh === "s" ? "melhoria" : "funcional";
+  return "nao_analisado";
+}
+/**
+ * Transição segura de uma análise em andamento para a v2: preserva tudo (inclusive rel/jan e m30/m90),
+ * recalcula só o estado das automações cujo estado era o calculado pela matriz (não sobrescreve ajuste manual).
+ */
+export function migrarParaV2<T extends { itens: Record<string, ItemResp>; meta: Record<string, unknown> }>(c: T, agora = new Date().toISOString()): T {
+  if (c.meta?.["metodologia"] === METODOLOGIA_V2) return c;
+  const itens = { ...c.itens };
+  for (const [k, o] of Object.entries(itens)) {
+    if (!A.ITEM_BY[k]?.matrix || !o) continue;
+    const v1 = A.autoState(o) as Estado | null;
+    if (v1 && o.s === v1) {
+      const v2 = estadoAutomacaoV2(o);
+      if (v2) itens[k] = { ...o, s: v2 };
+    }
+  }
+  return { ...c, itens, meta: { ...c.meta, metodologia: METODOLOGIA_V2, migrado_em: agora } };
 }
 export type Config = ReturnType<typeof A.mergeCfg>;
 
@@ -42,9 +121,10 @@ export const configPadrao = (): Config => A.mergeCfg(null);
 export const mesclarConfig = (c: unknown): Config => A.mergeCfg(c);
 
 /* ---------- Índice, faixas e recomendações (comportamento original) ---------- */
-export const calcularIndice = (d: Diagnostico, cfg: Config) => A.calcScore(d.items, cfg);
+export const calcularIndice = (d: Diagnostico, cfg: Config) => A.calcScore(paraArtefato(d).items, cfg);
 export const faixa = (sc: ReturnType<typeof calcularIndice>, cfg: Config) => A.bandOfSc(sc, cfg);
-export const estadoAutomacao = (o: ItemResp | undefined): Estado | null => A.autoState(o);
+export const estadoAutomacao = (o: ItemResp | undefined, v2 = false): Estado | null =>
+  v2 ? estadoAutomacaoV2(o) : A.autoState(o);
 
 /**
  * Correção C1 — relatório de conversão só é "validado" com evidência completa.
@@ -53,6 +133,7 @@ export const estadoAutomacao = (o: ItemResp | undefined): Estado | null => A.aut
  *  null = informação insuficiente.
  */
 export function statusConversao(d: Diagnostico): 0 | 1 | null {
+  if (ehV2(d)) return null; // v2: relatório de conversão fora da metodologia
   const v = A.AUTO_WIN1.map((k: string) => {
     const o = d.items?.[k];
     if (!o || !["funcional", "melhoria", "nao_funciona"].includes(o.s ?? "")) return null;
@@ -70,6 +151,7 @@ export function statusConversao(d: Diagnostico): 0 | 1 | null {
 
 /** Itens de automação com janela 1 dia que ainda não têm validação completa do relatório. */
 export function conversaoPendente(d: Diagnostico): string[] {
+  if (ehV2(d)) return [];
   return A.AUTO_WIN1.filter((k: string) => {
     const o = d.items?.[k];
     if (!o || !["funcional", "melhoria", "nao_funciona"].includes(o.s ?? "")) return false;
@@ -79,7 +161,9 @@ export function conversaoPendente(d: Diagnostico): string[] {
 }
 
 export function recomendacoes(d: Diagnostico, cfg: Config): Recomendacao[] {
-  const recs = A.genRecs(d, cfg) as Recomendacao[];
+  const recs = (A.genRecs(paraArtefato(d), cfg) as Recomendacao[]).filter(
+    (r) => !ehV2(d) || !/^x_(jan|rel)_/.test(r.id),
+  );
   // C2: automação de janela 1 dia sem dados do relatório gera tarefa de validação (não presume validado).
   for (const k of conversaoPendente(d)) {
     const it = A.ITEM_BY[k];
@@ -126,7 +210,7 @@ export interface Recomendacao {
 
 /** Resumo derivado por cliente (alimenta carteira, visão geral e inteligência). */
 export function derivado(d: Diagnostico, cfg: Config) {
-  const base = A.buildDerived(d, cfg);
+  const base = A.buildDerived(paraArtefato(d), cfg);
   const recs = recomendacoes(d, cfg);
   const sc = calcularIndice(d, cfg);
   return {
@@ -136,13 +220,13 @@ export function derivado(d: Diagnostico, cfg: Config) {
     crit: recs.filter((r) => r.priority === "critica").length,
     quick: recs.filter((r) => r.quick).length,
     fl: { ...base.fl, conv: statusConversao(d) },
-    regras: REGRAS_VERSAO,
+    regras: ehV2(d) ? METODOLOGIA_V2 : REGRAS_VERSAO,
   };
 }
-export const pendencias = (d: Diagnostico, cfg: Config) => A.pendingInfo(d, cfg);
+export const pendencias = (d: Diagnostico, cfg: Config) => A.pendingInfo(paraArtefato(d), cfg);
 export const resumoProfissional = (ctx: Parameters<typeof A.buildSummary>[0]) =>
-  A.buildSummary(ctx);
-export const patchEntregabilidade = (d: Diagnostico, cfg: Config) => A.autoEntPatch(d, cfg);
+  A.buildSummary({ ...ctx, diag: paraArtefato(ctx.diag as Diagnostico) } as never);
+export const patchEntregabilidade = (d: Diagnostico, cfg: Config) => A.autoEntPatch(paraArtefato(d), cfg);
 
 /* ---------- Plano de ação: mesclagem entre ciclos (pura, sem globais) ---------- */
 export interface RecPlano extends Recomendacao {
@@ -544,4 +628,109 @@ export function divergenciaContato(
   if (!campo) return "sem_campo";
   const dias = (Date.parse(porAtividade.slice(0, 10)) - Date.parse(campo.slice(0, 10))) / 864e5;
   return dias > toleranciaDias ? "atividade_mais_recente" : null;
+}
+
+/* ---------- Relatório do diagnóstico (atividade "Análise" no Pipedrive) ----------
+ * Só usa o que foi registrado; nada é inventado; não contém valores financeiros. */
+export interface CtxRelatorio {
+  cliente: string;
+  responsavel: string | null;
+  analista: string | null;
+  data: string; // AAAA-MM-DD
+  ciclo: number;
+  diag: Diagnostico;
+  cfg: Config;
+  proximaRevisao: string | null;
+  plano: { acao: string; prioridade: Prioridade; responsavel: string | null; prazo: string | null; status: string }[];
+}
+const dataBRr = (iso: string | null | undefined) => (iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—");
+const PRIO_ROT: Record<Prioridade, string> = { critica: "Crítica", alta: "Alta", media: "Média", baixa: "Baixa" };
+export function relatorioDiagnostico(ctx: CtxRelatorio): { texto: string; secoes: { titulo: string; linhas: string[] }[] } {
+  const d = ctx.diag;
+  const sc = calcularIndice(d, ctx.cfg);
+  const fx = faixa(sc, ctx.cfg);
+  const base = A.buildSummary({
+    client: { name: ctx.cliente },
+    ownerName: ctx.responsavel,
+    analystName: ctx.analista,
+    date: ctx.data,
+    diag: paraArtefato(d),
+    cfg: ctx.cfg,
+    nextReview: ctx.proximaRevisao,
+  } as never) as { text: string; pos: string[]; probs: string[]; opps: string[] };
+  const recs = recomendacoes(d, ctx.cfg);
+  const pi = pendencias(d, ctx.cfg);
+  const idx =
+    sc.score == null
+      ? "indisponível (poucos itens analisados)"
+      : `${sc.score}/100${fx ? ` — ${fx.l}` : ""}${sc.preliminary ? " (preliminar)" : ""}`;
+  const cenario = (base.text.split("RESUMO DO CENÁRIO ATUAL\n")[1] ?? "").split("\n")[0] ?? "";
+  // Indicadores: apenas os efetivamente preenchidos, no período da metodologia do ciclo.
+  const indicadores: string[] = [];
+  if (ehV2(d)) {
+    const m = d.metrics?.m60 ?? {};
+    for (const x of METRICAS_V2) {
+      const v = m[x.k];
+      if (v === "" || v == null) continue;
+      const fmt = x.tipo === "d" ? dataBRr(String(v)) : x.tipo === "p" ? `${String(v).replace(".", ",")}%` : String(v).replace(".", ",");
+      indicadores.push(`${x.rotulo.replace(" (%)", "")}${x.grupo === "periodo" ? " (últimos 60 dias)" : " (situação atual)"}: ${fmt}`);
+    }
+  } else {
+    const m = d.metrics?.m30 ?? {};
+    for (const [k, rot, tipo] of A.METRICS as [string, string, string][]) {
+      const v = m[k];
+      if (v === "" || v == null) continue;
+      indicadores.push(`${rot.replace(" (%)", "")} (30 dias): ${tipo === "p" ? `${v}%` : tipo === "d" ? dataBRr(String(v)) : v}`);
+    }
+  }
+  const porPrio = (["critica", "alta", "media", "baixa"] as Prioridade[]).flatMap((p) =>
+    recs.filter((r) => r.priority === p).slice(0, p === "baixa" ? 2 : 5).map((r) => `[${PRIO_ROT[p]}] ${r.action}`),
+  );
+  const plano = ctx.plano
+    .filter((a) => !["implementado", "nao_aprovado"].includes(a.status))
+    .slice(0, 10)
+    .map((a) => `[${PRIO_ROT[a.prioridade]}] ${a.acao} — responsável: ${a.responsavel || "a definir"}; prazo: ${a.prazo ? dataBRr(a.prazo) : "a definir"}`);
+  const pend = [
+    ...pi.names.slice(0, 12),
+    ...(pi.names.length > 12 ? [`e mais ${pi.names.length - 12} item(ns)`] : []),
+    ...(pi.miss as string[]).map((m) => "Indicador não preenchido: " + m),
+  ];
+  const proximos = [
+    "Apresentar o diagnóstico ao cliente e alinhar as prioridades.",
+    "Acompanhar a implementação das ações do plano.",
+    pi.n ? "Complementar as informações pendentes na próxima revisão." : "",
+    ctx.proximaRevisao ? `Próxima revisão prevista para ${dataBRr(ctx.proximaRevisao)}.` : "",
+  ].filter(Boolean);
+  const secoes = [
+    {
+      titulo: "IDENTIFICAÇÃO",
+      linhas: [
+        `Cliente: ${ctx.cliente}`,
+        `Responsável de CS: ${ctx.responsavel || "—"}`,
+        `Analista responsável: ${ctx.analista || "—"}`,
+        `Data da análise: ${dataBRr(ctx.data)}`,
+        `Ciclo do diagnóstico: ${ctx.ciclo}`,
+        `Índice de aproveitamento: ${idx}`,
+        `Percentual analisado: ${sc.completion}%`,
+      ],
+    },
+    { titulo: "RESUMO DO CENÁRIO ATUAL", linhas: [cenario || "—"] },
+    { titulo: "PONTOS POSITIVOS", linhas: base.pos },
+    { titulo: "PROBLEMAS IDENTIFICADOS", linhas: base.probs },
+    { titulo: "OPORTUNIDADES DE MELHORIA", linhas: base.opps },
+    { titulo: "INDICADORES DE DESEMPENHO", linhas: indicadores },
+    { titulo: "RECOMENDAÇÕES PRIORITÁRIAS", linhas: porPrio },
+    { titulo: "PLANO DE AÇÃO", linhas: plano },
+    { titulo: "INFORMAÇÕES PENDENTES", linhas: pend },
+    { titulo: "PRÓXIMOS PASSOS", linhas: proximos },
+  ];
+  const texto = secoes
+    .map((s, i) =>
+      [
+        s.titulo,
+        ...(s.linhas.length ? s.linhas.map((l) => (i === 0 || s.titulo === "RESUMO DO CENÁRIO ATUAL" ? l : "• " + l)) : ["• Nenhum item registrado nesta análise."]),
+      ].join("\n"),
+    )
+    .join("\n\n");
+  return { texto, secoes };
 }

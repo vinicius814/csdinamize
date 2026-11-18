@@ -18,6 +18,7 @@ import {
   useConfig,
   useIniciarAnalise,
 } from "@/lib/dcs/dados";
+import { useAnalistas } from "@/lib/dcs/dados";
 import { EditorDiagnostico } from "@/components/dcs/Diagnostico";
 import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { NovaAcao } from "@/components/dcs/NovaAcao";
@@ -53,6 +54,7 @@ function Cliente() {
   const conf = useConfig();
   const acesso = useAcessoDcs();
   const iniciar = useIniciarAnalise();
+  const nomesAnalistas = useAnalistas();
   const busca = Route.useSearch();
   const navegar = Route.useNavigate();
   const aba: Aba = busca.aba ?? "diagnostico";
@@ -233,7 +235,7 @@ function Cliente() {
                   cfg={cfg}
                   editavel={false}
                   cliente={dados.cliente}
-                  analistaNome=""
+                  analistaNome={nomesAnalistas.data?.get(atual.analista_id) ?? ""}
                   acoes={dados.acoes}
                   anterior={dados.diagnosticos[1] ?? null}
                   onMudou={recarregar}
@@ -246,7 +248,7 @@ function Cliente() {
                 cfg={cfg}
                 editavel
                 cliente={dados.cliente}
-                analistaNome={perfil?.nome ?? ""}
+                analistaNome={nomesAnalistas.data?.get(atual.analista_id) ?? perfil?.nome ?? ""}
                 acoes={dados.acoes}
                 anterior={dados.diagnosticos[1] ?? null}
                 onMudou={recarregar}

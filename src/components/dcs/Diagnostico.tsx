@@ -66,16 +66,23 @@ export function EditorDiagnostico(props: {
 }) {
   const { diag, cfg, editavel } = props;
   const antes = props.anterior?.itens as Record<string, M.ItemResp> | undefined;
-  const [conteudo, setConteudo] = useState<ConteudoDiag>(() => ({
-    itens: diag.itens ?? {},
-    metricas: (diag.metricas as Record<string, unknown>) ?? {},
-    resultados: diag.resultados ?? {},
-    meta: diag.meta ?? {},
-  }));
+  // Transição segura (D27): análise em andamento ainda na metodologia v1 passa para a v2 ao ser aberta
+  // por quem pode editar, preservando todos os dados (rel/jan e métricas de 30/90 dias ficam guardados).
+  const migrar = editavel && diag.status === "em_analise" && diag.meta?.["metodologia"] !== M.METODOLOGIA_V2;
+  const [conteudo, setConteudo] = useState<ConteudoDiag>(() => {
+    const c = {
+      itens: diag.itens ?? {},
+      metricas: (diag.metricas as Record<string, unknown>) ?? {},
+      resultados: diag.resultados ?? {},
+      meta: diag.meta ?? {},
+    };
+    return migrar ? M.migrarParaV2(c) : c;
+  });
+  const v2 = conteudo.meta["metodologia"] === M.METODOLOGIA_V2;
   const [aba, setAba] = useState(CATS[0]!.id);
-  const [estado, setEstado] = useState<Salvamento>("salvo");
+  const [estado, setEstado] = useState<Salvamento>(migrar ? "pendente" : "salvo");
   const versao = useRef(diag.versao);
-  const sujo = useRef(false);
+  const sujo = useRef(migrar);
   const salvando = useRef(false);
   const atual = useRef(conteudo);
   atual.current = conteudo;
@@ -155,7 +162,7 @@ export function EditorDiagnostico(props: {
   const setCheck = (k: string, chk: string, v: "s" | "n" | "") =>
     mudar((c) => {
       const o = { ...(c.itens[k] ?? {}), sub: { ...(c.itens[k]?.sub ?? {}), [chk]: v } };
-      const st = M.estadoAutomacao(o);
+      const st = M.estadoAutomacao(o, v2);
       if (st) o.s = st;
       return { ...c, itens: { ...c.itens, [k]: o } };
     });
@@ -233,10 +240,15 @@ export function EditorDiagnostico(props: {
           }
         >
           {aba === "ent" && (
-            <Metricas conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
+            v2 ? (
+              <MetricasV2 conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
+            ) : (
+              <Metricas conteudo={conteudo} cfg={cfg} editavel={editavel} mudar={mudar} />
+            )
           )}
           {(MAINS_BY_CAT[aba] ?? []).some((it) => it.matrix) && (
             <MatrizAutomacoes
+              v2={v2}
               itens={(MAINS_BY_CAT[aba] ?? []).filter((it) => it.matrix)}
               valores={conteudo.itens}
               antes={antes}
@@ -332,17 +344,42 @@ export function EditorDiagnostico(props: {
             acoes={props.acoes}
             pendentes={pend.n}
             bloqueado={estado !== "salvo"}
-            resumo={() =>
-              M.resumoProfissional({
-                client: { name: props.cliente.nome },
-                ownerName: props.cliente.owner_nome,
-                analystName: props.analistaNome,
-                date: hojeSP(),
+            resumo={() => {
+              // Plano no relatório: recomendações atuais com responsável/prazo já definidos no plano, ou prazo sugerido.
+              const hoje = hojeSP();
+              const existentes = new Map(props.acoes.map((a) => [a.rec_id, a]));
+              const sugerido = (dias: number) => {
+                const x = new Date(hoje + "T12:00:00Z");
+                x.setUTCDate(x.getUTCDate() + (dias || 15));
+                return x.toISOString().slice(0, 10);
+              };
+              const plano = [
+                ...recs.map((r) => {
+                  const a = existentes.get(r.id);
+                  return {
+                    acao: r.action,
+                    prioridade: a?.prioridade ?? r.priority,
+                    responsavel: a?.responsavel ?? null,
+                    prazo: a?.prazo ?? sugerido(r.days),
+                    status: a?.status ?? "aguardando_contato",
+                  };
+                }),
+                ...props.acoes
+                  .filter((a) => a.manual && !a.obsoleta)
+                  .map((a) => ({ acao: a.acao, prioridade: a.prioridade, responsavel: a.responsavel, prazo: a.prazo, status: a.status })),
+              ];
+              return M.relatorioDiagnostico({
+                cliente: props.cliente.nome,
+                responsavel: props.cliente.owner_nome,
+                analista: props.analistaNome,
+                data: hoje,
+                ciclo: diag.ciclo,
                 diag: d,
                 cfg,
-                nextReview: proximaRevisao(cfg),
-              } as never).text as string
-            }
+                proximaRevisao: proximaRevisao(cfg),
+                plano,
+              }).texto;
+            }}
             onConcluido={props.onMudou}
           />
         )}
@@ -889,6 +926,7 @@ function MatrizAutomacoes({
   editavel,
   setItem,
   setCheck,
+  v2,
 }: {
   itens: Item[];
   valores: Record<string, M.ItemResp>;
@@ -896,12 +934,14 @@ function MatrizAutomacoes({
   editavel: boolean;
   setItem: (k: string, p: Partial<M.ItemResp>) => void;
   setCheck: (k: string, c: string, v: "s" | "n" | "") => void;
+  v2: boolean;
 }) {
   const [aberto, setAberto] = useState<string | null>(null);
-  const cols = A.MATRIX_COLS as [string, string][];
+  // v2: Implementada · Ativa · Funcional · Precisa melhorar · Resultado (relatório e janela saem da avaliação).
+  const cols = (A.MATRIX_COLS as [string, string][]).filter(([k]) => !v2 || k !== "rel");
   return (
     <div className="dcs-tabela mb-4 rounded-lg border">
-      <table className="w-full min-w-[820px] text-sm">
+      <table className={cx("w-full text-sm", v2 ? "min-w-[680px]" : "min-w-[820px]")}>
         <thead className="bg-surface-2 text-left text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-semibold">Automação</th>
@@ -914,12 +954,14 @@ function MatrizAutomacoes({
                     : r}
               </th>
             ))}
-            <th
-              className="px-2 py-2 text-center font-semibold"
-              title="Janela de atribuição exigida: 1 dia"
-            >
-              Janela
-            </th>
+            {!v2 && (
+              <th
+                className="px-2 py-2 text-center font-semibold"
+                title="Janela de atribuição exigida: 1 dia"
+              >
+                Janela
+              </th>
+            )}
             <th className="px-2 py-2 font-semibold">Resultado</th>
             <th className="px-2 py-2">
               <span className="sr-only">Detalhes</span>
@@ -966,6 +1008,7 @@ function MatrizAutomacoes({
                       />
                     </td>
                   ))}
+                  {!v2 && (
                   <td className="px-2 py-2 text-center">
                     {win1 ? (
                       <span className="inline-flex items-center gap-1">
@@ -994,6 +1037,7 @@ function MatrizAutomacoes({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
+                  )}
                   <td className="px-2 py-2">
                     <span
                       className={cx(
@@ -1017,7 +1061,7 @@ function MatrizAutomacoes({
                 </tr>
                 {aberto === it.key && (
                   <tr className="bg-surface-2/60">
-                    <td colSpan={cols.length + 4} className="px-3 pb-3">
+                    <td colSpan={cols.length + (v2 ? 3 : 4)} className="px-3 pb-3">
                       <div className="mb-2 mt-2 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span className="text-muted-foreground">
                           Ajuste manual do resultado (opcional):
@@ -1047,3 +1091,89 @@ function MatrizAutomacoes({
   );
 }
 const FragmentoLinha = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
+/** Entregabilidade v2: um único período (últimos 60 dias) + fotografia atual da conta (D27). */
+function MetricasV2({
+  conteudo,
+  cfg,
+  editavel,
+  mudar,
+}: {
+  conteudo: ConteudoDiag;
+  cfg: M.Config;
+  editavel: boolean;
+  mudar: (f: (c: ConteudoDiag) => ConteudoDiag) => void;
+}) {
+  const m = (conteudo.metricas["m60"] as Record<string, unknown> | undefined) ?? {};
+  const refs = cfg.refs as Record<string, { min?: number; max?: number }>;
+  const manual = m["freq_manual"] === true;
+  const set = (patch: Record<string, unknown>) =>
+    mudar((c) => {
+      const atual = { ...((c.metricas["m60"] as Record<string, unknown>) ?? {}), ...patch };
+      if ("disparos" in patch && atual["freq_manual"] !== true) atual["freq_sem"] = M.frequenciaSemanal(atual["disparos"]) ?? "";
+      return { ...c, metricas: { ...c.metricas, m60: atual } };
+    });
+  const campo = (x: (typeof M.METRICAS_V2)[number]) => {
+    const v = (m[x.k] ?? "") as string | number;
+    const ref = refs[x.k];
+    const fora =
+      ref && v !== "" && ((ref.min != null && Number(v) < ref.min) || (ref.max != null && Number(v) > ref.max));
+    const auto = x.k === "freq_sem" && !manual && m["disparos"] !== "" && m["disparos"] != null;
+    return (
+      <label key={x.k} className="grid min-w-0 gap-1 text-xs">
+        <span className="flex items-center justify-between gap-1 text-muted-foreground">
+          <span className="truncate">{x.rotulo}</span>
+          {ref && (
+            <span className="shrink-0 text-[10px]">{ref.min != null ? `≥ ${ref.min}` : `≤ ${ref.max}`}</span>
+          )}
+        </span>
+        <Input
+          type={x.tipo === "d" ? "date" : "number"}
+          step={x.tipo === "dec" ? "0.1" : "any"}
+          min={0}
+          className={cx("h-8 text-sm", fora && "border-red-400 text-red-700", auto && "bg-surface-2")}
+          disabled={!editavel}
+          value={v}
+          onChange={(e) =>
+            x.k === "freq_sem" ? set({ freq_sem: e.target.value, freq_manual: e.target.value !== "" }) : set({ [x.k]: e.target.value })
+          }
+        />
+        {x.k === "freq_sem" && (
+          <span className="text-[10px] text-muted-foreground">
+            {auto ? "Calculada: disparos ÷ (60 ÷ 7)" : manual ? "Preenchida manualmente" : "Informe os disparos para calcular"}
+            {manual && editavel && (
+              <button type="button" className="ml-1 text-primary" onClick={() => set({ freq_manual: false, disparos: m["disparos"] ?? "" })}>
+                recalcular
+              </button>
+            )}
+          </span>
+        )}
+      </label>
+    );
+  };
+  const periodo = M.METRICAS_V2.filter((x) => x.grupo === "periodo");
+  const atual = M.METRICAS_V2.filter((x) => x.grupo === "atual");
+  const temAntigas = !!(conteudo.metricas["m30"] || conteudo.metricas["m90"]);
+  return (
+    <div className="mb-4 space-y-3 rounded-lg border p-3">
+      <div>
+        <p className="mb-2 text-xs font-semibold">Últimos 60 dias</p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{periodo.filter((x) => x.principal).map(campo)}</div>
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-muted-foreground">Bounces, descadastros e spam</summary>
+          <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">{periodo.filter((x) => !x.principal).map(campo)}</div>
+        </details>
+      </div>
+      <div className="border-t pt-3">
+        <p className="mb-2 text-xs font-semibold">Situação atual da conta</p>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">{atual.map(campo)}</div>
+      </div>
+      {temAntigas && (
+        <p className="text-[11px] text-muted-foreground">
+          Métricas de 30/90 dias registradas antes da mudança de metodologia ficam preservadas no histórico e não são convertidas.
+        </p>
+      )}
+    </div>
+  );
+}
+
