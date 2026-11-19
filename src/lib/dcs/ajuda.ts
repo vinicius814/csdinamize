@@ -247,6 +247,35 @@ export const ARTIGOS: Artigo[] = [
     ],
   },
   {
+    id: "hoje",
+    titulo: "Como usar “Minha operação hoje” e a coluna Atenção",
+    tags: "hoje prioridade atenção fila próximas ações rotina urgente",
+    texto: [
+      "No topo da Visão geral, “Minha operação hoje” mostra o que precisa de você agora: análises em andamento, revisões vencidas, contas sem uso a revisar, ações atrasadas ou críticas e contatos efetivos atrasados. Cada número leva à lista correspondente.",
+      "Em “Próximas ações recomendadas”, cada cliente aparece com o motivo principal e um botão que abre exatamente onde a ação acontece. Na carteira, a coluna “Atenção” mostra o mesmo motivo; passe o mouse para ver todos.",
+      "A prioridade soma pontos por motivo (pesos em Configurações). Ela é diferente do índice de aproveitamento, não prevê cancelamento e não usa valores comerciais.",
+    ],
+  },
+  {
+    id: "evolucao",
+    titulo: "Como mostrar a evolução de um cliente em reunião",
+    tags: "evolução resultado reunião antes depois índice implementado resolvido",
+    texto: [
+      "Na ficha do cliente, abra a aba “Evolução”. Ela compara os dois últimos diagnósticos concluídos e separa: resolvido e confirmado (o problema não apareceu no diagnóstico mais recente), implementado a confirmar, ainda pendente e novas oportunidades.",
+      "O índice só é comparado entre ciclos da mesma metodologia. “Copiar para a reunião” gera um texto pronto, sem valores financeiros e sem atribuir resultados ao CS.",
+    ],
+  },
+  {
+    id: "conexao",
+    titulo: "Como funciona a conexão com o Pipedrive",
+    tags: "pipedrive conexão integração token vínculo usuário responsável testar",
+    texto: [
+      "O Dinamize CS usa uma conexão institucional: uma única credencial da Dinamize, guardada no n8n, lê a carteira e registra os diagnósticos. Nenhuma senha ou token seu é pedido ou armazenado.",
+      "Cada colaborador é vinculado ao seu próprio usuário do Pipedrive (Minha conta → Minha conexão com o Pipedrive). As atividades de diagnóstico ficam com o analista como responsável; sem vínculo, ficam com a conta institucional e a nota avisa.",
+      "Quem administra integrações usa “Testar conexão” em Integrações: o teste só faz leituras e mostra o que está funcionando, o que falhou e o que não foi testado.",
+    ],
+  },
+  {
     id: "tour",
     titulo: "Como reiniciar o tour guiado",
     tags: "tour onboarding guia reiniciar ajuda",

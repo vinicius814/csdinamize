@@ -29,12 +29,6 @@ import { cx, Painel, Selo } from "./ui";
 const NIVEL_TOM = { alta: "critico", media: "aviso", baixa: "neutro", nenhuma: "neutro" } as const;
 const NIVEL_ROT = { alta: "Alta", media: "Média", baixa: "Baixa", nenhuma: "—" } as const;
 
-export function pesosConfig(cfg: unknown): Partial<Record<CodigoMotivo, number>> {
-  const p = (cfg as { prioridade?: { pesos?: Partial<Record<CodigoMotivo, number>> } } | undefined)
-    ?.prioridade?.pesos;
-  return p && typeof p === "object" ? p : {};
-}
-
 export function usePrioridades() {
   const carteira = useCarteira();
   const util = useUtilizacao();
@@ -42,7 +36,7 @@ export function usePrioridades() {
   const hoje = hojeSP();
   const dados = useMemo(() => {
     const uso = util.data ?? new Map<string, DcsUtilizacao>();
-    const pesos = pesosConfig(conf.data?.cfg);
+    const pesos = conf.data?.prioridade ?? {};
     return (carteira.data ?? []).map((l) => ({
       l,
       u: uso.get(l.c.key),

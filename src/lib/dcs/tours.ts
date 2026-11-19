@@ -5,7 +5,7 @@
  */
 import type { Permissao } from "./dados";
 
-export const VERSAO_TOUR = 1;
+export const VERSAO_TOUR = 2;
 export type Etapa = {
   id: string;
   rota?: string;
@@ -26,6 +26,15 @@ export const TOURS: Tour[] = [
     descricao:
       "Visão completa da rotina: carteira, diagnóstico, planos, contas sem utilização e cobertura.",
     etapas: [
+      {
+        id: "hoje",
+        rota: "/dcs",
+        alvo: "[data-tour='hoje']",
+        modulo: "visao-geral",
+        titulo: "Minha operação hoje",
+        texto:
+          "O que precisa da sua atenção agora, com o motivo e o atalho para resolver. Os números levam às listas correspondentes.",
+      },
       {
         id: "visao",
         rota: "/dcs",
@@ -112,6 +121,13 @@ export const TOURS: Tour[] = [
           "Minhas análises é a sua fila de trabalho em ordem de urgência: revisões vencidas, análises paradas, pendências e clientes a iniciar.",
       },
       {
+        id: "evolucao",
+        modulo: "carteira",
+        titulo: "Evolução do cliente",
+        texto:
+          "Na ficha do cliente, a aba Evolução compara os dois últimos diagnósticos: o que foi resolvido e confirmado, o que foi implementado e o que segue pendente. Use “Copiar para a reunião”.",
+      },
+      {
         id: "historico",
         rota: "/dcs/historico",
         alvo: "#conteudo h1",
@@ -152,9 +168,9 @@ export const TOURS: Tour[] = [
         rota: "/dcs/integracoes",
         alvo: "#conteudo h1",
         permissao: "integracoes",
-        titulo: "Integrações e monitoramento",
+        titulo: "Conexão com o Pipedrive",
         texto:
-          "Sincronização com o Pipedrive, execuções do n8n e o registro automático dos diagnósticos (ativado pelo Master).",
+          "Teste a conexão institucional (só leituras), peça atualizações da carteira, dos responsáveis e da cobertura e acompanhe os registros no Pipedrive por estado.",
       },
     ],
   },

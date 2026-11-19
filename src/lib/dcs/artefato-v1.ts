@@ -6,7 +6,7 @@
  * correções ficam em ./motor.ts, cobertas por testes, e a referência original permanece auditável.
  * Ver docs/ARTIFACT_MAPPING.md.
  */
-/* eslint-disable */
+ 
 const PD_BASE = "https://cs-dinamize.pipedrive.com";
 const PD_SERVER = "Pipedrive";
 const PIPELINE_ID = 15; // funil "Customer Success"

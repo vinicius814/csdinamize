@@ -2,6 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as M from "./motor";
 import * as SU from "./semuso";
+import { lerPesos, PESOS_PADRAO, type CodigoMotivo } from "./prioridade";
 import {
   dcs,
   type DcsSolicitacao,
@@ -60,6 +61,7 @@ export function useConfig() {
         versao: r?.versao ?? "1",
         cfg: M.mesclarConfig(r?.config ?? null),
         semUso: SU.lerConfig(r?.config ?? null),
+        prioridade: lerPesos(r?.config ?? null),
       };
     },
     staleTime: 10 * 60_000,
@@ -633,15 +635,22 @@ export function useVersoesRegras(ativo: boolean) {
 export function usePublicarRegras() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (x: M.Config | { cfg: M.Config; semUso: SU.ConfigSemUso }) => {
-      // A seção semUso não faz parte do Config do artefato: preserva a publicada quando não for alterada.
-      const atual =
-        qc.getQueryData<{ semUso: SU.ConfigSemUso }>(["dcs", "config"])?.semUso ?? SU.CONFIG_PADRAO;
+    mutationFn: async (
+      x:
+        M.Config | { cfg: M.Config; semUso: SU.ConfigSemUso; pesos?: Record<CodigoMotivo, number> },
+    ) => {
+      // As seções semUso e prioridade não fazem parte do Config do artefato: preserva as publicadas quando não alteradas.
+      const pub = qc.getQueryData<{
+        semUso: SU.ConfigSemUso;
+        prioridade: Record<CodigoMotivo, number>;
+      }>(["dcs", "config"]);
+      const atual = pub?.semUso ?? SU.CONFIG_PADRAO;
       const [cfg, semUso] =
         "semUso" in x && "cfg" in x ? [x.cfg, x.semUso] : [x as M.Config, atual];
+      const pesos = ("pesos" in x && x.pesos) || pub?.prioridade || PESOS_PADRAO;
       return ok(
         dcs.rpc("dcs_publicar_regras", {
-          p_config: { ...cfg, semUso } as never,
+          p_config: { ...cfg, semUso, prioridade: { pesos } } as never,
           p_metodologia: M.REGRAS_VERSAO,
         }),
       );

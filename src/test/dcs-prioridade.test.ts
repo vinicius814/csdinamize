@@ -87,3 +87,17 @@ describe("prioridade operacional", () => {
     expect(ordenarPorPrioridade(lista).map((x) => x.l.c.key)).toEqual(["a", "m", "z"]);
   });
 });
+
+describe("pesos publicados em Configurações", () => {
+  it("lê, limita a 0–50 e completa com o padrão", async () => {
+    const { lerPesos, PESOS_PADRAO } = await import("@/lib/dcs/prioridade");
+    const p = lerPesos({
+      prioridade: { pesos: { uso_vencido: 99, acao_critica: -3, contato_critico: "12" } },
+    });
+    expect(p.uso_vencido).toBe(50);
+    expect(p.acao_critica).toBe(0);
+    expect(p.contato_critico).toBe(12);
+    expect(p.revisao_vencida).toBe(PESOS_PADRAO.revisao_vencida);
+    expect(lerPesos(null)).toEqual(PESOS_PADRAO);
+  });
+});

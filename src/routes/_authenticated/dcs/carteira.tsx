@@ -21,7 +21,6 @@ import {
 import * as SU from "@/lib/dcs/semuso";
 import type { DcsUtilizacao } from "@/lib/dcs/db";
 import { prioridadeCliente, type Prioridade as PriOp } from "@/lib/dcs/prioridade";
-import { pesosConfig } from "@/components/dcs/Hoje";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   useAcessoDcs,
@@ -117,6 +116,39 @@ const COLUNAS: Coluna[] = [
       </>
     ),
     csv: (l) => l.c.nome,
+  },
+  {
+    id: "atencao",
+    rotulo: "Atenção",
+    // Prioridade operacional (D38): pontos com motivos explícitos; valor comercial não entra.
+    ordem: (a, b, c) => (c.pri.get(b.c.key)?.pontos ?? 0) - (c.pri.get(a.c.key)?.pontos ?? 0),
+    celula: (l, c) => {
+      const p = c.pri.get(l.c.key);
+      if (!p || !p.pontos) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span
+          className="inline-flex max-w-[240px] items-center gap-1.5"
+          title={p.motivos.map((m) => `${m.texto} (+${m.peso})`).join("\n")}
+        >
+          <span
+            className={
+              "h-2 w-2 shrink-0 rounded-full " +
+              (p.nivel === "alta"
+                ? "bg-red-500"
+                : p.nivel === "media"
+                  ? "bg-amber-400"
+                  : "bg-gray-400")
+            }
+            aria-hidden
+          />
+          <span className="truncate text-xs">{p.motivos[0]!.texto}</span>
+          {p.motivos.length > 1 && (
+            <span className="text-[11px] text-muted-foreground">+{p.motivos.length - 1}</span>
+          )}
+        </span>
+      );
+    },
+    csv: (l, c) => c.pri.get(l.c.key)?.pontos ?? 0,
   },
   {
     id: "codigo",
@@ -226,39 +258,6 @@ const COLUNAS: Coluna[] = [
     csv: (l) => opp(l) ?? "",
   },
   {
-    id: "atencao",
-    rotulo: "Atenção",
-    // Prioridade operacional (D38): pontos com motivos explícitos; valor comercial não entra.
-    ordem: (a, b, c) => (c.pri.get(b.c.key)?.pontos ?? 0) - (c.pri.get(a.c.key)?.pontos ?? 0),
-    celula: (l, c) => {
-      const p = c.pri.get(l.c.key);
-      if (!p || !p.pontos) return <span className="text-muted-foreground">—</span>;
-      return (
-        <span
-          className="inline-flex max-w-[240px] items-center gap-1.5"
-          title={p.motivos.map((m) => `${m.texto} (+${m.peso})`).join("\n")}
-        >
-          <span
-            className={
-              "h-2 w-2 shrink-0 rounded-full " +
-              (p.nivel === "alta"
-                ? "bg-red-500"
-                : p.nivel === "media"
-                  ? "bg-amber-400"
-                  : "bg-gray-400")
-            }
-            aria-hidden
-          />
-          <span className="truncate text-xs">{p.motivos[0]!.texto}</span>
-          {p.motivos.length > 1 && (
-            <span className="text-[11px] text-muted-foreground">+{p.motivos.length - 1}</span>
-          )}
-        </span>
-      );
-    },
-    csv: (l, c) => c.pri.get(l.c.key)?.pontos ?? 0,
-  },
-  {
     id: "prioridade",
     rotulo: "Prioridade das ações",
     ordem: (a, b) =>
@@ -351,7 +350,7 @@ function Carteira() {
   const conf = useConfig();
   const priMap = useMemo(() => {
     const hoje = hojeSP();
-    const pesos = pesosConfig(conf.data?.cfg);
+    const pesos = conf.data?.prioridade ?? {};
     return new Map(
       (q.data ?? []).map((l) => [l.c.key, prioridadeCliente(l, usoMap.get(l.c.key), hoje, pesos)]),
     );
@@ -395,7 +394,16 @@ function Carteira() {
   useEffect(() => {
     try {
       const v = JSON.parse(localStorage.getItem(CHAVE_COLS) ?? "null");
-      if (Array.isArray(v)) setVisiveis(v);
+      if (Array.isArray(v)) {
+        // D38: preferências salvas antes da coluna "Atenção" recebem-na uma única vez; depois, a escolha do usuário vale.
+        const VERSAO_COLS = "2";
+        if (localStorage.getItem(CHAVE_COLS + ":v") !== VERSAO_COLS) {
+          if (!v.includes("atencao")) v.splice(Math.max(0, v.indexOf("cliente") + 1), 0, "atencao");
+          localStorage.setItem(CHAVE_COLS, JSON.stringify(v));
+          localStorage.setItem(CHAVE_COLS + ":v", VERSAO_COLS);
+        }
+        setVisiveis(v);
+      }
     } catch {
       /* padrão */
     }

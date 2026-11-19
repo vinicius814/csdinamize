@@ -9,6 +9,8 @@ describe("pontuação de ideias", () => {
     expect(pontuacao(["ideia", "impacto:5", "esforco:1", "status:descartado"])).toBe(0);
   });
   it("mais esforço reduz a prioridade", () => {
-    expect(pontuacao(["impacto:4", "esforco:5"])).toBeLessThan(pontuacao(["impacto:4", "esforco:2"]));
+    expect(pontuacao(["impacto:4", "esforco:5"])).toBeLessThan(
+      pontuacao(["impacto:4", "esforco:2"]),
+    );
   });
 });

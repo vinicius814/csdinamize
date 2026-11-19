@@ -152,3 +152,16 @@ export function ordenarPorPrioridade<T extends { pri: Prioridade; l: LinhaCartei
       a.l.c.nome.localeCompare(b.l.c.nome),
   );
 }
+
+/** Lê os pesos publicados em dcs_regras.config.prioridade.pesos (0–50, inteiros); ausentes → padrão. */
+export function lerPesos(config: unknown): Record<CodigoMotivo, number> {
+  const bruto =
+    (config as { prioridade?: { pesos?: Record<string, unknown> } } | null)?.prioridade?.pesos ??
+    {};
+  const r = { ...PESOS_PADRAO };
+  for (const k of Object.keys(PESOS_PADRAO) as CodigoMotivo[]) {
+    const v = Number(bruto[k]);
+    if (Number.isFinite(v)) r[k] = Math.max(0, Math.min(50, Math.round(v)));
+  }
+  return r;
+}

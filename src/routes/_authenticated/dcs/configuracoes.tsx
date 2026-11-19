@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { mensagemErro } from "@/lib/dcs/db";
 import { useAcessoDcs, useConfigProduto, useDefinirConfigProduto } from "@/lib/dcs/dados";
 import { BETA } from "@/lib/dcs/ajuda";
+import { PESOS_PADRAO, ROTULO_MOTIVO, type CodigoMotivo } from "@/lib/dcs/prioridade";
 import {
   useAnalistas,
   useConfig,
@@ -59,17 +60,20 @@ function Configuracoes() {
   const [secao, setSecao] = useState<Secao>("metodologia");
   const [c, setC] = useState<Config | null>(null);
   const [su, setSu] = useState<SU.ConfigSemUso | null>(null);
+  const [pr, setPr] = useState<Record<CodigoMotivo, number> | null>(null);
   useEffect(() => {
     if (conf.data && !c) setC(structuredClone(conf.data.cfg));
     if (conf.data && !su) setSu(structuredClone(conf.data.semUso));
-  }, [conf.data, c, su]);
+    if (conf.data && !pr) setPr({ ...conf.data.prioridade });
+  }, [conf.data, c, su, pr]);
   const resps = useResponsaveisPD(secao === "semuso");
   const erros = useMemo(() => (c ? validarConfig(c) : []), [c]);
   const alterado =
     !!c &&
     !!conf.data &&
     (JSON.stringify(c) !== JSON.stringify(conf.data.cfg) ||
-      JSON.stringify(su) !== JSON.stringify(conf.data.semUso));
+      JSON.stringify(su) !== JSON.stringify(conf.data.semUso) ||
+      JSON.stringify(pr) !== JSON.stringify(conf.data.prioridade));
   const up = (f: (x: Config) => void) =>
     setC((x: Config | null) => {
       const n = structuredClone(x!) as Config;
@@ -78,14 +82,18 @@ function Configuracoes() {
     });
   const enviar = () =>
     c &&
-    publicar.mutate(su ? { cfg: c, semUso: su } : c, {
-      onSuccess: () => (
-        toast.success("Nova versão das regras publicada."),
-        setC(null),
-        setSu(null)
-      ),
-      onError: (e) => toast.error(mensagemErro(e)),
-    });
+    publicar.mutate(
+      { cfg: c, semUso: su ?? conf.data!.semUso, pesos: pr ?? conf.data!.prioridade },
+      {
+        onSuccess: () => (
+          toast.success("Nova versão das regras publicada."),
+          setC(null),
+          setSu(null),
+          setPr(null)
+        ),
+        onError: (e) => toast.error(mensagemErro(e)),
+      },
+    );
   return (
     <>
       <Titulo
@@ -98,6 +106,7 @@ function Configuracoes() {
                 type="button"
                 onClick={() => (
                   setC(structuredClone(conf.data!.cfg)),
+                  setPr({ ...conf.data!.prioridade }),
                   setSu(structuredClone(conf.data!.semUso))
                 )}
                 className="h-9 rounded-lg border px-3 text-sm hover:border-primary"
@@ -229,6 +238,33 @@ function Configuracoes() {
                       ))}
                     </div>
                   </Painel>
+                  {pr && (
+                    <Painel
+                      titulo="Prioridade operacional (Atenção agora)"
+                      sub="Pontos somados por motivo para ordenar a fila e a carteira. 0 desliga o critério. Valores comerciais não entram no cálculo; independente do índice."
+                    >
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                        {(Object.keys(PESOS_PADRAO) as CodigoMotivo[]).map((k) => (
+                          <Numero
+                            key={k}
+                            rotulo={ROTULO_MOTIVO[k]}
+                            valor={pr[k]}
+                            sufixo="pts"
+                            onChange={(v) =>
+                              setPr({ ...pr, [k]: Math.max(0, Math.min(50, Math.round(v))) })
+                            }
+                          />
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPr({ ...PESOS_PADRAO })}
+                        className="mt-2 text-xs text-primary hover:underline"
+                      >
+                        Restaurar pesos padrão
+                      </button>
+                    </Painel>
+                  )}
                   <Painel titulo="Prazos e completude">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <Numero
