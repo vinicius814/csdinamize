@@ -1,5 +1,9 @@
 # Status do projeto
 
+**19/11/2026 12h — Beta 1.1 PUBLICADO** em https://csdinamize.lovable.app (deploy Lovable `79b0f1c4`, commit `95068de`), com aprovação do Vinícius.
+Vínculo duplicado com o Pipedrive removido da conta secundária (auditado). Repositório GitHub ainda público: a mudança para privado
+precisa ser feita pelo dono no GitHub (o ambiente bloqueia escrita de configurações e o Chrome está em outra conta).
+
 **19/11/2026 — Beta 1.1 (evolução de produto) na branch `dinamize-cs/evolucao-produto`.** Migration `20261119012714_dcs_conexao_pipedrive`
 aplicada; n8n 04/06/11 atualizados e 12 criado (publicados). Detalhes: `docs/PRODUCT_UX_EVOLUTION.md`, D38–D40.
 Pendências novas: usuário de integração dedicado no Pipedrive; revisar vínculos compartilhados; homologar "Hoje"/Atenção com analistas.
