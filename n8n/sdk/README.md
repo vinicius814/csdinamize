@@ -18,3 +18,4 @@ O código embutido nos nós Code é o mesmo de `n8n/src/*.js`, cuja equivalênci
 Credenciais (por ID, sem segredo): `DCS · Supabase service role` (TqXGYCOmVGd2AvKp), `Pipedrive account` (RLiF1ChIGaWvWg1f).
 Pendentes de criação: 02 incremental, 03 webhooks, 09 IA opcional.
 Os JSON em `n8n/workflows/` (fase 0) ficam como referência histórica; a fonte vigente é esta pasta.
+| 12 | `3sPrZxBsuVqVcJi3` | Teste de conexão com o Pipedrive (só leituras; pedido pela central de Integrações) | `12-teste-conexao.sdk.js` |

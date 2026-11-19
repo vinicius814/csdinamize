@@ -1,5 +1,6 @@
 import { useAcessoDcs, useEscritaPipedrive, useDefinirEscritaPipedrive } from "@/lib/dcs/dados";
 import { ComDica } from "@/components/dcs/Ajuda";
+import { CentralConexao } from "@/components/dcs/Conexao";
 import { createFileRoute } from "@tanstack/react-router";
 import { Database, RefreshCw, Workflow, Building2 } from "lucide-react";
 import { toast } from "sonner";
@@ -60,6 +61,7 @@ const PEDIDO: Record<string, string> = {
 };
 
 function Integracoes() {
+  const acessoInt = useAcessoDcs();
   const q = useIntegracoes();
   const st = useStatusSync();
   const carteira = useCarteira();
@@ -78,6 +80,7 @@ function Integracoes() {
         sub="Pipedrive → n8n → Supabase. Os dados do Dinamize CS continuam disponíveis mesmo se o Pipedrive ou o n8n estiverem fora do ar."
       />
       <Estado carregando={q.isLoading} erro={q.error}>
+        {acessoInt.data?.permissoes.integracoes && <CentralConexao />}
         <div className="mb-5 grid gap-4 md:grid-cols-3">
           <Cartao
             icone={<Building2 />}

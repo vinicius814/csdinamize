@@ -6,6 +6,7 @@ import { MODULOS_POR_PERFIL } from "@/lib/dcs/motor";
 import { NAV, PERFIL_ROTULO } from "@/components/dcs/navegacao";
 import { dataBR, Painel, Selo, Titulo } from "@/components/dcs/ui";
 import { SeloBeta, SeloEcommerce } from "@/components/dcs/Ajuda";
+import { MinhaConexaoPipedrive } from "@/components/dcs/Conexao";
 import { BUILD_ID, COMMIT, DATA_VERSAO, NOME_COMPLETO, VERSAO } from "@/lib/versao";
 
 export const Route = createFileRoute("/_authenticated/dcs/minha-conta")({ component: MinhaConta });
@@ -94,6 +95,9 @@ function MinhaConta() {
             cada operação. Exportação de dados não existe no Dinamize CS.
           </p>
         </Painel>
+        <div className="lg:col-span-2">
+          <MinhaConexaoPipedrive />
+        </div>
         <Painel titulo="Sobre o sistema" className="lg:col-span-2">
           <dl className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4" id="sobre">
             {(

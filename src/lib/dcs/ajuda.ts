@@ -58,6 +58,8 @@ export const TERMOS = {
     "Reincidência: o mesmo problema apareceu de novo em um ciclo posterior, depois de ter sido tratado ou registrado antes.",
   prioridade:
     "Prioridade da recomendação (crítica, alta, média, baixa): definida pela metodologia conforme o impacto do problema; pode ser ajustada no plano de ação.",
+  conexaoPipedrive:
+    "Conexão institucional: o Dinamize CS usa uma única credencial da Dinamize, guardada no n8n, para ler a carteira e registrar diagnósticos. Cada colaborador é vinculado ao seu próprio usuário do Pipedrive, e as atividades ficam com o analista como responsável. O teste verifica só leituras; a criação de atividades é comprovada pelo último registro confirmado.",
   prioridadeOperacional:
     "Prioridade operacional: indica por que o cliente precisa de atenção agora (revisão vencida, contato atrasado, ação crítica ou atrasada, análise parada, conta sem uso a revisar, ganhos rápidos). Cada critério soma pontos conforme o peso definido em Configurações e aparece como motivo. É diferente do índice de aproveitamento e não indica chance de cancelamento. Valores comerciais não entram no cálculo.",
   frequencia:

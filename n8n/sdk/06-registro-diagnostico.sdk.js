@@ -5,6 +5,7 @@ import { workflow, node, trigger, ifElse, expr } from '@n8n/workflow-sdk';
 // dcs_config.pipedrive_escrita ativa); 'aguardando_autorizacao' nunca é lido aqui.
 // Idempotência: 1 job por cliente+ciclo (chave única) e marca DZCS-<cliente>-C<ciclo> na nota. Antes de criar, procura
 // atividade do negócio com a marca; se existir (ou se o job já tiver activity_id), atualiza em vez de criar outra.
+// Responsável (owner_id): só o analista vinculado; autora técnica: a conta institucional do token (D40).
 // Falha no Pipedrive não perde o diagnóstico: o job volta como 'falha' com backoff e pode ser reprocessado.
 const SB = 'https://dknywurmzgrkxiytvncp.supabase.co/rest/v1/rpc/';
 const PD = 'https://api.pipedrive.com/api/v2/activities';
@@ -45,10 +46,13 @@ return (Array.isArray(lista) ? lista : []).map((j) => {
   if (p.deal_id) corpo.deal_id = Number(p.deal_id);
   if (p.org_id) corpo.org_id = Number(p.org_id);
   if (p.person_id) corpo.participants = [{ person_id: Number(p.person_id), primary: true }];
-  const dono = p.user_id || p.owner_id; // analista com vínculo no Pipedrive; senão, responsável da carteira
-  if (dono) corpo.owner_id = Number(dono);
+  // D40: responsável = analista vinculado ao Pipedrive. Sem vínculo, a atividade fica com a conta institucional
+  // (autora técnica) e a nota registra isso; nunca é atribuída a outra pessoa (ex.: responsável da carteira).
+  const atribuicao = p.user_id ? 'analista' : 'institucional';
+  if (p.user_id) corpo.owner_id = Number(p.user_id);
+  else corpo.note += '<p><small>Analista sem vínculo com usuário do Pipedrive: atividade registrada pela conta institucional.</small></p>';
   const anterior = j.resultado && j.resultado.activity_id ? Number(j.resultado.activity_id) : null;
-  return { json: { job_id: j.id, chave: j.chave, marca, deal_id: corpo.deal_id || null, anterior, corpo } };
+  return { json: { job_id: j.id, chave: j.chave, marca, deal_id: corpo.deal_id || null, anterior, atribuicao, corpo } };
 });` } } });
 const temNegocio = ifElse({ version: 2.2, config: { name: 'Tem negócio?', parameters: { conditions: {
   options: { caseSensitive: true, leftValue: '', typeValidation: 'loose' },
@@ -60,7 +64,7 @@ const semNegocio = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, conf
   options: { timeout: 30000 } }, credentials: credSupabase } });
 const buscar = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: { name: 'Atividades do negócio', onError: 'continueRegularOutput', parameters: {
   method: 'GET', url: PD, authentication: 'predefinedCredentialType', nodeCredentialType: 'pipedriveApi',
-  sendQuery: true, queryParameters: { parameters: [{ name: 'deal_id', value: expr('{{ $json.deal_id }}') }, { name: 'limit', value: '500' }] },
+  sendQuery: true, queryParameters: { parameters: [{ name: 'deal_id', value: expr('{{ $json.deal_id }}') }, { name: 'done', value: 'true' }, { name: 'sort_by', value: 'update_time' }, { name: 'sort_direction', value: 'desc' }, { name: 'limit', value: '500' }] },
   options: { timeout: 30000, response: { response: { responseFormat: 'json', outputPropertyName: 'resp' } } } }, credentials: credPipedrive } });
 const decidir = node({ type: 'n8n-nodes-base.code', version: 2, config: { name: 'Criar ou atualizar', parameters: { mode: 'runOnceForEachItem', jsCode: `const base = $('Preparar atividades').item.json;
 const r = $json;
@@ -79,7 +83,7 @@ const gravar = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: 
 const finalizar = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: { name: 'Finalizar registro', parameters: {
   method: 'POST', url: SB + 'dcs_finalizar_job', authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',
   sendBody: true, contentType: 'json', specifyBody: 'json',
-  jsonBody: expr("{{ (() => { const b = $('Criar ou atualizar').item.json; const id = $json.data && $json.data.id; return JSON.stringify(id ? { p_id: b.job_id, p_status: 'concluido', p_resultado: { activity_id: id, deal_id: b.deal_id, metodo: b.metodo, em: new Date().toISOString() }, p_erro: null } : { p_id: b.job_id, p_status: 'falha', p_resultado: null, p_erro: 'Pipedrive: ' + String(($json.error && ($json.error.message || $json.error)) || 'resposta sem id') }); })() }}"),
+  jsonBody: expr("{{ (() => { const b = $('Criar ou atualizar').item.json; const id = $json.data && $json.data.id; return JSON.stringify(id ? { p_id: b.job_id, p_status: 'concluido', p_resultado: { activity_id: id, deal_id: b.deal_id, metodo: b.metodo, atribuicao: b.atribuicao, em: new Date().toISOString() }, p_erro: null } : { p_id: b.job_id, p_status: 'falha', p_resultado: null, p_erro: 'Pipedrive: ' + String(($json.error && ($json.error.message || $json.error)) || 'resposta sem id') }); })() }}"),
   options: { timeout: 30000 } }, credentials: credSupabase } });
 const falhaLeitura = node({ type: 'n8n-nodes-base.httpRequest', version: 4.4, config: { name: 'Falha na leitura', parameters: {
   method: 'POST', url: SB + 'dcs_finalizar_job', authentication: 'predefinedCredentialType', nodeCredentialType: 'supabaseApi',

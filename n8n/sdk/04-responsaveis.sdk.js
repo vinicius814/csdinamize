@@ -12,6 +12,9 @@ const agendamento = trigger({
 
 const manual = trigger({ type: 'n8n-nodes-base.manualTrigger', version: 1, config: { name: 'Execução manual' } });
 
+// D40: chamado pelo 11 quando a central de Integrações pede "Atualizar responsáveis".
+const pedido = trigger({ type: 'n8n-nodes-base.executeWorkflowTrigger', version: 1.1, config: { name: 'Pedido do Dinamize CS', parameters: { inputSource: 'passthrough' } } });
+
 // Sem nova tentativa automática: abrir a sincronização não é idempotente (trava de uma execução por tipo).
 const abrir = node({
   type: 'n8n-nodes-base.httpRequest',
@@ -84,4 +87,6 @@ export default workflow('dcs-04', 'Dinamize CS | 04 — Sincronização dos resp
   .to(normalizar)
   .to(publicar)
   .add(manual)
+  .to(abrir)
+  .add(pedido)
   .to(abrir);

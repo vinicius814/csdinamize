@@ -944,6 +944,7 @@ export function useSalvarAcesso() {
       void qc.invalidateQueries({ queryKey: ["dcs", "usuarios"] });
       void qc.invalidateQueries({ queryKey: ["dcs", "pre-cadastros"] });
       void qc.invalidateQueries({ queryKey: ["dcs", "logs-seguranca"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "vinculos-pd"] });
     },
   });
 }
@@ -1097,5 +1098,116 @@ export function useDefinirConfigProduto() {
       void qc.invalidateQueries({ queryKey: ["dcs", "config-produto"] });
       void qc.invalidateQueries({ queryKey: ["dcs", "acesso"] });
     },
+  });
+}
+
+/* ---------------- Central de conexão com o Pipedrive (D40) ---------------- */
+export type CheckConexao = {
+  chave: string;
+  rotulo: string;
+  status: "ok" | "falha" | "sem_permissao" | "nao_testado";
+  detalhe: string | null;
+};
+export type TesteConexao = {
+  id: string;
+  status: "pendente" | "em_execucao" | "concluido" | "falha";
+  solicitado_em: string;
+  concluido_em: string | null;
+  erro: string | null;
+  resultado: {
+    checks: CheckConexao[];
+    conta: { empresa: string | null; usuario: string | null } | null;
+    falhas: number;
+  } | null;
+};
+export type StatusConexao = {
+  metodo: string;
+  escrita_ativa: boolean;
+  ultimo_teste: TesteConexao | null;
+  sincronizacoes: {
+    tipo: "carteira" | "cobertura" | "responsaveis";
+    ultimo_status: string;
+    ultima_execucao: string | null;
+    ultimo_sucesso: string | null;
+    ultimo_completo: boolean | null;
+    falhas_7d: number;
+  }[];
+  pedidos_abertos: string[];
+  registros: Record<
+    | "aguardando_autorizacao"
+    | "pendentes"
+    | "falha_recuperavel"
+    | "falha_definitiva"
+    | "aguardando_conferencia"
+    | "confirmados",
+    number
+  >;
+  erros_recentes: { em: string; origem: string; mensagem: string }[];
+};
+export function useStatusConexao(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "status-conexao"],
+    enabled: ativo,
+    queryFn: () => rpc<StatusConexao>("dcs_status_conexao"),
+    // Enquanto há teste ou pedido aberto, acompanha a cada 5 s.
+    refetchInterval: (q) => {
+      const d = q.state.data;
+      return d &&
+        (d.pedidos_abertos.length ||
+          ["pendente", "em_execucao"].includes(d.ultimo_teste?.status ?? ""))
+        ? 5000
+        : false;
+    },
+  });
+}
+export function useTestarConexao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => rpc<string>("dcs_solicitar_teste_conexao"),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "status-conexao"] }),
+  });
+}
+export function useSolicitarAtualizacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (tipo: "carteira" | "cobertura" | "responsaveis") =>
+      rpc<string>("dcs_solicitar_sync", { p_tipo: tipo }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["dcs", "status-conexao"] });
+      void qc.invalidateQueries({ queryKey: ["dcs", "status-sync"] });
+    },
+  });
+}
+export type MinhaConexao = {
+  vinculado: boolean;
+  conexao: "institucional";
+  pipedrive_user_id?: number;
+  nome?: string | null;
+  email?: string | null;
+  ativo_no_pipedrive?: boolean | null;
+  visto_em?: string | null;
+  metodo?: "email" | "email_dominio" | "manual";
+  compartilhado?: boolean;
+} | null;
+export function useMinhaConexao() {
+  return useQuery({
+    queryKey: ["dcs", "minha-conexao"],
+    queryFn: () => rpc<MinhaConexao>("dcs_minha_conexao_pipedrive"),
+  });
+}
+export type VinculoPD = {
+  user_id: string;
+  pipedrive_user_id: number | null;
+  nome_pipedrive: string | null;
+  metodo: "email" | "email_dominio" | "manual" | "sem_vinculo";
+  compartilhado: boolean;
+  ativo_no_pipedrive: boolean | null;
+};
+export function useVinculosPD(ativo: boolean) {
+  return useQuery({
+    queryKey: ["dcs", "vinculos-pd"],
+    enabled: ativo,
+    queryFn: async () =>
+      new Map((await rpc<VinculoPD[]>("dcs_vinculos_pipedrive")).map((v) => [v.user_id, v])),
   });
 }

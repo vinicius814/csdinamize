@@ -20,6 +20,7 @@ import {
   useSalvarAcesso,
   useTransferirMaster,
   useUsuarios,
+  useVinculosPD,
   type FormAcesso,
   type Permissao,
 } from "@/lib/dcs/dados";
@@ -121,6 +122,7 @@ function Usuarios() {
   const pode = !!acesso.data?.permissoes.usuarios;
   const q = useUsuarios(pode);
   const pre = usePreCadastros(pode);
+  const vinc = useVinculosPD(pode);
   const resp = useResponsaveisPD(pode);
   const nomes = useAnalistas();
   const [busca, setBusca] = useState("");
@@ -203,6 +205,7 @@ function Usuarios() {
             <tr>
               <th>Usuário</th>
               <th>Perfil</th>
+              <th>Pipedrive</th>
               <th>Carteiras</th>
               <th>Convidado por</th>
               <th>Último acesso</th>
@@ -232,6 +235,9 @@ function Usuarios() {
                     ) : (
                       <span className="text-muted-foreground">Sem perfil</span>
                     )}
+                  </td>
+                  <td className="text-xs">
+                    <VinculoCelula v={vinc.data?.get(u.user_id)} />
                   </td>
                   <td className="max-w-[220px] text-xs">
                     {adm
@@ -1427,5 +1433,27 @@ function Modulos({
         lista.
       </p>
     </div>
+  );
+}
+
+/** Qualidade do vínculo com o usuário do Pipedrive (D40): confirmado por e-mail, manual, compartilhado ou ausente. */
+function VinculoCelula({ v }: { v: import("@/lib/dcs/dados").VinculoPD | undefined }) {
+  if (!v) return <span className="text-muted-foreground">—</span>;
+  if (v.metodo === "sem_vinculo") return <Selo tom="aviso">Sem vínculo</Selo>;
+  const rot =
+    v.metodo === "email"
+      ? "E-mail confere"
+      : v.metodo === "email_dominio"
+        ? "E-mail (outro domínio)"
+        : "Manual";
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="truncate">{v.nome_pipedrive ?? `#${v.pipedrive_user_id}`}</span>
+      <span className="flex flex-wrap gap-1">
+        <Selo tom={v.metodo === "manual" ? "aviso" : "ok"}>{rot}</Selo>
+        {v.compartilhado && <Selo tom="critico">Compartilhado</Selo>}
+        {v.ativo_no_pipedrive === false && <Selo tom="critico">Inativo no Pipedrive</Selo>}
+      </span>
+    </span>
   );
 }
