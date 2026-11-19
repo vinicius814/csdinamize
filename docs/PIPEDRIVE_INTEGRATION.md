@@ -20,3 +20,17 @@ Conta: `cs-dinamize`. Leitura e escrita só pelo n8n (credencial "DCS · Pipedri
 - Escrita (somente após autorização): uma atividade "Análise" concluída no negócio principal por ciclo de diagnóstico,
   com a marca `DZCS-<cliente>-C<ciclo>` na nota (idempotência). Nada mais é alterado no Pipedrive.
 - Webhook: eventos de negócio → n8n 03 (cabeçalho secreto) → sincronização incremental.
+
+## Conexão, autoria e vínculos (D40, 19/11/2026)
+- **Conexão institucional:** credencial `Pipedrive account` no n8n (token de API). Hoje pertence a um usuário pessoal; recomenda-se
+  um usuário de integração dedicado. O navegador nunca recebe o token.
+- **Autoria × responsável:** a conta da credencial é a autora técnica (`creator_user_id`); o `owner_id` é o analista vinculado.
+  Sem vínculo: sem `owner_id` (fica com a conta institucional) e a nota avisa. Nunca se usa o responsável da carteira como substituto.
+- **Vínculos:** `dcs_membros.pipedrive_user_id` = id do usuário do Pipedrive (identificador oficial), validado contra a última
+  sincronização de responsáveis e confirmado pelo e-mail (igual, ou mesmo usuário em outro domínio Dinamize). Não pode haver
+  dois colaboradores ativos com o mesmo vínculo novo.
+- **Teste de conexão (workflow 12):** só GETs — `users/me`, `deals?pipeline_id=15`, `organizations`, `persons`, `activities`,
+  `users`, `dealFields` (segmento, gerente de CS, contato efetivo), `stages?pipeline_id=15` (101, 102, 103, 135, 147, 104),
+  `activityTypes` (`anlise`). Escrita não testada; comprovada pelo último registro confirmado.
+- **Pedidos da interface (workflow 11):** carteira → 01, responsáveis → 04, cobertura → 05.
+- **Anti-duplicidade (06):** procura a marca `DZCS-<cliente>-C<ciclo>` nas atividades concluídas do negócio, mais recentes primeiro.

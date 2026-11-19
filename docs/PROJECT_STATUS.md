@@ -1,5 +1,9 @@
 # Status do projeto
 
+**19/11/2026 — Beta 1.1 (evolução de produto) na branch `dinamize-cs/evolucao-produto`.** Migration `20261119012714_dcs_conexao_pipedrive`
+aplicada; n8n 04/06/11 atualizados e 12 criado (publicados). Detalhes: `docs/PRODUCT_UX_EVOLUTION.md`, D38–D40.
+Pendências novas: usuário de integração dedicado no Pipedrive; revisar vínculos compartilhados; homologar "Hoje"/Atenção com analistas.
+
 **Fase atual (18/11/2026, 15h):** Dinamize CS **Beta 1.0** na branch `dinamize-cs/finalizacao-beta` (pushed), aguardando homologação.
 Banco já migrado (20261118163544/163708/163837). `main` (preview) ainda sem o Beta. Decisões D33–D37.
 Documentos: `FINAL_SECURITY_AUDIT.md`, `AUTHENTICATION_AND_INVITATIONS.md`, `PRODUCTION_DATA_CLEANUP.md`, `USER_GUIDE.md`, `DEPLOYMENT.md`, `/CHANGELOG.md`.

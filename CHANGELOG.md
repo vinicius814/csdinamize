@@ -1,5 +1,14 @@
 # Changelog — Dinamize CS
 
+## Beta 1.1 — 19/11/2026 (branch `dinamize-cs/evolucao-produto`, aguardando homologação)
+- "Minha operação hoje" na Visão geral: contadores e próximas ações com motivo e atalho.
+- Prioridade operacional explicável (coluna Atenção, ordem padrão da carteira), pesos editáveis em Configurações.
+- Aba Evolução na ficha do cliente, com resumo para reunião.
+- Central de conexão com o Pipedrive (testar conexão, atualizar carteira/responsáveis/cobertura, registros por estado).
+- Minha conexão com o Pipedrive (Minha conta) e qualidade dos vínculos em Usuários.
+- Registro no Pipedrive nunca atribui atividade a outra pessoa; busca anti-duplicidade mais robusta.
+- Pedido de atualização de responsáveis corrigido (executava a cobertura).
+
 ## Beta 1.0 — 18/11/2026 (branch `dinamize-cs/finalizacao-beta`, aguardando homologação)
 
 ### Acesso e segurança
