@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/dcs/alertas")({
   component: Alertas,
 });
 
-const TIPO: Record<DcsAlerta["tipo"], [string, Tom]> = {
+export const TIPO: Record<DcsAlerta["tipo"], [string, Tom]> = {
   oportunidade_critica: ["Ação crítica em aberto", "critico"],
   acao_atrasada: ["Ação atrasada", "alerta"],
   revisao_vencida: ["Revisão vencida", "aviso"],
@@ -107,7 +107,7 @@ function Alertas() {
     </>
   );
 }
-function detalhe(a: DcsAlerta) {
+export function detalhe(a: DcsAlerta) {
   const d = a.detalhe ?? {};
   if (a.tipo === "cobertura_critica")
     return d["data_contato_efetivo"]

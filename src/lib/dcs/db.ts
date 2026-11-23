@@ -25,6 +25,21 @@ export type DcsCliente = {
   inativado_em: string | null;
   atualizado_em: string;
 };
+/** Negócios do funil Onboarding (pipeline_id=1), sincronizados pelo workflow 13. Ligado a dcs_clientes por org_id. */
+export type DcsPipelineOnboarding = {
+  key: string;
+  org_id: number;
+  deal_id: number;
+  stage_id: number;
+  owner_id: number | null;
+  owner_nome: string | null;
+  titulo: string | null;
+  entrada_etapa_em: string | null;
+  ativo: boolean;
+  inativado_em: string | null;
+  sync_id: string | null;
+  atualizado_em: string;
+};
 export type DcsFinanceiro = {
   key: string;
   mrr: number | null;
@@ -280,6 +295,7 @@ export type DcsDatabase = {
   public: {
     Tables: {
       dcs_clientes: T<DcsCliente>;
+      dcs_pipeline_onboarding: T<DcsPipelineOnboarding>;
       dcs_clientes_financeiro: T<DcsFinanceiro>;
       dcs_cobertura: T<DcsCobertura>;
       dcs_diagnosticos: T<DcsDiagnostico>;

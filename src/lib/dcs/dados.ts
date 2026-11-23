@@ -179,7 +179,7 @@ export function useCliente(key: string) {
   return useQuery({
     queryKey: ["dcs", "cliente", key],
     queryFn: async () => {
-      const [c, fin, cob, diags, acoes] = await Promise.all([
+      const [c, fin, cob, diags, acoes, alertas] = await Promise.all([
         ok<DcsCliente | null>(dcs.from("dcs_clientes").select("*").eq("key", key).maybeSingle()),
         ok<{ mrr: number | null } | null>(
           dcs.from("dcs_clientes_financeiro").select("mrr").eq("key", key).maybeSingle(),
@@ -199,8 +199,35 @@ export function useCliente(key: string) {
             .eq("cliente_key", key)
             .order("atualizado_em", { ascending: false }),
         ),
+        ok(
+          dcs
+            .from("dcs_alertas")
+            .select("*")
+            .eq("cliente_key", key)
+            .order("gerado_em", { ascending: false }),
+        ),
       ]);
-      return { cliente: c, mrr: fin?.mrr ?? null, cobertura: cob, diagnosticos: diags, acoes };
+      // Onboarding (funil Pipedrive id 1) é consultado por org_id — mesma organização pode ter
+      // conta em CS (dcs_clientes) e negócio em Onboarding (dcs_pipeline_onboarding). Sem org_id
+      // (cliente ainda não sincronizado) ou sem linha publicada (sync ainda inativo), retorna [].
+      const onboarding = c?.org_id
+        ? await ok(
+            dcs
+              .from("dcs_pipeline_onboarding")
+              .select("*")
+              .eq("org_id", c.org_id)
+              .order("atualizado_em", { ascending: false }),
+          )
+        : [];
+      return {
+        cliente: c,
+        mrr: fin?.mrr ?? null,
+        cobertura: cob,
+        diagnosticos: diags,
+        acoes,
+        riscos: alertas,
+        onboarding,
+      };
     },
   });
 }

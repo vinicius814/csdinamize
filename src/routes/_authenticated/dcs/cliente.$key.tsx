@@ -22,6 +22,9 @@ import {
 } from "@/lib/dcs/dados";
 import { useAnalistas, useUtilizacao, useCarteira } from "@/lib/dcs/dados";
 import { proximoElegivel } from "@/lib/dcs/fila";
+import { nomeEtapaOnboarding, ETAPA_CANCELAMENTO_ONBOARDING } from "@/lib/dcs/onboarding";
+import { TIPO as TIPO_ALERTA, detalhe as detalheAlerta } from "./alertas";
+import type { DcsPipelineOnboarding } from "@/lib/dcs/db";
 
 const buscaCarteira = () => {
   try {
@@ -194,13 +197,67 @@ function Cliente() {
               </Dado>
               <Dado rotulo="Último contato efetivo">
                 {dataBR(dados.cobertura?.data_contato_efetivo)}
+                {dados.cobertura?.contato_por_atividade?.subject && (
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    {dados.cobertura.contato_por_atividade.subject}
+                  </span>
+                )}
               </Dado>
-              <Dado rotulo="Próximo contato">{dataBR(dados.cobertura?.proximo?.date)}</Dado>
+              <Dado rotulo="Próximo contato">
+                {dataBR(dados.cobertura?.proximo?.date)}
+                {dados.cobertura?.proximo?.subject && (
+                  <span className="block text-xs font-normal text-muted-foreground">
+                    {dados.cobertura.proximo.subject}
+                  </span>
+                )}
+              </Dado>
               <Dado rotulo="Valor (Pipedrive)">
                 {acesso.data?.financeiro ? moeda(dados.mrr) : "Restrito"}
               </Dado>
             </dl>
           </section>
+          <div className="mb-5 grid gap-4 lg:grid-cols-3">
+            <Painel titulo="Negócios relacionados">
+              {dados.cliente.deal_ids.length ? (
+                <ul className="space-y-1.5 text-sm">
+                  {dados.cliente.deal_ids.map((id) => (
+                    <li key={id} className="flex items-center justify-between gap-2">
+                      <span>
+                        Negócio #{id}
+                        {id === dados.cliente!.deal_id && (
+                          <span className="ml-1 text-xs text-muted-foreground">(principal)</span>
+                        )}
+                      </span>
+                      <a href={pipedriveDeal(id)} target="_blank" rel="noreferrer">
+                        <Button variant="ghost" size="sm">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">Sem negócios vinculados.</p>
+              )}
+            </Painel>
+            <Painel titulo="Situação de onboarding">
+              <Onboarding360 negocios={dados.onboarding} />
+            </Painel>
+            <Painel titulo={`Riscos (${dados.riscos.length})`}>
+              {dados.riscos.length ? (
+                <ul className="space-y-2 text-sm">
+                  {dados.riscos.map((r) => (
+                    <li key={r.id}>
+                      <Selo tom={TIPO_ALERTA[r.tipo][1]}>{TIPO_ALERTA[r.tipo][0]}</Selo>
+                      <p className="mt-1 text-xs text-muted-foreground">{detalheAlerta(r)}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum risco identificado.</p>
+              )}
+            </Painel>
+          </div>
           <PainelUtilizacao
             cliente={{
               key,
@@ -377,6 +434,44 @@ const DICA_DADO: Record<string, Termo> = {
   Utilização: "semUso",
   "Próximo contato": "diasSemContato",
 };
+/**
+ * Situação de onboarding: lê dcs_pipeline_onboarding (funil Pipedrive id 1) pela mesma
+ * organização. O workflow de sincronização (n8n #13) ainda está inativo (aguardando credencial
+ * manual — ver docs/GESTOR_MVP_STATUS.md), então até lá isto mostra corretamente "indisponível"
+ * em vez de qualquer dado inventado.
+ */
+function Onboarding360({ negocios }: { negocios: DcsPipelineOnboarding[] }) {
+  if (!negocios.length)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Sem negócio de onboarding sincronizado para esta organização.
+      </p>
+    );
+  return (
+    <ul className="space-y-2 text-sm">
+      {negocios.map((n) => (
+        <li key={n.key}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium">{n.titulo ?? `Negócio #${n.deal_id}`}</span>
+            <a href={pipedriveDeal(n.deal_id)} target="_blank" rel="noreferrer">
+              <Button variant="ghost" size="sm">
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {nomeEtapaOnboarding(n.stage_id)}
+            {n.stage_id === ETAPA_CANCELAMENTO_ONBOARDING && (
+              <span className="ml-1 text-red-700">· bloqueado/suspenso/cancelado</span>
+            )}
+            {!n.ativo && " · inativo"}
+            {n.entrada_etapa_em && ` · desde ${dataBR(n.entrada_etapa_em)}`}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
 function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
