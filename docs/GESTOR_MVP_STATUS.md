@@ -43,6 +43,21 @@ funcionalidade diferente do onboarding operacional de clientes.
 - n8n: workflow `Dinamize CS | 13 — Sincronização do funil Onboarding` (ID `07ed9XQEH6Fw5Qnm`, validado, **inativo**)
   lê o funil 1 do Pipedrive (paginado) e publica em `dcs_pipeline_onboarding`. Fonte em `n8n/sdk/13-onboarding.sdk.js`.
 
+## Feito (23/11/2026, continuação)
+- Prioridade 1 (Carteira consolidada / Cliente 360): ficha do cliente (`dcs/cliente.$key`)
+  ganhou Negócios relacionados (todos os `deal_ids`), Riscos (alertas do próprio cliente,
+  reaproveitando `alertas.tsx`), Situação de onboarding (liga a `dcs_pipeline_onboarding` por
+  `org_id`) e detalhe (subject) dos registros de contato. Carteira de clientes ganhou coluna
+  "Onboarding" (etapa do funil id 1, quando a mesma org tem negócio lá). Commits `71f461e`,
+  `c7a6c2e`.
+- Prioridade 2 (Onboarding): rota `/dcs/onboarding` nova e real (não "Em breve") — lista,
+  filtra por etapa/responsável/busca, mostra dias na etapa, liga à ficha CS quando existe e
+  ao negócio no Pipedrive. Módulo "onboarding" em `MODULOS_POR_PERFIL` (admin/cs) + nav.
+  Não implementado (precisa do artefato Gestor ou de regra de prazo validada, e da sincronização
+  de atividades do funil Onboarding, nenhuma das duas disponível ainda): clientes atrasados,
+  atividades relacionadas, próximos contatos. Commit `9ea2832`.
+- Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
+
 ## Bloqueio aberto
 - **Credenciais do workflow 13 não foram anexadas automaticamente** (5 nós HTTP: Abrir sincronização, Usuários
   Pipedrive, Negócios do funil Onboarding, Publicar onboarding, Registrar falha). As credenciais existem no n8n
@@ -59,7 +74,7 @@ funcionalidade diferente do onboarding operacional de clientes.
   já registradas em `docs/PROJECT_STATUS.md`.
 
 ## Próxima etapa
-Com o funil Onboarding mapeável (schema + função + workflow prontos), seguir para:
-1. Você (ou alguém com acesso ao n8n) anexar as credenciais no workflow 13 e eu ativo e testo com uma execução manual.
-2. Enquanto isso, iniciar a Carteira consolidada / Cliente 360 (Prioridade 1 do pedido): auditar `dcs_clientes`
-   (hoje só funil 15) e desenhar como linkar com `dcs_pipeline_onboarding` por `org_id` na ficha do cliente.
+1. Você (ou alguém com acesso ao n8n) anexar as credenciais no workflow 13 (ver Bloqueio aberto);
+   eu ativo e testo com uma execução manual. Enquanto isso as telas de onboarding mostram
+   corretamente "sem negócio sincronizado" (não é bug).
+2. Seguir para Prioridade 3 — Gestão da equipe (visão por responsável/colaborador).
