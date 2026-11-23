@@ -16,6 +16,7 @@ O código embutido nos nós Code é o mesmo de `n8n/src/*.js`, cuja equivalênci
 | 10-reprocessamento.sdk.js | Dinamize CS \| 10 — Reprocessamento de operações pendentes | tVMO9IEljT4jrvky | ativo (30 min) |
 | 12-teste-conexao.sdk.js | Dinamize CS \| 12 — Teste de conexão com o Pipedrive | 3sPrZxBsuVqVcJi3 | ativo (a cada minuto; só leituras — D40) |
 | 13-onboarding.sdk.js | Dinamize CS \| 13 — Sincronização do funil Onboarding | 07ed9XQEH6Fw5Qnm | **inativo** — criado e validado (23/11/2026), falta anexar credencial manualmente nos 5 nós HTTP antes de ativar |
+| 14-atividades.sdk.js | Dinamize CS \| 14 — Sincronização de atividades abertas | vClNoAV71FeudEhr | **inativo** — criado e validado (23/11/2026), mesmo bloqueio de credencial manual (6 nós HTTP) |
 
 Credenciais (por ID, sem segredo): `DCS · Supabase service role` (TqXGYCOmVGd2AvKp), `Pipedrive account` (RLiF1ChIGaWvWg1f).
 Pendentes de criação: 02 incremental, 03 webhooks, 09 IA opcional.
