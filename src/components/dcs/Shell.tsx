@@ -360,7 +360,7 @@ function Notificacoes() {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Alertas e pendências</DropdownMenuLabel>
+        <DropdownMenuLabel>Radar de inteligência</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {porTipo.length === 0 ? (
           <p className="px-2 py-3 text-sm text-muted-foreground">Nenhuma pendência no momento.</p>

@@ -487,7 +487,7 @@ export function useAlertas() {
     queryFn: async () => {
       const [alertas, clientes] = await Promise.all([
         ok(dcs.from("dcs_alertas").select("*").order("tipo")),
-        ok(dcs.from("dcs_clientes").select("key,nome,owner_nome")),
+        ok(dcs.from("dcs_clientes").select("key,nome,owner_nome,deal_id")),
       ]);
       const nome = new Map(clientes.map((c) => [c.key, c]));
       return alertas.map((a) => ({ ...a, cliente: nome.get(a.cliente_key) }));

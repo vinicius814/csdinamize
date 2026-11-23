@@ -109,7 +109,7 @@ export const NAV: ItemNav[] = [
   },
   {
     to: "/dcs/alertas",
-    rotulo: "Alertas e pendências",
+    rotulo: "Radar de inteligência",
     icone: Bell,
     mod: "visao-geral",
     grupo: "Operação",

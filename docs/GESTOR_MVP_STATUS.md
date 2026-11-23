@@ -11,13 +11,13 @@ Frente nova, aditiva, sobre o produto Dinamize CS já publicado (Beta 1.1). Não
 ## Módulos implementados (confirmados por módulo entre `dcs_*`/`src/components/dcs`)
 Visão geral, Carteira de clientes (+ Cliente 360 ampliado), Minhas análises, Planos de ação,
 Cobertura de CS, **Onboarding** (novo), **Gestão da equipe** (novo), **Atividades e pendências**
-(novo), **Cancelamentos e retenção** (novo), Alertas e pendências, Inteligência gerencial,
-Histórico de diagnósticos, Usuários e permissões, Configurações, Integrações, Diagnóstico
-detalhado (motor completo, testado). Onboarding guiado do app (tours) também existe, mas é
-funcionalidade diferente do onboarding operacional de clientes (pipeline Pipedrive id 1).
+(novo), **Cancelamentos e retenção** (novo), **Radar de inteligência** (evolução de "Alertas e
+pendências"), Inteligência gerencial, Histórico de diagnósticos, Usuários e permissões,
+Configurações, Integrações, Diagnóstico detalhado (motor completo, testado). Onboarding guiado
+do app (tours) também existe, mas é funcionalidade diferente do onboarding operacional de
+clientes (pipeline Pipedrive id 1).
 
 ## Gaps confirmados (pedidos no spec, ainda ausentes)
-- Radar de inteligência (Prioridade 6) — hoje é "Alertas e pendências", sem estrutura motivo/evidência/ação sugerida/link de resolução por item (parte disso já existe via Riscos na ficha 360 e em alertas.tsx).
 - Relatórios gerenciais (Prioridade 8) — "Inteligência gerencial" cobre parte, não a amplitude pedida.
 - Assistente e Metas (Prioridade 9) — não existem.
 - Onboarding (Prioridade 2): sem "clientes atrasados" (falta regra de prazo por etapa validada — artefato
@@ -62,7 +62,17 @@ funcionalidade diferente do onboarding operacional de clientes (pipeline Pipedri
   sem utilização (`dcs_utilizacao`), sem acompanhamento agendado (`dcs_cobertura.proximo`). Dados: tabela
   nova `dcs_cancelamentos` (histórico — upsert, nunca inativado/excluído) + função
   `dcs_publicar_cancelamentos` + workflow n8n `15-cancelamentos.sdk.js` (ID `JLSSTrhLrJCJbSoD`,
-  **inativo**, mesmo bloqueio de credencial manual, 5 nós HTTP). Commit pendente.
+  **inativo**, mesmo bloqueio de credencial manual, 5 nós HTTP). Commit `7b20afd`.
+- **Prioridade 6 — Radar de inteligência**: evolução de "Alertas e pendências" (mesma rota
+  `/dcs/alertas`, renomeada na navegação) — mesma tabela `dcs_alertas`/função
+  `dcs_atualizar_alertas` (full-replace diário), agora com um 6º tipo real,
+  `cancelamento_recente` (cruza `dcs_cancelamentos`, últimos 30 dias, só quando o cliente ainda
+  tem linha em `dcs_clientes` — RLS exige). Cada linha passou a trazer explicitamente
+  motivo/evidência (coluna já existente), **ação sugerida** (texto de orientação por tipo, não é
+  dado do cliente) e **link direto** ao negócio no Pipedrive (reaproveita `dcs_clientes.deal_id` +
+  helper `pipedriveDeal`, já usado em outras telas). Não criei alertas de atraso para
+  Onboarding/Implementação por falta de uma regra de prazo por etapa validada (mesmo gap já
+  registrado abaixo) — melhor não ter o alerta do que inventar um prazo. Commit pendente.
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
@@ -94,6 +104,6 @@ funcionalidade diferente do onboarding operacional de clientes (pipeline Pipedri
 ## Próxima etapa
 1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver Bloqueio
    aberto); eu ativo e testo cada um com uma execução manual.
-2. Seguir para Prioridade 6 — Radar de inteligência (expandir Alertas e pendências para cobrir
-   CS+Onboarding+atividades+contatos+implementações+sem uso+risco de cancelamento+oportunidades de
-   melhoria, cada alerta com cliente/responsável/motivo/criticidade/evidência/ação sugerida/link direto).
+2. Seguir para Prioridade 7 — Oportunidades de melhoria (reapresentar "Planos de ação" sob esse nome/
+   enquadramento, conectando diagnósticos/recomendações/implementações/responsáveis/prazos/prioridades/
+   histórico/status; preservar o motor de diagnóstico como módulo independente, acessível pela ficha 360).

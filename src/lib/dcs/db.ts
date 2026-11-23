@@ -171,7 +171,8 @@ export type DcsAlerta = {
     | "acao_atrasada"
     | "cobertura_critica"
     | "oportunidade_critica"
-    | "utilizacao_revisao";
+    | "utilizacao_revisao"
+    | "cancelamento_recente";
   cliente_key: string;
   referencia: string | null;
   detalhe: Record<string, unknown> | null;
