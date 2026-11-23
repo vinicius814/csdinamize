@@ -289,6 +289,10 @@ describe("mensagens e permissões", () => {
       M.podeVerCliente({ perfil: null, carteiras: [5], clientes: [] }, { key: "1", ownerId: 5 }),
     ).toBe(false);
     expect(M.MODULOS_POR_PERFIL.contas).not.toContain("configuracoes");
+    // Onboarding (Prioridade 2, pipeline Pipedrive id 1): visível para admin e CS, não para contas.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("onboarding");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("onboarding");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("onboarding");
   });
   it("chave de idempotência compatível com o artefato", () => {
     expect(M.chaveAtividade("116749", 2)).toBe("DZCS-116749-C2");

@@ -8,6 +8,7 @@ import {
   History,
   LayoutDashboard,
   PlugZap,
+  Rocket,
   Settings2,
   ShieldCheck,
   Users,
@@ -73,6 +74,13 @@ export const NAV: ItemNav[] = [
     rotulo: "Cobertura de CS",
     icone: Activity,
     mod: "cobertura",
+    grupo: "Operação",
+  },
+  {
+    to: "/dcs/onboarding",
+    rotulo: "Onboarding",
+    icone: Rocket,
+    mod: "onboarding",
     grupo: "Operação",
   },
   {

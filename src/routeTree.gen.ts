@@ -48,6 +48,7 @@ import { Route as AuthenticatedDcsHistoricoRouteImport } from './routes/_authent
 import { Route as AuthenticatedDcsIntegracoesRouteImport } from './routes/_authenticated/dcs/integracoes'
 import { Route as AuthenticatedDcsInteligenciaRouteImport } from './routes/_authenticated/dcs/inteligencia'
 import { Route as AuthenticatedDcsMinhaContaRouteImport } from './routes/_authenticated/dcs/minha-conta'
+import { Route as AuthenticatedDcsOnboardingRouteImport } from './routes/_authenticated/dcs/onboarding'
 import { Route as AuthenticatedDcsPlanosRouteImport } from './routes/_authenticated/dcs/planos'
 import { Route as AuthenticatedDcsUsuariosRouteImport } from './routes/_authenticated/dcs/usuarios'
 import { Route as AuthenticatedDcsClienteKeyRouteImport } from './routes/_authenticated/dcs/cliente.$key'
@@ -267,6 +268,12 @@ const AuthenticatedDcsMinhaContaRoute =
     path: '/minha-conta',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsOnboardingRoute =
+  AuthenticatedDcsOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
 const AuthenticatedDcsPlanosRoute = AuthenticatedDcsPlanosRouteImport.update({
   id: '/planos',
   path: '/planos',
@@ -351,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs/': typeof AuthenticatedDcsIndexRoute
@@ -398,6 +406,7 @@ export interface FileRoutesByTo {
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs': typeof AuthenticatedDcsIndexRoute
@@ -448,6 +457,7 @@ export interface FileRoutesById {
   '/_authenticated/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/_authenticated/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/_authenticated/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/_authenticated/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/_authenticated/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/_authenticated/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/_authenticated/dcs/': typeof AuthenticatedDcsIndexRoute
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
     | '/dcs/minha-conta'
+    | '/dcs/onboarding'
     | '/dcs/planos'
     | '/dcs/usuarios'
     | '/dcs/'
@@ -545,6 +556,7 @@ export interface FileRouteTypes {
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
     | '/dcs/minha-conta'
+    | '/dcs/onboarding'
     | '/dcs/planos'
     | '/dcs/usuarios'
     | '/dcs'
@@ -594,6 +606,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/integracoes'
     | '/_authenticated/dcs/inteligencia'
     | '/_authenticated/dcs/minha-conta'
+    | '/_authenticated/dcs/onboarding'
     | '/_authenticated/dcs/planos'
     | '/_authenticated/dcs/usuarios'
     | '/_authenticated/dcs/'
@@ -895,6 +908,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsMinhaContaRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/onboarding': {
+      id: '/_authenticated/dcs/onboarding'
+      path: '/onboarding'
+      fullPath: '/dcs/onboarding'
+      preLoaderRoute: typeof AuthenticatedDcsOnboardingRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/planos': {
       id: '/_authenticated/dcs/planos'
       path: '/planos'
@@ -965,6 +985,7 @@ interface AuthenticatedDcsRouteRouteChildren {
   AuthenticatedDcsIntegracoesRoute: typeof AuthenticatedDcsIntegracoesRoute
   AuthenticatedDcsInteligenciaRoute: typeof AuthenticatedDcsInteligenciaRoute
   AuthenticatedDcsMinhaContaRoute: typeof AuthenticatedDcsMinhaContaRoute
+  AuthenticatedDcsOnboardingRoute: typeof AuthenticatedDcsOnboardingRoute
   AuthenticatedDcsPlanosRoute: typeof AuthenticatedDcsPlanosRoute
   AuthenticatedDcsUsuariosRoute: typeof AuthenticatedDcsUsuariosRoute
   AuthenticatedDcsIndexRoute: typeof AuthenticatedDcsIndexRoute
@@ -982,6 +1003,7 @@ const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
   AuthenticatedDcsIntegracoesRoute: AuthenticatedDcsIntegracoesRoute,
   AuthenticatedDcsInteligenciaRoute: AuthenticatedDcsInteligenciaRoute,
   AuthenticatedDcsMinhaContaRoute: AuthenticatedDcsMinhaContaRoute,
+  AuthenticatedDcsOnboardingRoute: AuthenticatedDcsOnboardingRoute,
   AuthenticatedDcsPlanosRoute: AuthenticatedDcsPlanosRoute,
   AuthenticatedDcsUsuariosRoute: AuthenticatedDcsUsuariosRoute,
   AuthenticatedDcsIndexRoute: AuthenticatedDcsIndexRoute,
