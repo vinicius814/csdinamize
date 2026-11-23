@@ -53,6 +53,25 @@ export type DcsAtividade = {
   sync_id: string | null;
   atualizado_em: string;
 };
+/**
+ * Negócio cancelado do funil CS (stage_id=105 "Cancelados", validado via API). Histórico —
+ * nunca excluído pelo sync. Fonte: workflow n8n #15. Base da Prioridade 5.
+ */
+export type DcsCancelamento = {
+  deal_id: number;
+  key: string;
+  org_id: number | null;
+  owner_id: number | null;
+  owner_nome: string | null;
+  nome: string | null;
+  codigo: string | null;
+  valor: number | null;
+  motivo: string | null;
+  cancelado_em: string | null;
+  sync_id: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
 export type DcsFinanceiro = {
   key: string;
   mrr: number | null;
@@ -132,7 +151,7 @@ export type DcsAcao = {
 };
 export type DcsSync = {
   id: string;
-  tipo: "carteira" | "responsaveis" | "cobertura" | "onboarding" | "atividades";
+  tipo: "carteira" | "responsaveis" | "cobertura" | "onboarding" | "atividades" | "cancelamentos";
   modo: string;
   status: "executando" | "sucesso" | "falha" | "parcial";
   iniciado_em: string;
@@ -310,6 +329,7 @@ export type DcsDatabase = {
       dcs_clientes: T<DcsCliente>;
       dcs_pipeline_onboarding: T<DcsPipelineOnboarding>;
       dcs_atividades: T<DcsAtividade>;
+      dcs_cancelamentos: T<DcsCancelamento>;
       dcs_clientes_financeiro: T<DcsFinanceiro>;
       dcs_cobertura: T<DcsCobertura>;
       dcs_diagnosticos: T<DcsDiagnostico>;

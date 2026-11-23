@@ -5,6 +5,7 @@ import {
   BookOpenCheck,
   Briefcase,
   CalendarCheck2,
+  UserX,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -97,6 +98,13 @@ export const NAV: ItemNav[] = [
     rotulo: "Atividades e pendências",
     icone: CalendarCheck2,
     mod: "atividades",
+    grupo: "Operação",
+  },
+  {
+    to: "/dcs/cancelamentos",
+    rotulo: "Cancelamentos e retenção",
+    icone: UserX,
+    mod: "cancelamentos",
     grupo: "Operação",
   },
   {

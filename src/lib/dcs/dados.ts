@@ -515,6 +515,19 @@ export function useAtividades() {
   });
 }
 
+/**
+ * Cancelamentos e retenção (Prioridade 5) — negócios do funil CS na etapa "Cancelados"
+ * (stage_id=105, validada via API), com motivo (lost_reason) e data reais do Pipedrive.
+ * Fonte: workflow n8n #15. RLS já limita à carteira visível pelo acesso do usuário.
+ */
+export function useCancelamentos() {
+  return useQuery({
+    queryKey: ["dcs", "cancelamentos"],
+    queryFn: async () =>
+      ok(dcs.from("dcs_cancelamentos").select("*").order("cancelado_em", { ascending: false })),
+  });
+}
+
 export function useIntegracoes() {
   return useQuery({
     queryKey: ["dcs", "integracoes"],

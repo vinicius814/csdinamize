@@ -301,6 +301,10 @@ describe("mensagens e permissões", () => {
     expect(M.MODULOS_POR_PERFIL.admin).toContain("atividades");
     expect(M.MODULOS_POR_PERFIL.cs).toContain("atividades");
     expect(M.MODULOS_POR_PERFIL.contas).not.toContain("atividades");
+    // Cancelamentos e retenção (Prioridade 5): mesma visibilidade do onboarding/equipe/atividades.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("cancelamentos");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("cancelamentos");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("cancelamentos");
   });
   it("chave de idempotência compatível com o artefato", () => {
     expect(M.chaveAtividade("116749", 2)).toBe("DZCS-116749-C2");

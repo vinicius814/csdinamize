@@ -11,13 +11,12 @@ Frente nova, aditiva, sobre o produto Dinamize CS já publicado (Beta 1.1). Não
 ## Módulos implementados (confirmados por módulo entre `dcs_*`/`src/components/dcs`)
 Visão geral, Carteira de clientes (+ Cliente 360 ampliado), Minhas análises, Planos de ação,
 Cobertura de CS, **Onboarding** (novo), **Gestão da equipe** (novo), **Atividades e pendências**
-(novo), Alertas e pendências, Inteligência gerencial, Histórico de diagnósticos, Usuários e
-permissões, Configurações, Integrações, Diagnóstico detalhado (motor completo, testado).
-Onboarding guiado do app (tours) também existe, mas é funcionalidade diferente do onboarding
-operacional de clientes (pipeline Pipedrive id 1).
+(novo), **Cancelamentos e retenção** (novo), Alertas e pendências, Inteligência gerencial,
+Histórico de diagnósticos, Usuários e permissões, Configurações, Integrações, Diagnóstico
+detalhado (motor completo, testado). Onboarding guiado do app (tours) também existe, mas é
+funcionalidade diferente do onboarding operacional de clientes (pipeline Pipedrive id 1).
 
 ## Gaps confirmados (pedidos no spec, ainda ausentes)
-- Cancelamentos e retenção (Prioridade 5) — só existe em `cs_cancelamentos` (sistema Munim legado), não portado.
 - Radar de inteligência (Prioridade 6) — hoje é "Alertas e pendências", sem estrutura motivo/evidência/ação sugerida/link de resolução por item (parte disso já existe via Riscos na ficha 360 e em alertas.tsx).
 - Relatórios gerenciais (Prioridade 8) — "Inteligência gerencial" cobre parte, não a amplitude pedida.
 - Assistente e Metas (Prioridade 9) — não existem.
@@ -51,18 +50,38 @@ operacional de clientes (pipeline Pipedrive id 1).
   atividade futura. Dados: tabela `dcs_atividades` + função `dcs_publicar_atividades` + workflow n8n
   `14-atividades.sdk.js` (ID `vClNoAV71FeudEhr`, **inativo**, mesmo bloqueio de credencial). Só leitura —
   sem criar/concluir atividade e sem agenda paralela. Commit `789e077`.
+- **Prioridade 5 — Cancelamentos e retenção**: validado direto no Pipedrive (23/11/2026) que o funil CS
+  (pipeline_id=15) tem etapa própria "Cancelados" (stage_id=105) com `lost_reason`/`lost_time` reais
+  (motivos: "Consta como cancelado no financeiro", "Baixo Resultado", "Mudança de Sistema", "Covid-19",
+  "Sem Retorno/Resposta" — amostra de 5 negócios); `dcs_regras.config.stages` já exclui essa etapa do
+  funil ativo (`[101,102,103,135,147,104]`), ou seja `dcs_clientes.ativo=false` já é hoje o sinal de
+  "saiu do funil", mas sem motivo/data registrados em lugar nenhum. Rota `/dcs/cancelamentos` real:
+  lista de cancelamentos (data/cliente/responsável/valor Pipedrive — nunca chamado de MRR/taxa de churn
+  —/motivo) com filtro por período/responsável/motivo, e três painéis de retenção preventiva sobre
+  clientes ATIVOS (não confundidos com os cancelados acima): com risco identificado (alertas),
+  sem utilização (`dcs_utilizacao`), sem acompanhamento agendado (`dcs_cobertura.proximo`). Dados: tabela
+  nova `dcs_cancelamentos` (histórico — upsert, nunca inativado/excluído) + função
+  `dcs_publicar_cancelamentos` + workflow n8n `15-cancelamentos.sdk.js` (ID `JLSSTrhLrJCJbSoD`,
+  **inativo**, mesmo bloqueio de credencial manual, 5 nós HTTP). Commit pendente.
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
 ## Bloqueio aberto
-- **Credenciais dos workflows 13 e 14 não foram anexadas automaticamente** pelo conector n8n (11 nós HTTP
-  no total). As credenciais existem no n8n com os IDs corretos (`TqXGYCOmVGd2AvKp` Supabase,
+- **Credenciais dos workflows 13, 14 e 15 não foram anexadas automaticamente** pelo conector n8n (16 nós
+  HTTP no total). As credenciais existem no n8n com os IDs corretos (`TqXGYCOmVGd2AvKp` Supabase,
   `RLiF1ChIGaWvWg1f` Pipedrive) mas precisam ser selecionadas manualmente em cada nó, na UI do n8n:
   - `n8n.dinamize.com.br/workflow/07ed9XQEH6Fw5Qnm` (Onboarding, 5 nós)
   - `n8n.dinamize.com.br/workflow/vClNoAV71FeudEhr` (Atividades, 6 nós)
-  Até lá os dois ficam inativos — não vou ativá-los sem credencial confirmada. As telas correspondentes
-  (`/dcs/onboarding`, `/dcs/atividades`, seção de onboarding na ficha 360) mostram corretamente "sem dado
-  sincronizado" — não é bug.
+  - `n8n.dinamize.com.br/workflow/JLSSTrhLrJCJbSoD` (Cancelamentos, 5 nós)
+  Até lá os três ficam inativos — não vou ativá-los sem credencial confirmada. As telas correspondentes
+  (`/dcs/onboarding`, `/dcs/atividades`, `/dcs/cancelamentos`, seção de onboarding na ficha 360) mostram
+  corretamente "sem dado sincronizado" — não é bug.
+- **Nota para a Prioridade 5 (não resolvida ainda, só registrada)**: o dono do produto definiu que "o mês
+  do cancelamento é o mês da solicitação confirmada, mesmo que a conta encerre no mês seguinte" — ainda
+  não validei se `lost_time`/`close_time` do Pipedrive correspondem a essa data de "solicitação confirmada"
+  ou à data de encerramento efetivo. Por ora a coluna "Cancelado em" na tela mostra a data bruta do
+  Pipedrive (`lost_time`/`close_time`), sem assumir que é a mesma coisa. Se forem datas diferentes na
+  prática, revisar antes de usar esse campo para relatórios por mês de cancelamento.
 - Lovable (commit `8855377`) ainda não apareceu em nenhuma branch do GitHub via `git ls-remote` —
   sincronização pendente do lado do Lovable; acompanhar antes de mesclar com o trabalho feito direto no GitHub.
 
@@ -73,7 +92,8 @@ operacional de clientes (pipeline Pipedrive id 1).
   já registradas em `docs/PROJECT_STATUS.md`.
 
 ## Próxima etapa
-1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13 e 14 (ver Bloqueio aberto);
-   eu ativo e testo cada um com uma execução manual.
-2. Seguir para Prioridade 5 — Cancelamentos e retenção (validar etapas/critérios de cancelamento no
-   Pipedrive antes de construir; não confundir inativo/sem uso/cancelado).
+1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver Bloqueio
+   aberto); eu ativo e testo cada um com uma execução manual.
+2. Seguir para Prioridade 6 — Radar de inteligência (expandir Alertas e pendências para cobrir
+   CS+Onboarding+atividades+contatos+implementações+sem uso+risco de cancelamento+oportunidades de
+   melhoria, cada alerta com cliente/responsável/motivo/criticidade/evidência/ação sugerida/link direto).
