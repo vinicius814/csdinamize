@@ -40,6 +40,19 @@ export type DcsPipelineOnboarding = {
   sync_id: string | null;
   atualizado_em: string;
 };
+/** Atividade aberta do Pipedrive (funil CS) ligada a um cliente. Fonte: workflow n8n #14. */
+export type DcsAtividade = {
+  id: number;
+  cliente_key: string;
+  owner_id: number | null;
+  owner_nome: string | null;
+  data: string | null;
+  tipo: string | null;
+  assunto: string | null;
+  ativo: boolean;
+  sync_id: string | null;
+  atualizado_em: string;
+};
 export type DcsFinanceiro = {
   key: string;
   mrr: number | null;
@@ -119,7 +132,7 @@ export type DcsAcao = {
 };
 export type DcsSync = {
   id: string;
-  tipo: "carteira" | "responsaveis" | "cobertura";
+  tipo: "carteira" | "responsaveis" | "cobertura" | "onboarding" | "atividades";
   modo: string;
   status: "executando" | "sucesso" | "falha" | "parcial";
   iniciado_em: string;
@@ -296,6 +309,7 @@ export type DcsDatabase = {
     Tables: {
       dcs_clientes: T<DcsCliente>;
       dcs_pipeline_onboarding: T<DcsPipelineOnboarding>;
+      dcs_atividades: T<DcsAtividade>;
       dcs_clientes_financeiro: T<DcsFinanceiro>;
       dcs_cobertura: T<DcsCobertura>;
       dcs_diagnosticos: T<DcsDiagnostico>;

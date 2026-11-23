@@ -4,6 +4,7 @@ import {
   Bell,
   BookOpenCheck,
   Briefcase,
+  CalendarCheck2,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -89,6 +90,13 @@ export const NAV: ItemNav[] = [
     rotulo: "Gestão da equipe",
     icone: UserCog,
     mod: "equipe",
+    grupo: "Operação",
+  },
+  {
+    to: "/dcs/atividades",
+    rotulo: "Atividades e pendências",
+    icone: CalendarCheck2,
+    mod: "atividades",
     grupo: "Operação",
   },
   {

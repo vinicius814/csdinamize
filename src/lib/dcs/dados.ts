@@ -495,6 +495,26 @@ export function useAlertas() {
   });
 }
 
+/**
+ * Central de Atividades e pendências (Prioridade 4) — atividades abertas do Pipedrive (funil
+ * CS), publicadas pelo workflow n8n #14. Join com dcs_clientes só para nome/ativo; RLS da
+ * própria dcs_atividades já limita a carteira visível. Enquanto esse sync está inativo
+ * (credencial pendente, igual ao onboarding), a lista vem vazia — corretamente.
+ */
+export function useAtividades() {
+  return useQuery({
+    queryKey: ["dcs", "atividades"],
+    queryFn: async () => {
+      const [atividades, clientes] = await Promise.all([
+        ok(dcs.from("dcs_atividades").select("*").order("data", { ascending: true })),
+        ok(dcs.from("dcs_clientes").select("key,nome,ativo,deal_id")),
+      ]);
+      const nome = new Map(clientes.map((c) => [c.key, c]));
+      return atividades.map((a) => ({ ...a, cliente: nome.get(a.cliente_key) }));
+    },
+  });
+}
+
 export function useIntegracoes() {
   return useQuery({
     queryKey: ["dcs", "integracoes"],

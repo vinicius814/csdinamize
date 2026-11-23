@@ -41,6 +41,7 @@ import { Route as AuthenticatedDcsIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDcsAjudaRouteImport } from './routes/_authenticated/dcs/ajuda'
 import { Route as AuthenticatedDcsAlertasRouteImport } from './routes/_authenticated/dcs/alertas'
 import { Route as AuthenticatedDcsAnalisesRouteImport } from './routes/_authenticated/dcs/analises'
+import { Route as AuthenticatedDcsAtividadesRouteImport } from './routes/_authenticated/dcs/atividades'
 import { Route as AuthenticatedDcsCarteiraRouteImport } from './routes/_authenticated/dcs/carteira'
 import { Route as AuthenticatedDcsCoberturaRouteImport } from './routes/_authenticated/dcs/cobertura'
 import { Route as AuthenticatedDcsConfiguracoesRouteImport } from './routes/_authenticated/dcs/configuracoes'
@@ -227,6 +228,12 @@ const AuthenticatedDcsAnalisesRoute =
     path: '/analises',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsAtividadesRoute =
+  AuthenticatedDcsAtividadesRouteImport.update({
+    id: '/atividades',
+    path: '/atividades',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
 const AuthenticatedDcsCarteiraRoute =
   AuthenticatedDcsCarteiraRouteImport.update({
     id: '/carteira',
@@ -357,6 +364,7 @@ export interface FileRoutesByFullPath {
   '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
@@ -406,6 +414,7 @@ export interface FileRoutesByTo {
   '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
@@ -458,6 +467,7 @@ export interface FileRoutesById {
   '/_authenticated/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/_authenticated/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/_authenticated/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/_authenticated/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
   '/_authenticated/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/_authenticated/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/_authenticated/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
@@ -510,6 +520,7 @@ export interface FileRouteTypes {
     | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
+    | '/dcs/atividades'
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
@@ -559,6 +570,7 @@ export interface FileRouteTypes {
     | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
+    | '/dcs/atividades'
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
@@ -610,6 +622,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/ajuda'
     | '/_authenticated/dcs/alertas'
     | '/_authenticated/dcs/analises'
+    | '/_authenticated/dcs/atividades'
     | '/_authenticated/dcs/carteira'
     | '/_authenticated/dcs/cobertura'
     | '/_authenticated/dcs/configuracoes'
@@ -871,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsAnalisesRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/atividades': {
+      id: '/_authenticated/dcs/atividades'
+      path: '/atividades'
+      fullPath: '/dcs/atividades'
+      preLoaderRoute: typeof AuthenticatedDcsAtividadesRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/carteira': {
       id: '/_authenticated/dcs/carteira'
       path: '/carteira'
@@ -997,6 +1017,7 @@ interface AuthenticatedDcsRouteRouteChildren {
   AuthenticatedDcsAjudaRoute: typeof AuthenticatedDcsAjudaRoute
   AuthenticatedDcsAlertasRoute: typeof AuthenticatedDcsAlertasRoute
   AuthenticatedDcsAnalisesRoute: typeof AuthenticatedDcsAnalisesRoute
+  AuthenticatedDcsAtividadesRoute: typeof AuthenticatedDcsAtividadesRoute
   AuthenticatedDcsCarteiraRoute: typeof AuthenticatedDcsCarteiraRoute
   AuthenticatedDcsCoberturaRoute: typeof AuthenticatedDcsCoberturaRoute
   AuthenticatedDcsConfiguracoesRoute: typeof AuthenticatedDcsConfiguracoesRoute
@@ -1016,6 +1037,7 @@ const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
   AuthenticatedDcsAjudaRoute: AuthenticatedDcsAjudaRoute,
   AuthenticatedDcsAlertasRoute: AuthenticatedDcsAlertasRoute,
   AuthenticatedDcsAnalisesRoute: AuthenticatedDcsAnalisesRoute,
+  AuthenticatedDcsAtividadesRoute: AuthenticatedDcsAtividadesRoute,
   AuthenticatedDcsCarteiraRoute: AuthenticatedDcsCarteiraRoute,
   AuthenticatedDcsCoberturaRoute: AuthenticatedDcsCoberturaRoute,
   AuthenticatedDcsConfiguracoesRoute: AuthenticatedDcsConfiguracoesRoute,
