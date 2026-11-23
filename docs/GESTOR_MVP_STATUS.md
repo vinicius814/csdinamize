@@ -13,15 +13,13 @@ Visão geral, Carteira de clientes (+ Cliente 360 ampliado), Minhas análises, O
 melhoria (ex-"Planos de ação", renomeado na Prioridade 7),
 Cobertura de CS, **Onboarding** (novo), **Gestão da equipe** (novo), **Atividades e pendências**
 (novo), **Cancelamentos e retenção** (novo), **Radar de inteligência** (evolução de "Alertas e
-pendências"), Inteligência gerencial, Histórico de diagnósticos, Usuários e permissões,
+pendências"), **Inteligência gerencial** (expandida na Prioridade 8 — Relatórios gerenciais),
+Histórico de diagnósticos, Usuários e permissões,
 Configurações, Integrações, Diagnóstico detalhado (motor completo, testado). Onboarding guiado
 do app (tours) também existe, mas é funcionalidade diferente do onboarding operacional de
 clientes (pipeline Pipedrive id 1).
 
 ## Gaps confirmados (pedidos no spec, ainda ausentes)
-- Relatórios gerenciais (Prioridade 8) — "Inteligência gerencial" cobre parte, não a amplitude pedida. (Nota:
-  a Prioridade 7 renomeou o antigo módulo "Planos de ação" para **Oportunidades de melhoria**; o módulo
-  "Inteligência gerencial" é outra coisa, hoje focada em KPIs gerenciais, não confundir os dois.)
 - Assistente e Metas (Prioridade 9) — não existem.
 - Onboarding (Prioridade 2): sem "clientes atrasados" (falta regra de prazo por etapa validada — artefato
   Gestor não consultado ainda) nem atividades específicas desse funil.
@@ -82,7 +80,14 @@ clientes (pipeline Pipedrive id 1).
   não novo). Mudança foi só de rótulo/título (nav, Titulo da página, dashboard, tour guiado,
   dica de ajuda) para o nome pedido no spec — nenhuma lógica nova precisou ser construída porque
   a funcionalidade já cobria o enquadramento pedido. O motor de diagnóstico continua módulo
-  independente, acessível pela ficha 360. Commit pendente.
+  independente, acessível pela ficha 360. Commit `cf389c8`.
+- **Prioridade 8 — Relatórios gerenciais**: ampliação do módulo "Inteligência gerencial" (mantido
+  com esse nome — já é a tela de KPIs gerenciais do produto) com nova seção "Visão da operação":
+  contagens reais de Onboarding (por etapa), Atividades (abertas/atrasadas) e Cancelamentos
+  (últimos 30/90 dias, por motivo) — tudo cruzando as tabelas das Prioridades 2/4/5, sem estimar
+  nada; enquanto os workflows 13/14/15 estiverem inativos, cada bloco mostra "sem dados
+  sincronizados" corretamente. Mantida a regra de nunca rotular o valor do Pipedrive como MRR
+  (já era "Valor" em todo o módulo; confirmado, não alterado). Commit pendente.
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
@@ -114,5 +119,6 @@ clientes (pipeline Pipedrive id 1).
 ## Próxima etapa
 1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver Bloqueio
    aberto); eu ativo e testo cada um com uma execução manual.
-2. Seguir para Prioridade 8 — Relatórios gerenciais (expandir para cobrir a operação toda com dados reais;
-   não tratar o campo "Valor" do Pipedrive como MRR sem confirmação; não apresentar dado histórico inventado).
+2. Seguir para Prioridade 9 — Assistente e Metas (versões iniciais apenas; assistente respondendo com
+   dados operacionais reais, não só ilustrativo; metas partindo de indicadores confiáveis — cobertura/
+   onboarding; não deixar recursos avançados de IA/gamificação bloquearem os módulos centrais).
