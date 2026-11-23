@@ -11,6 +11,7 @@ import {
   type DcsCliente,
   type DcsCobertura,
   type DcsDiagnostico,
+  type DcsPipelineOnboarding,
   type DcsPreCadastro,
   type DcsUtilizacao,
   type DcsUtilizacaoEvento,
@@ -810,6 +811,26 @@ export function useUtilizacao() {
     queryFn: async () => {
       const rows = (await ok(dcs.from("dcs_utilizacao").select("*"))) as DcsUtilizacao[];
       return new Map(rows.map((r) => [r.cliente_key, r]));
+    },
+  });
+}
+/**
+ * Negócios do funil Onboarding (Pipedrive pipeline_id=1), agrupados por org_id — mesma
+ * organização pode ter conta ativa em CS (dcs_clientes) e negócio em Onboarding. Fonte:
+ * dcs_pipeline_onboarding, publicada pelo workflow n8n #13. Enquanto esse sync está inativo
+ * (credencial pendente, ver docs/GESTOR_MVP_STATUS.md), o mapa vem vazio — corretamente, sem
+ * dado fictício. Usado pela Carteira (coluna Onboarding) e pelo módulo Onboarding dedicado.
+ */
+export function usePipelineOnboarding() {
+  return useQuery({
+    queryKey: ["dcs", "pipeline-onboarding"],
+    queryFn: async () => {
+      const rows = (await ok(
+        dcs.from("dcs_pipeline_onboarding").select("*").eq("ativo", true),
+      )) as DcsPipelineOnboarding[];
+      const porOrg = new Map<number, DcsPipelineOnboarding[]>();
+      for (const r of rows) porOrg.set(r.org_id, [...(porOrg.get(r.org_id) ?? []), r]);
+      return porOrg;
     },
   });
 }

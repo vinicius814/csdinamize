@@ -30,9 +30,12 @@ import {
   useDestinosAnalise,
   useUtilizacao,
   useCarteira,
+  usePipelineOnboarding,
   type LinhaCarteira,
   type StatusAnalise,
 } from "@/lib/dcs/dados";
+import type { DcsPipelineOnboarding } from "@/lib/dcs/db";
+import { nomeEtapaOnboarding, ETAPA_CANCELAMENTO_ONBOARDING } from "@/lib/dcs/onboarding";
 import { artefato as A, type StatusCobertura } from "@/lib/dcs/motor";
 import {
   cx,
@@ -83,7 +86,10 @@ type Ctx = {
   nomes: Map<string, string>;
   uso: Map<string, DcsUtilizacao>;
   pri: Map<string, PriOp>;
+  onb: Map<number, DcsPipelineOnboarding[]>;
 };
+const onboardingAtivo = (l: LinhaCarteira, c: Ctx) =>
+  (l.c.org_id ? c.onb.get(l.c.org_id) : undefined)?.[0];
 type Coluna = {
   id: string;
   rotulo: string;
@@ -177,6 +183,21 @@ const COLUNAS: Coluna[] = [
     rotulo: "Etapa",
     celula: (l) => ETAPA[l.c.stage_id]?.trim() ?? l.c.stage_id,
     csv: (l) => ETAPA[l.c.stage_id]?.trim() ?? l.c.stage_id,
+  },
+  {
+    id: "onboarding",
+    rotulo: "Onboarding",
+    celula: (l, c) => {
+      const n = onboardingAtivo(l, c);
+      if (!n) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span className={cx(n.stage_id === ETAPA_CANCELAMENTO_ONBOARDING && "text-red-700")}>
+          {nomeEtapaOnboarding(n.stage_id)}
+        </span>
+      );
+    },
+    csv: (l, c) =>
+      onboardingAtivo(l, c) ? nomeEtapaOnboarding(onboardingAtivo(l, c)!.stage_id) : "",
   },
   {
     id: "status",
@@ -324,6 +345,7 @@ const PADRAO = [
   "utilizacao",
   "responsavel",
   "valor",
+  "onboarding",
   "status",
   "analista",
   "indice",
@@ -345,6 +367,7 @@ function Carteira() {
   const fin = !!acesso.data?.financeiro;
   const nomes = useAnalistas();
   const q = useCarteira(!!busca.inativos);
+  const onb = usePipelineOnboarding();
   const util = useUtilizacao();
   const usoMap = useMemo(() => util.data ?? new Map<string, DcsUtilizacao>(), [util.data]);
   const conf = useConfig();
@@ -355,7 +378,13 @@ function Carteira() {
       (q.data ?? []).map((l) => [l.c.key, prioridadeCliente(l, usoMap.get(l.c.key), hoje, pesos)]),
     );
   }, [q.data, usoMap, conf.data]);
-  const ctx: Ctx = { fin, nomes: nomes.data ?? new Map(), uso: usoMap, pri: priMap };
+  const ctx: Ctx = {
+    fin,
+    nomes: nomes.data ?? new Map(),
+    uso: usoMap,
+    pri: priMap,
+    onb: onb.data ?? new Map(),
+  };
   // Ordem padrão: atenção (prioridade operacional, sem valores). Valor só como coluna para quem tem permissão.
   const [ordem, setOrdem] = useState<{ id: string; inv: boolean }>({ id: "atencao", inv: false });
   const [visiveis, setVisiveis] = useState<string[]>(PADRAO);
@@ -395,10 +424,11 @@ function Carteira() {
     try {
       const v = JSON.parse(localStorage.getItem(CHAVE_COLS) ?? "null");
       if (Array.isArray(v)) {
-        // D38: preferências salvas antes da coluna "Atenção" recebem-na uma única vez; depois, a escolha do usuário vale.
-        const VERSAO_COLS = "2";
+        // D38: preferências salvas antes de uma coluna nova recebem-na uma única vez; depois, a escolha do usuário vale.
+        const VERSAO_COLS = "3";
         if (localStorage.getItem(CHAVE_COLS + ":v") !== VERSAO_COLS) {
           if (!v.includes("atencao")) v.splice(Math.max(0, v.indexOf("cliente") + 1), 0, "atencao");
+          if (!v.includes("onboarding")) v.push("onboarding");
           localStorage.setItem(CHAVE_COLS, JSON.stringify(v));
           localStorage.setItem(CHAVE_COLS + ":v", VERSAO_COLS);
         }
