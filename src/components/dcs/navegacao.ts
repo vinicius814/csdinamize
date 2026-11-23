@@ -7,10 +7,16 @@ import {
   ClipboardList,
   History,
   LayoutDashboard,
+  ListTodo,
   PlugZap,
   Settings2,
   ShieldCheck,
+  Sparkles,
+  Target,
+  UserPlus,
   Users,
+  UsersRound,
+  UserX,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +29,8 @@ export type ItemNav = {
   grupo: string;
   contador?: "alertas" | "analises" | "atrasadas";
   exato?: boolean;
+  /** Item de menu sem página ainda: renderizado desabilitado, com selo "Em breve". */
+  indisponivel?: boolean;
   /** Áreas administrativas: além do módulo, exigem a permissão (Beta, D34). O banco revalida. */
   permissao?: "usuarios" | "config" | "integracoes";
 };
@@ -42,8 +50,16 @@ export const NAV: ItemNav[] = [
     rotulo: "Visão geral",
     icone: LayoutDashboard,
     mod: "visao-geral",
-    grupo: "Visão geral",
+    grupo: "Início",
     exato: true,
+  },
+  {
+    to: "/dcs/assistente",
+    rotulo: "Assistente",
+    icone: Sparkles,
+    mod: "visao-geral",
+    grupo: "Início",
+    indisponivel: true,
   },
   {
     to: "/dcs/carteira",
@@ -54,18 +70,58 @@ export const NAV: ItemNav[] = [
   },
   {
     to: "/dcs/analises",
-    rotulo: "Minhas análises",
+    rotulo: "Customer Success",
     icone: BookOpenCheck,
     mod: "minhas-analises",
     grupo: "Operação",
     contador: "analises",
   },
   {
+    to: "/dcs/onboarding-clientes",
+    rotulo: "Onboarding",
+    icone: UserPlus,
+    mod: "carteira",
+    grupo: "Operação",
+    indisponivel: true,
+  },
+  {
+    to: "/dcs/equipe",
+    rotulo: "Gestão da equipe",
+    icone: UsersRound,
+    mod: "carteira",
+    grupo: "Operação",
+    indisponivel: true,
+  },
+  {
+    to: "/dcs/alertas",
+    rotulo: "Radar de inteligência",
+    icone: Bell,
+    mod: "visao-geral",
+    grupo: "Acompanhamento",
+    contador: "alertas",
+  },
+  {
+    to: "/dcs/atividades",
+    rotulo: "Atividades e pendências",
+    icone: ListTodo,
+    mod: "visao-geral",
+    grupo: "Acompanhamento",
+    indisponivel: true,
+  },
+  {
+    to: "/dcs/cancelamentos",
+    rotulo: "Cancelamentos e retenção",
+    icone: UserX,
+    mod: "visao-geral",
+    grupo: "Acompanhamento",
+    indisponivel: true,
+  },
+  {
     to: "/dcs/planos",
-    rotulo: "Planos de ação",
+    rotulo: "Oportunidades de melhoria",
     icone: ClipboardList,
     mod: "planos",
-    grupo: "Operação",
+    grupo: "Acompanhamento",
     contador: "atrasadas",
   },
   {
@@ -73,29 +129,29 @@ export const NAV: ItemNav[] = [
     rotulo: "Cobertura de CS",
     icone: Activity,
     mod: "cobertura",
-    grupo: "Operação",
-  },
-  {
-    to: "/dcs/alertas",
-    rotulo: "Alertas e pendências",
-    icone: Bell,
-    mod: "visao-geral",
-    grupo: "Operação",
-    contador: "alertas",
+    grupo: "Acompanhamento",
   },
   {
     to: "/dcs/inteligencia",
-    rotulo: "Inteligência gerencial",
+    rotulo: "Relatórios gerenciais",
     icone: BarChart3,
     mod: "inteligencia",
     grupo: "Inteligência",
+  },
+  {
+    to: "/dcs/metas",
+    rotulo: "Metas",
+    icone: Target,
+    mod: "inteligencia",
+    grupo: "Inteligência",
+    indisponivel: true,
   },
   {
     to: "/dcs/historico",
     rotulo: "Histórico de diagnósticos",
     icone: History,
     mod: "historico",
-    grupo: "Inteligência",
+    grupo: "Diagnósticos",
   },
   {
     to: "/dcs/usuarios",
