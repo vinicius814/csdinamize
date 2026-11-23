@@ -727,13 +727,17 @@ export type Database = {
       cs_cancelamentos: {
         Row: {
           consultado_em: string
+          data_origem: string | null
           deal_id: number
           dia: string
           moeda: string | null
           motivo: string | null
           org_id: number | null
           origem: string
+          owner_atual: number | null
           owner_id: number
+          owner_nome: string | null
+          perdido_em: string | null
           pipeline_id: number
           revertido: boolean
           stage_id: number
@@ -741,13 +745,17 @@ export type Database = {
         }
         Insert: {
           consultado_em?: string
+          data_origem?: string | null
           deal_id: number
           dia: string
           moeda?: string | null
           motivo?: string | null
           org_id?: number | null
           origem?: string
+          owner_atual?: number | null
           owner_id: number
+          owner_nome?: string | null
+          perdido_em?: string | null
           pipeline_id: number
           revertido?: boolean
           stage_id: number
@@ -755,13 +763,17 @@ export type Database = {
         }
         Update: {
           consultado_em?: string
+          data_origem?: string | null
           deal_id?: number
           dia?: string
           moeda?: string | null
           motivo?: string | null
           org_id?: number | null
           origem?: string
+          owner_atual?: number | null
           owner_id?: number
+          owner_nome?: string | null
+          perdido_em?: string | null
           pipeline_id?: number
           revertido?: boolean
           stage_id?: number
@@ -774,6 +786,7 @@ export type Database = {
           atualizado_em: string
           created_at: string
           deal_id: number
+          entrada_origem: string | null
           entrou_em: string | null
           etapa_saida: number | null
           org_id: number | null
@@ -785,6 +798,7 @@ export type Database = {
           atualizado_em?: string
           created_at?: string
           deal_id: number
+          entrada_origem?: string | null
           entrou_em?: string | null
           etapa_saida?: number | null
           org_id?: number | null
@@ -796,6 +810,7 @@ export type Database = {
           atualizado_em?: string
           created_at?: string
           deal_id?: number
+          entrada_origem?: string | null
           entrou_em?: string | null
           etapa_saida?: number | null
           org_id?: number | null
@@ -844,8 +859,10 @@ export type Database = {
       cs_historico_execucoes: {
         Row: {
           actor: string | null
+          ate: string | null
           concluido_em: string | null
           consultas: number
+          cursor: string | null
           desde: string | null
           erro: string | null
           id: string
@@ -856,8 +873,10 @@ export type Database = {
         }
         Insert: {
           actor?: string | null
+          ate?: string | null
           concluido_em?: string | null
           consultas?: number
+          cursor?: string | null
           desde?: string | null
           erro?: string | null
           id?: string
@@ -868,8 +887,10 @@ export type Database = {
         }
         Update: {
           actor?: string | null
+          ate?: string | null
           concluido_em?: string | null
           consultas?: number
+          cursor?: string | null
           desde?: string | null
           erro?: string | null
           id?: string
@@ -885,6 +906,7 @@ export type Database = {
           atividades_vencidas: number
           cancelados_dia: number
           clientes_ativos: number
+          cobertos_60: number | null
           cobertura_30: number | null
           cobertura_60: number | null
           cobertura_90: number | null
@@ -902,6 +924,7 @@ export type Database = {
           atividades_vencidas: number
           cancelados_dia: number
           clientes_ativos: number
+          cobertos_60?: number | null
           cobertura_30?: number | null
           cobertura_60?: number | null
           cobertura_90?: number | null
@@ -919,6 +942,7 @@ export type Database = {
           atividades_vencidas?: number
           cancelados_dia?: number
           clientes_ativos?: number
+          cobertos_60?: number | null
           cobertura_30?: number | null
           cobertura_60?: number | null
           cobertura_90?: number | null
@@ -1097,10 +1121,12 @@ export type Database = {
           concluido_em: string | null
           created_at: string
           erro: string | null
+          fases: Json | null
           id: string
           iniciado_em: string
           iniciado_por: string | null
           janela: string | null
+          modo: string | null
           negocios_lidos: number
           origem: string
           status: string
@@ -1110,10 +1136,12 @@ export type Database = {
           concluido_em?: string | null
           created_at?: string
           erro?: string | null
+          fases?: Json | null
           id?: string
           iniciado_em?: string
           iniciado_por?: string | null
           janela?: string | null
+          modo?: string | null
           negocios_lidos?: number
           origem: string
           status: string
@@ -1123,10 +1151,12 @@ export type Database = {
           concluido_em?: string | null
           created_at?: string
           erro?: string | null
+          fases?: Json | null
           id?: string
           iniciado_em?: string
           iniciado_por?: string | null
           janela?: string | null
+          modo?: string | null
           negocios_lidos?: number
           origem?: string
           status?: string
@@ -1148,6 +1178,1163 @@ export type Database = {
           deal_id?: number
         }
         Relationships: []
+      }
+      dcs_acoes: {
+        Row: {
+          acao: string
+          atualizado_em: string
+          beneficio: string | null
+          categoria: string
+          cliente_key: string
+          complexidade: string | null
+          ganho_rapido: boolean
+          id: string
+          manual: boolean
+          observacoes: string | null
+          obsoleta: boolean
+          obsoleta_em: string | null
+          prazo: string | null
+          primeiro_ciclo: number
+          prioridade: string
+          problema: string
+          quem: string | null
+          rec_id: string
+          reincidencias: number
+          responsavel: string | null
+          status: string
+          ultimo_ciclo: number
+          versao: number
+        }
+        Insert: {
+          acao: string
+          atualizado_em?: string
+          beneficio?: string | null
+          categoria: string
+          cliente_key: string
+          complexidade?: string | null
+          ganho_rapido?: boolean
+          id?: string
+          manual?: boolean
+          observacoes?: string | null
+          obsoleta?: boolean
+          obsoleta_em?: string | null
+          prazo?: string | null
+          primeiro_ciclo: number
+          prioridade: string
+          problema: string
+          quem?: string | null
+          rec_id: string
+          reincidencias?: number
+          responsavel?: string | null
+          status?: string
+          ultimo_ciclo: number
+          versao?: number
+        }
+        Update: {
+          acao?: string
+          atualizado_em?: string
+          beneficio?: string | null
+          categoria?: string
+          cliente_key?: string
+          complexidade?: string | null
+          ganho_rapido?: boolean
+          id?: string
+          manual?: boolean
+          observacoes?: string | null
+          obsoleta?: boolean
+          obsoleta_em?: string | null
+          prazo?: string | null
+          primeiro_ciclo?: number
+          prioridade?: string
+          problema?: string
+          quem?: string | null
+          rec_id?: string
+          reincidencias?: number
+          responsavel?: string | null
+          status?: string
+          ultimo_ciclo?: number
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_acoes_cliente_key_fkey"
+            columns: ["cliente_key"]
+            isOneToOne: false
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      dcs_acoes_eventos: {
+        Row: {
+          acao_id: string
+          ator: string | null
+          dados: Json | null
+          em: string
+          id: number
+          tipo: string
+        }
+        Insert: {
+          acao_id: string
+          ator?: string | null
+          dados?: Json | null
+          em?: string
+          id?: never
+          tipo: string
+        }
+        Update: {
+          acao_id?: string
+          ator?: string | null
+          dados?: Json | null
+          em?: string
+          id?: never
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_acoes_eventos_acao_id_fkey"
+            columns: ["acao_id"]
+            isOneToOne: false
+            referencedRelation: "dcs_acoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_alertas: {
+        Row: {
+          cliente_key: string
+          detalhe: Json | null
+          gerado_em: string
+          id: number
+          referencia: string | null
+          tipo: string
+        }
+        Insert: {
+          cliente_key: string
+          detalhe?: Json | null
+          gerado_em?: string
+          id?: never
+          referencia?: string | null
+          tipo: string
+        }
+        Update: {
+          cliente_key?: string
+          detalhe?: Json | null
+          gerado_em?: string
+          id?: never
+          referencia?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_alertas_cliente_key_fkey"
+            columns: ["cliente_key"]
+            isOneToOne: false
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      dcs_auditoria: {
+        Row: {
+          acao: string
+          ator: string | null
+          dados: Json | null
+          em: string
+          entidade: string
+          entidade_id: string
+          id: number
+        }
+        Insert: {
+          acao: string
+          ator?: string | null
+          dados?: Json | null
+          em?: string
+          entidade: string
+          entidade_id: string
+          id?: never
+        }
+        Update: {
+          acao?: string
+          ator?: string | null
+          dados?: Json | null
+          em?: string
+          entidade?: string
+          entidade_id?: string
+          id?: never
+        }
+        Relationships: []
+      }
+      dcs_clientes: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          codigo: string | null
+          deal_id: number
+          deal_ids: number[]
+          inativado_em: string | null
+          key: string
+          label_ids: number[]
+          nome: string
+          org_id: number | null
+          owner_id: number | null
+          owner_nome: string | null
+          person_id: number | null
+          segmento: string
+          stage_id: number
+          sync_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          codigo?: string | null
+          deal_id: number
+          deal_ids: number[]
+          inativado_em?: string | null
+          key: string
+          label_ids?: number[]
+          nome: string
+          org_id?: number | null
+          owner_id?: number | null
+          owner_nome?: string | null
+          person_id?: number | null
+          segmento?: string
+          stage_id: number
+          sync_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          codigo?: string | null
+          deal_id?: number
+          deal_ids?: number[]
+          inativado_em?: string | null
+          key?: string
+          label_ids?: number[]
+          nome?: string
+          org_id?: number | null
+          owner_id?: number | null
+          owner_nome?: string | null
+          person_id?: number | null
+          segmento?: string
+          stage_id?: number
+          sync_id?: string | null
+        }
+        Relationships: []
+      }
+      dcs_clientes_financeiro: {
+        Row: {
+          atualizado_em: string
+          key: string
+          mrr: number | null
+          origem: string
+        }
+        Insert: {
+          atualizado_em?: string
+          key: string
+          mrr?: number | null
+          origem?: string
+        }
+        Update: {
+          atualizado_em?: string
+          key?: string
+          mrr?: number | null
+          origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_clientes_financeiro_key_fkey"
+            columns: ["key"]
+            isOneToOne: true
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      dcs_cobertura: {
+        Row: {
+          atualizado_em: string
+          contato_por_atividade: Json | null
+          data_contato_efetivo: string | null
+          key: string
+          proximo: Json | null
+          sync_id: string | null
+          ultima_tentativa: Json | null
+          ultimo_efetivo: Json | null
+          ultimo_incerto: Json | null
+        }
+        Insert: {
+          atualizado_em?: string
+          contato_por_atividade?: Json | null
+          data_contato_efetivo?: string | null
+          key: string
+          proximo?: Json | null
+          sync_id?: string | null
+          ultima_tentativa?: Json | null
+          ultimo_efetivo?: Json | null
+          ultimo_incerto?: Json | null
+        }
+        Update: {
+          atualizado_em?: string
+          contato_por_atividade?: Json | null
+          data_contato_efetivo?: string | null
+          key?: string
+          proximo?: Json | null
+          sync_id?: string | null
+          ultima_tentativa?: Json | null
+          ultimo_efetivo?: Json | null
+          ultimo_incerto?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_cobertura_key_fkey"
+            columns: ["key"]
+            isOneToOne: true
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      dcs_config: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          chave: string
+          valor: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave: string
+          valor: Json
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          chave?: string
+          valor?: Json
+        }
+        Relationships: []
+      }
+      dcs_diagnosticos: {
+        Row: {
+          analista_id: string
+          ciclo: number
+          cliente_key: string
+          completude: number | null
+          concluido_em: string | null
+          derivado: Json | null
+          id: string
+          indice: number | null
+          iniciado_em: string
+          itens: Json
+          meta: Json
+          metricas: Json
+          proxima_revisao: string | null
+          regras_id: string
+          resultados: Json
+          resumo: string | null
+          salvo_em: string
+          status: string
+          versao: number
+        }
+        Insert: {
+          analista_id: string
+          ciclo: number
+          cliente_key: string
+          completude?: number | null
+          concluido_em?: string | null
+          derivado?: Json | null
+          id?: string
+          indice?: number | null
+          iniciado_em?: string
+          itens?: Json
+          meta?: Json
+          metricas?: Json
+          proxima_revisao?: string | null
+          regras_id: string
+          resultados?: Json
+          resumo?: string | null
+          salvo_em?: string
+          status?: string
+          versao?: number
+        }
+        Update: {
+          analista_id?: string
+          ciclo?: number
+          cliente_key?: string
+          completude?: number | null
+          concluido_em?: string | null
+          derivado?: Json | null
+          id?: string
+          indice?: number | null
+          iniciado_em?: string
+          itens?: Json
+          meta?: Json
+          metricas?: Json
+          proxima_revisao?: string | null
+          regras_id?: string
+          resultados?: Json
+          resumo?: string | null
+          salvo_em?: string
+          status?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_diagnosticos_analista_id_fkey"
+            columns: ["analista_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dcs_diagnosticos_cliente_key_fkey"
+            columns: ["cliente_key"]
+            isOneToOne: false
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "dcs_diagnosticos_regras_id_fkey"
+            columns: ["regras_id"]
+            isOneToOne: false
+            referencedRelation: "dcs_regras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_diagnosticos_eventos: {
+        Row: {
+          ator: string | null
+          dados: Json | null
+          diagnostico_id: string
+          em: string
+          id: number
+          tipo: string
+        }
+        Insert: {
+          ator?: string | null
+          dados?: Json | null
+          diagnostico_id: string
+          em?: string
+          id?: never
+          tipo: string
+        }
+        Update: {
+          ator?: string | null
+          dados?: Json | null
+          diagnostico_id?: string
+          em?: string
+          id?: never
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_diagnosticos_eventos_diagnostico_id_fkey"
+            columns: ["diagnostico_id"]
+            isOneToOne: false
+            referencedRelation: "dcs_diagnosticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_feedback: {
+        Row: {
+          criado_em: string
+          descricao: string
+          funcionalidade: string | null
+          id: number
+          pagina: string | null
+          status: string
+          tipo: string
+          user_id: string
+          versao: string | null
+        }
+        Insert: {
+          criado_em?: string
+          descricao: string
+          funcionalidade?: string | null
+          id?: never
+          pagina?: string | null
+          status?: string
+          tipo: string
+          user_id: string
+          versao?: string | null
+        }
+        Update: {
+          criado_em?: string
+          descricao?: string
+          funcionalidade?: string | null
+          id?: never
+          pagina?: string | null
+          status?: string
+          tipo?: string
+          user_id?: string
+          versao?: string | null
+        }
+        Relationships: []
+      }
+      dcs_integracao_logs: {
+        Row: {
+          dados: Json | null
+          em: string
+          id: number
+          job_id: string | null
+          mensagem: string
+          nivel: string
+          origem: string
+          sync_id: string | null
+        }
+        Insert: {
+          dados?: Json | null
+          em?: string
+          id?: never
+          job_id?: string | null
+          mensagem: string
+          nivel: string
+          origem: string
+          sync_id?: string | null
+        }
+        Update: {
+          dados?: Json | null
+          em?: string
+          id?: never
+          job_id?: string | null
+          mensagem?: string
+          nivel?: string
+          origem?: string
+          sync_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_integracao_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "dcs_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_jobs: {
+        Row: {
+          atualizado_em: string
+          chave: string
+          criado_em: string
+          criado_por: string | null
+          erro: string | null
+          id: string
+          payload: Json
+          proxima_tentativa: string
+          resultado: Json | null
+          status: string
+          tentativas: number
+          tipo: string
+          travado_em: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          chave: string
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          payload: Json
+          proxima_tentativa?: string
+          resultado?: Json | null
+          status?: string
+          tentativas?: number
+          tipo: string
+          travado_em?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          chave?: string
+          criado_em?: string
+          criado_por?: string | null
+          erro?: string | null
+          id?: string
+          payload?: Json
+          proxima_tentativa?: string
+          resultado?: Json | null
+          status?: string
+          tentativas?: number
+          tipo?: string
+          travado_em?: string | null
+        }
+        Relationships: []
+      }
+      dcs_membros: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          carteiras: number[]
+          clientes: string[]
+          convidado_por: string | null
+          convite_expira_em: string | null
+          criado_em: string
+          financeiro: boolean
+          modulos: string[] | null
+          perfil: string
+          permissoes: Json
+          pipedrive_user_id: number | null
+          pode_editar: boolean
+          pode_exportar: boolean
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          carteiras?: number[]
+          clientes?: string[]
+          convidado_por?: string | null
+          convite_expira_em?: string | null
+          criado_em?: string
+          financeiro?: boolean
+          modulos?: string[] | null
+          perfil: string
+          permissoes?: Json
+          pipedrive_user_id?: number | null
+          pode_editar?: boolean
+          pode_exportar?: boolean
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          carteiras?: number[]
+          clientes?: string[]
+          convidado_por?: string | null
+          convite_expira_em?: string | null
+          criado_em?: string
+          financeiro?: boolean
+          modulos?: string[] | null
+          perfil?: string
+          permissoes?: Json
+          pipedrive_user_id?: number | null
+          pode_editar?: boolean
+          pode_exportar?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_membros_convidado_por_fkey"
+            columns: ["convidado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dcs_membros_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_mensagens: {
+        Row: {
+          assunto: string | null
+          canal: string
+          criado_em: string
+          criado_por: string
+          diagnostico_id: string
+          id: string
+          origem: string
+          texto: string
+        }
+        Insert: {
+          assunto?: string | null
+          canal: string
+          criado_em?: string
+          criado_por?: string
+          diagnostico_id: string
+          id?: string
+          origem: string
+          texto: string
+        }
+        Update: {
+          assunto?: string | null
+          canal?: string
+          criado_em?: string
+          criado_por?: string
+          diagnostico_id?: string
+          id?: string
+          origem?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_mensagens_diagnostico_id_fkey"
+            columns: ["diagnostico_id"]
+            isOneToOne: false
+            referencedRelation: "dcs_diagnosticos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_onboarding: {
+        Row: {
+          atualizado_em: string
+          concluido_em: string | null
+          estado: string
+          etapa_atual: string | null
+          etapas_concluidas: string[]
+          preferencias: Json
+          tour: string
+          user_id: string
+          versao: number
+        }
+        Insert: {
+          atualizado_em?: string
+          concluido_em?: string | null
+          estado?: string
+          etapa_atual?: string | null
+          etapas_concluidas?: string[]
+          preferencias?: Json
+          tour: string
+          user_id: string
+          versao?: number
+        }
+        Update: {
+          atualizado_em?: string
+          concluido_em?: string | null
+          estado?: string
+          etapa_atual?: string | null
+          etapas_concluidas?: string[]
+          preferencias?: Json
+          tour?: string
+          user_id?: string
+          versao?: number
+        }
+        Relationships: []
+      }
+      dcs_pre_cadastros: {
+        Row: {
+          aplicado_em: string | null
+          aplicado_user: string | null
+          ativo: boolean
+          atualizado_em: string
+          carteiras: number[]
+          clientes: string[]
+          convite_enviado_em: string | null
+          criado_em: string
+          criado_por: string | null
+          email: string
+          expira_em: string | null
+          financeiro: boolean
+          metodo: string
+          modulos: string[] | null
+          nome: string | null
+          perfil: string
+          permissoes: Json
+          pipedrive_user_id: number | null
+          pode_editar: boolean
+          pode_exportar: boolean
+          revogado_em: string | null
+          revogado_por: string | null
+        }
+        Insert: {
+          aplicado_em?: string | null
+          aplicado_user?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          carteiras?: number[]
+          clientes?: string[]
+          convite_enviado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email: string
+          expira_em?: string | null
+          financeiro?: boolean
+          metodo?: string
+          modulos?: string[] | null
+          nome?: string | null
+          perfil: string
+          permissoes?: Json
+          pipedrive_user_id?: number | null
+          pode_editar?: boolean
+          pode_exportar?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+        }
+        Update: {
+          aplicado_em?: string | null
+          aplicado_user?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          carteiras?: number[]
+          clientes?: string[]
+          convite_enviado_em?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          email?: string
+          expira_em?: string | null
+          financeiro?: boolean
+          metodo?: string
+          modulos?: string[] | null
+          nome?: string | null
+          perfil?: string
+          permissoes?: Json
+          pipedrive_user_id?: number | null
+          pode_editar?: boolean
+          pode_exportar?: boolean
+          revogado_em?: string | null
+          revogado_por?: string | null
+        }
+        Relationships: []
+      }
+      dcs_preferencias: {
+        Row: {
+          atualizado_em: string
+          user_id: string
+          valor: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          user_id?: string
+          valor?: Json
+        }
+        Update: {
+          atualizado_em?: string
+          user_id?: string
+          valor?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_preferencias_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcs_regras: {
+        Row: {
+          ativa: boolean
+          config: Json
+          criado_em: string
+          criado_por: string | null
+          id: string
+          metodologia: string
+          versao: string
+        }
+        Insert: {
+          ativa?: boolean
+          config: Json
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          metodologia: string
+          versao: string
+        }
+        Update: {
+          ativa?: boolean
+          config?: Json
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          metodologia?: string
+          versao?: string
+        }
+        Relationships: []
+      }
+      dcs_responsaveis: {
+        Row: {
+          ativo: boolean
+          email: string | null
+          nome: string
+          pipedrive_user_id: number
+          visto_em: string
+        }
+        Insert: {
+          ativo: boolean
+          email?: string | null
+          nome: string
+          pipedrive_user_id: number
+          visto_em?: string
+        }
+        Update: {
+          ativo?: boolean
+          email?: string | null
+          nome?: string
+          pipedrive_user_id?: number
+          visto_em?: string
+        }
+        Relationships: []
+      }
+      dcs_seguranca_conta: {
+        Row: {
+          atualizado_em: string
+          provisoria_expira_em: string | null
+          provisoria_gerada_em: string | null
+          provisoria_gerada_por: string | null
+          senha_definida_em: string | null
+          troca_obrigatoria: boolean
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          provisoria_expira_em?: string | null
+          provisoria_gerada_em?: string | null
+          provisoria_gerada_por?: string | null
+          senha_definida_em?: string | null
+          troca_obrigatoria?: boolean
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          provisoria_expira_em?: string | null
+          provisoria_gerada_em?: string | null
+          provisoria_gerada_por?: string | null
+          senha_definida_em?: string | null
+          troca_obrigatoria?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      dcs_solicitacoes_sync: {
+        Row: {
+          atendido_em: string | null
+          erro: string | null
+          id: string
+          solicitado_em: string
+          solicitado_por: string | null
+          status: string
+          tipo: string
+        }
+        Insert: {
+          atendido_em?: string | null
+          erro?: string | null
+          id?: string
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+          tipo: string
+        }
+        Update: {
+          atendido_em?: string | null
+          erro?: string | null
+          id?: string
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      dcs_sync_execucoes: {
+        Row: {
+          alterados: number | null
+          completo: boolean | null
+          concluido_em: string | null
+          criados: number | null
+          detalhes: Json | null
+          erro: string | null
+          id: string
+          inativados: number | null
+          iniciado_em: string
+          lidos: number | null
+          modo: string
+          status: string
+          tipo: string
+        }
+        Insert: {
+          alterados?: number | null
+          completo?: boolean | null
+          concluido_em?: string | null
+          criados?: number | null
+          detalhes?: Json | null
+          erro?: string | null
+          id?: string
+          inativados?: number | null
+          iniciado_em?: string
+          lidos?: number | null
+          modo?: string
+          status?: string
+          tipo: string
+        }
+        Update: {
+          alterados?: number | null
+          completo?: boolean | null
+          concluido_em?: string | null
+          criados?: number | null
+          detalhes?: Json | null
+          erro?: string | null
+          id?: string
+          inativados?: number | null
+          iniciado_em?: string
+          lidos?: number | null
+          modo?: string
+          status?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      dcs_testes_conexao: {
+        Row: {
+          atendido_em: string | null
+          concluido_em: string | null
+          erro: string | null
+          id: string
+          resultado: Json | null
+          solicitado_em: string
+          solicitado_por: string | null
+          status: string
+        }
+        Insert: {
+          atendido_em?: string | null
+          concluido_em?: string | null
+          erro?: string | null
+          id?: string
+          resultado?: Json | null
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+        }
+        Update: {
+          atendido_em?: string | null
+          concluido_em?: string | null
+          erro?: string | null
+          id?: string
+          resultado?: Json | null
+          solicitado_em?: string
+          solicitado_por?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      dcs_tipos_atividade: {
+        Row: {
+          chave: string
+          nome: string | null
+          ocorrencias: number
+          visto_em: string
+        }
+        Insert: {
+          chave: string
+          nome?: string | null
+          ocorrencias?: number
+          visto_em?: string
+        }
+        Update: {
+          chave?: string
+          nome?: string | null
+          ocorrencias?: number
+          visto_em?: string
+        }
+        Relationships: []
+      }
+      dcs_utilizacao: {
+        Row: {
+          acao_retomada: string | null
+          acompanhamento: string | null
+          atualizado_em: string
+          atualizado_por: string | null
+          cliente_key: string
+          evidencias: string | null
+          intervalo_dias: number | null
+          motivo: string | null
+          observacoes: string | null
+          proxima_revisao: string | null
+          recuperado_em: string | null
+          responsavel_id: string | null
+          sem_uso_desde: string | null
+          status: string
+          ultima_desconhecida: boolean
+          ultima_utilizacao: string | null
+          ultimo_acompanhamento: string | null
+          versao: number
+        }
+        Insert: {
+          acao_retomada?: string | null
+          acompanhamento?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cliente_key: string
+          evidencias?: string | null
+          intervalo_dias?: number | null
+          motivo?: string | null
+          observacoes?: string | null
+          proxima_revisao?: string | null
+          recuperado_em?: string | null
+          responsavel_id?: string | null
+          sem_uso_desde?: string | null
+          status?: string
+          ultima_desconhecida?: boolean
+          ultima_utilizacao?: string | null
+          ultimo_acompanhamento?: string | null
+          versao?: number
+        }
+        Update: {
+          acao_retomada?: string | null
+          acompanhamento?: string | null
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cliente_key?: string
+          evidencias?: string | null
+          intervalo_dias?: number | null
+          motivo?: string | null
+          observacoes?: string | null
+          proxima_revisao?: string | null
+          recuperado_em?: string | null
+          responsavel_id?: string | null
+          sem_uso_desde?: string | null
+          status?: string
+          ultima_desconhecida?: boolean
+          ultima_utilizacao?: string | null
+          ultimo_acompanhamento?: string | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_utilizacao_cliente_key_fkey"
+            columns: ["cliente_key"]
+            isOneToOne: true
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      dcs_utilizacao_eventos: {
+        Row: {
+          ator: string | null
+          cliente_key: string
+          dados: Json | null
+          em: string
+          id: number
+          resultado: string | null
+          tipo: string
+        }
+        Insert: {
+          ator?: string | null
+          cliente_key: string
+          dados?: Json | null
+          em?: string
+          id?: never
+          resultado?: string | null
+          tipo: string
+        }
+        Update: {
+          ator?: string | null
+          cliente_key?: string
+          dados?: Json | null
+          em?: string
+          id?: never
+          resultado?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcs_utilizacao_eventos_cliente_key_fkey"
+            columns: ["cliente_key"]
+            isOneToOne: false
+            referencedRelation: "dcs_clientes"
+            referencedColumns: ["key"]
+          },
+        ]
       }
       entradas_telegram: {
         Row: {
@@ -2124,6 +3311,10 @@ export type Database = {
         Args: { owner_id: number; pipeline_id: number }
         Returns: boolean
       }
+      cs_publicar_atividades_historicas: {
+        Args: { atividades: Json; run: string }
+        Returns: number
+      }
       cs_publicar_auditoria: {
         Args: { ate: string; desde: string; eventos: Json; negocios: number[] }
         Returns: undefined
@@ -2135,6 +3326,495 @@ export type Database = {
       cs_publicar_tudo: {
         Args: { atividades: Json; lidos: number; rows: Json; run: string }
         Returns: undefined
+      }
+      dcs_analistas: {
+        Args: never
+        Returns: {
+          nome: string
+          user_id: string
+        }[]
+      }
+      dcs_atender_solicitacoes: {
+        Args: never
+        Returns: {
+          atendido_em: string | null
+          erro: string | null
+          id: string
+          solicitado_em: string
+          solicitado_por: string | null
+          status: string
+          tipo: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dcs_solicitacoes_sync"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dcs_atender_testes_conexao: {
+        Args: never
+        Returns: {
+          atendido_em: string | null
+          concluido_em: string | null
+          erro: string | null
+          id: string
+          resultado: Json | null
+          solicitado_em: string
+          solicitado_por: string | null
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dcs_testes_conexao"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dcs_atribuir_analise: {
+        Args: { p_key: string; p_para: string }
+        Returns: {
+          analista_id: string
+          ciclo: number
+          cliente_key: string
+          completude: number | null
+          concluido_em: string | null
+          derivado: Json | null
+          id: string
+          indice: number | null
+          iniciado_em: string
+          itens: Json
+          meta: Json
+          metricas: Json
+          proxima_revisao: string | null
+          regras_id: string
+          resultados: Json
+          resumo: string | null
+          salvo_em: string
+          status: string
+          versao: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dcs_diagnosticos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dcs_atualizar_acao: {
+        Args: { p_campos: Json; p_id: string; p_versao: number }
+        Returns: number
+      }
+      dcs_atualizar_alertas: { Args: never; Returns: number }
+      dcs_atualizar_feedback: {
+        Args: { p_id: number; p_status: string }
+        Returns: undefined
+      }
+      dcs_auditar: {
+        Args: { p_acao: string; p_dados: Json; p_ent: string; p_id: string }
+        Returns: undefined
+      }
+      dcs_autorizar_credencial: { Args: { p_email: string }; Returns: Json }
+      dcs_clientes_para_cobertura: {
+        Args: never
+        Returns: {
+          deal_ids: number[]
+          key: string
+          org_id: number
+          person_id: number
+        }[]
+      }
+      dcs_concluir_analise: {
+        Args: {
+          p_acoes: Json
+          p_derivado: Json
+          p_id: string
+          p_proxima_revisao: string
+          p_registrar_pipedrive: boolean
+          p_resumo: string
+          p_versao: number
+        }
+        Returns: string
+      }
+      dcs_concluir_definicao_senha: {
+        Args: { p_sessao: string; p_user: string }
+        Returns: undefined
+      }
+      dcs_concluir_solicitacao: {
+        Args: { p_erro: string; p_id: string; p_ok: boolean }
+        Returns: undefined
+      }
+      dcs_concluir_teste_conexao: {
+        Args: { p_erro: string; p_id: string; p_resultado: Json }
+        Returns: undefined
+      }
+      dcs_config_produto: { Args: never; Returns: Json }
+      dcs_confirmar_utilizacao: {
+        Args: { p_key: string; p_obs: string }
+        Returns: undefined
+      }
+      dcs_criar_acao: {
+        Args: {
+          p_acao: string
+          p_categoria: string
+          p_complexidade: string
+          p_ganho_rapido: boolean
+          p_key: string
+          p_prazo: string
+          p_prioridade: string
+          p_problema: string
+          p_responsavel: string
+        }
+        Returns: string
+      }
+      dcs_definir_config_produto: {
+        Args: { p_chave: string; p_valor: Json }
+        Returns: undefined
+      }
+      dcs_definir_escrita_pipedrive: {
+        Args: { p_ativa: boolean }
+        Returns: undefined
+      }
+      dcs_definir_status_usuario: {
+        Args: { p_ativo: boolean; p_user: string }
+        Returns: undefined
+      }
+      dcs_eh_admin: { Args: never; Returns: boolean }
+      dcs_eh_master: { Args: never; Returns: boolean }
+      dcs_enviar_feedback: {
+        Args: {
+          p_descricao: string
+          p_funcionalidade: string
+          p_pagina: string
+          p_tipo: string
+          p_versao: string
+        }
+        Returns: number
+      }
+      dcs_exigir_atuacao: { Args: { p_key: string }; Returns: undefined }
+      dcs_exigir_definicao_senha: {
+        Args: { p_acao: string; p_ator: string; p_user: string }
+        Returns: undefined
+      }
+      dcs_falhar_sync: {
+        Args: { p_erro: string; p_run: string }
+        Returns: undefined
+      }
+      dcs_finalizar_job: {
+        Args: {
+          p_erro: string
+          p_id: string
+          p_resultado: Json
+          p_status: string
+        }
+        Returns: undefined
+      }
+      dcs_iniciar_analise: {
+        Args: { p_key: string }
+        Returns: {
+          analista_id: string
+          ciclo: number
+          cliente_key: string
+          completude: number | null
+          concluido_em: string | null
+          derivado: Json | null
+          id: string
+          indice: number | null
+          iniciado_em: string
+          itens: Json
+          meta: Json
+          metricas: Json
+          proxima_revisao: string | null
+          regras_id: string
+          resultados: Json
+          resumo: string | null
+          salvo_em: string
+          status: string
+          versao: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "dcs_diagnosticos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      dcs_iniciar_sync: {
+        Args: { p_modo: string; p_tipo: string }
+        Returns: string
+      }
+      dcs_liberar_job: { Args: { p_id: string }; Returns: undefined }
+      dcs_listar_usuarios: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          carteiras: number[]
+          clientes: string[]
+          convidado_por: string
+          criado_em: string
+          email: string
+          financeiro: boolean
+          master_principal: boolean
+          modulos: string[]
+          nome: string
+          papel: string
+          perfil: string
+          permissoes: Json
+          pipedrive_user_id: number
+          pode_editar: boolean
+          pode_exportar: boolean
+          provisoria_expira_em: string
+          status: string
+          troca_senha: boolean
+          ultimo_acesso: string
+          user_id: string
+        }[]
+      }
+      dcs_logs_seguranca: {
+        Args: { p_limite?: number }
+        Returns: {
+          acao: string
+          ator: string
+          dados: Json
+          em: string
+          entidade: string
+          entidade_id: string
+        }[]
+      }
+      dcs_marcar_sem_utilizacao: {
+        Args: {
+          p_acao: string
+          p_desconhecida: boolean
+          p_evidencias: string
+          p_intervalo: number
+          p_key: string
+          p_motivo: string
+          p_obs: string
+          p_proxima: string
+          p_responsavel: string
+          p_ultima: string
+        }
+        Returns: undefined
+      }
+      dcs_metodo_vinculo: {
+        Args: { p_email_app: string; p_email_pd: string }
+        Returns: string
+      }
+      dcs_meu_acesso: { Args: never; Returns: Json }
+      dcs_minha_conexao_pipedrive: { Args: never; Returns: Json }
+      dcs_perfil: { Args: never; Returns: string }
+      dcs_perfil_de: { Args: { p_user: string }; Returns: string }
+      dcs_permissoes_validas: { Args: { p_perfil: string }; Returns: string[] }
+      dcs_pipedrive_do_usuario: { Args: { p_user: string }; Returns: number }
+      dcs_pode: { Args: { p: string }; Returns: boolean }
+      dcs_pode_atuar_de: {
+        Args: { p_key: string; p_owner: number; p_user: string }
+        Returns: boolean
+      }
+      dcs_pode_editar: { Args: never; Returns: boolean }
+      dcs_pode_ver: {
+        Args: { p_key: string; p_owner: number }
+        Returns: boolean
+      }
+      dcs_publicar_carteira: {
+        Args: {
+          p_completo: boolean
+          p_lidos: number
+          p_rows: Json
+          p_run: string
+        }
+        Returns: Json
+      }
+      dcs_publicar_cobertura: {
+        Args: {
+          p_completo: boolean
+          p_detalhes: Json
+          p_rows: Json
+          p_run: string
+        }
+        Returns: number
+      }
+      dcs_publicar_regras: {
+        Args: { p_config: Json; p_metodologia: string }
+        Returns: string
+      }
+      dcs_publicar_responsaveis: {
+        Args: { p_run: string; p_users: Json }
+        Returns: number
+      }
+      dcs_reabrir_analise: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      dcs_reenfileirar_jobs: { Args: never; Returns: number }
+      dcs_registrar_convite: { Args: { p_email: string }; Returns: undefined }
+      dcs_registrar_log: {
+        Args: {
+          p_dados: Json
+          p_mensagem: string
+          p_nivel: string
+          p_origem: string
+        }
+        Returns: undefined
+      }
+      dcs_registrar_provisoria: {
+        Args: { p_ator: string; p_horas: number; p_user: string }
+        Returns: undefined
+      }
+      dcs_registrar_tipos_atividade: {
+        Args: { p_tipos: Json }
+        Returns: number
+      }
+      dcs_regras_ativas: { Args: never; Returns: Json }
+      dcs_reivindicar_acesso: { Args: never; Returns: boolean }
+      dcs_reprocessar_registro: { Args: { p_diag: string }; Returns: string }
+      dcs_reservar_jobs: {
+        Args: { p_limite?: number; p_tipo: string }
+        Returns: {
+          atualizado_em: string
+          chave: string
+          criado_em: string
+          criado_por: string | null
+          erro: string | null
+          id: string
+          payload: Json
+          proxima_tentativa: string
+          resultado: Json | null
+          status: string
+          tentativas: number
+          tipo: string
+          travado_em: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dcs_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dcs_responsaveis_admin: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          email: string | null
+          nome: string
+          pipedrive_user_id: number
+          visto_em: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dcs_responsaveis"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dcs_revisar_utilizacao: {
+        Args: {
+          p_key: string
+          p_obs: string
+          p_proxima: string
+          p_resultado: string
+          p_ultima: string
+        }
+        Returns: undefined
+      }
+      dcs_revogar_pre_cadastro: {
+        Args: { p_email: string }
+        Returns: undefined
+      }
+      dcs_revogar_sessoes: {
+        Args: { p_ator: string; p_user: string }
+        Returns: undefined
+      }
+      dcs_salvar_acesso: { Args: { p: Json }; Returns: Json }
+      dcs_salvar_diagnostico: {
+        Args: {
+          p_derivado: Json
+          p_id: string
+          p_itens: Json
+          p_meta: Json
+          p_metricas: Json
+          p_resultados: Json
+          p_versao: number
+        }
+        Returns: number
+      }
+      dcs_salvar_membro: {
+        Args: {
+          p_ativo: boolean
+          p_carteiras: number[]
+          p_clientes: string[]
+          p_financeiro: boolean
+          p_modulos: string[]
+          p_perfil: string
+          p_pipedrive: number
+          p_user: string
+        }
+        Returns: undefined
+      }
+      dcs_salvar_onboarding: {
+        Args: {
+          p_concluidas: string[]
+          p_estado: string
+          p_etapa: string
+          p_prefs: Json
+          p_tour: string
+          p_versao: number
+        }
+        Returns: undefined
+      }
+      dcs_salvar_permissoes: {
+        Args: {
+          p_ativo: boolean
+          p_carteiras: number[]
+          p_clientes: string[]
+          p_editar: boolean
+          p_exportar: boolean
+          p_financeiro: boolean
+          p_modulos: string[]
+          p_perfil: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      dcs_salvar_usuario: {
+        Args: {
+          p_ativo: boolean
+          p_carteiras: number[]
+          p_clientes: string[]
+          p_editar: boolean
+          p_email: string
+          p_exportar: boolean
+          p_financeiro: boolean
+          p_nome: string
+          p_perfil: string
+          p_pipedrive: number
+        }
+        Returns: Json
+      }
+      dcs_senha_igual_atual: { Args: { p_senha: string }; Returns: boolean }
+      dcs_situacao_senha: { Args: never; Returns: Json }
+      dcs_solicitar_sync: { Args: { p_tipo: string }; Returns: string }
+      dcs_solicitar_teste_conexao: { Args: never; Returns: string }
+      dcs_status_conexao: { Args: never; Returns: Json }
+      dcs_status_registro: { Args: { p_diag: string }; Returns: Json }
+      dcs_transferir_analise: {
+        Args: { p_id: string; p_motivo: string; p_para: string }
+        Returns: undefined
+      }
+      dcs_transferir_master: { Args: { p_novo: string }; Returns: undefined }
+      dcs_troca_pendente: { Args: { p_user: string }; Returns: boolean }
+      dcs_ve_financeiro: { Args: never; Returns: boolean }
+      dcs_vinculos_pipedrive: {
+        Args: never
+        Returns: {
+          ativo_no_pipedrive: boolean
+          compartilhado: boolean
+          metodo: string
+          nome_pipedrive: string
+          pipedrive_user_id: number
+          user_id: string
+        }[]
       }
       estruturar_projeto_pessoal: {
         Args: { etapas: Json; item: string; respostas: string[] }
