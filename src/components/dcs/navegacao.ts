@@ -11,6 +11,7 @@ import {
   Rocket,
   Settings2,
   ShieldCheck,
+  UserCog,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -81,6 +82,13 @@ export const NAV: ItemNav[] = [
     rotulo: "Onboarding",
     icone: Rocket,
     mod: "onboarding",
+    grupo: "Operação",
+  },
+  {
+    to: "/dcs/equipe",
+    rotulo: "Gestão da equipe",
+    icone: UserCog,
+    mod: "equipe",
     grupo: "Operação",
   },
   {

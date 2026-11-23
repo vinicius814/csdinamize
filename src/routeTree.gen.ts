@@ -44,6 +44,7 @@ import { Route as AuthenticatedDcsAnalisesRouteImport } from './routes/_authenti
 import { Route as AuthenticatedDcsCarteiraRouteImport } from './routes/_authenticated/dcs/carteira'
 import { Route as AuthenticatedDcsCoberturaRouteImport } from './routes/_authenticated/dcs/cobertura'
 import { Route as AuthenticatedDcsConfiguracoesRouteImport } from './routes/_authenticated/dcs/configuracoes'
+import { Route as AuthenticatedDcsEquipeRouteImport } from './routes/_authenticated/dcs/equipe'
 import { Route as AuthenticatedDcsHistoricoRouteImport } from './routes/_authenticated/dcs/historico'
 import { Route as AuthenticatedDcsIntegracoesRouteImport } from './routes/_authenticated/dcs/integracoes'
 import { Route as AuthenticatedDcsInteligenciaRouteImport } from './routes/_authenticated/dcs/inteligencia'
@@ -244,6 +245,11 @@ const AuthenticatedDcsConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsEquipeRoute = AuthenticatedDcsEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedDcsRouteRoute,
+} as any)
 const AuthenticatedDcsHistoricoRoute =
   AuthenticatedDcsHistoricoRouteImport.update({
     id: '/historico',
@@ -354,6 +360,7 @@ export interface FileRoutesByFullPath {
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
@@ -453,6 +461,7 @@ export interface FileRoutesById {
   '/_authenticated/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/_authenticated/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/_authenticated/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/_authenticated/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/_authenticated/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/_authenticated/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/_authenticated/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
@@ -504,6 +513,7 @@ export interface FileRouteTypes {
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
+    | '/dcs/equipe'
     | '/dcs/historico'
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
@@ -552,6 +562,7 @@ export interface FileRouteTypes {
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
+    | '/dcs/equipe'
     | '/dcs/historico'
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
@@ -602,6 +613,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/carteira'
     | '/_authenticated/dcs/cobertura'
     | '/_authenticated/dcs/configuracoes'
+    | '/_authenticated/dcs/equipe'
     | '/_authenticated/dcs/historico'
     | '/_authenticated/dcs/integracoes'
     | '/_authenticated/dcs/inteligencia'
@@ -880,6 +892,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/equipe': {
+      id: '/_authenticated/dcs/equipe'
+      path: '/equipe'
+      fullPath: '/dcs/equipe'
+      preLoaderRoute: typeof AuthenticatedDcsEquipeRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/historico': {
       id: '/_authenticated/dcs/historico'
       path: '/historico'
@@ -981,6 +1000,7 @@ interface AuthenticatedDcsRouteRouteChildren {
   AuthenticatedDcsCarteiraRoute: typeof AuthenticatedDcsCarteiraRoute
   AuthenticatedDcsCoberturaRoute: typeof AuthenticatedDcsCoberturaRoute
   AuthenticatedDcsConfiguracoesRoute: typeof AuthenticatedDcsConfiguracoesRoute
+  AuthenticatedDcsEquipeRoute: typeof AuthenticatedDcsEquipeRoute
   AuthenticatedDcsHistoricoRoute: typeof AuthenticatedDcsHistoricoRoute
   AuthenticatedDcsIntegracoesRoute: typeof AuthenticatedDcsIntegracoesRoute
   AuthenticatedDcsInteligenciaRoute: typeof AuthenticatedDcsInteligenciaRoute
@@ -999,6 +1019,7 @@ const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
   AuthenticatedDcsCarteiraRoute: AuthenticatedDcsCarteiraRoute,
   AuthenticatedDcsCoberturaRoute: AuthenticatedDcsCoberturaRoute,
   AuthenticatedDcsConfiguracoesRoute: AuthenticatedDcsConfiguracoesRoute,
+  AuthenticatedDcsEquipeRoute: AuthenticatedDcsEquipeRoute,
   AuthenticatedDcsHistoricoRoute: AuthenticatedDcsHistoricoRoute,
   AuthenticatedDcsIntegracoesRoute: AuthenticatedDcsIntegracoesRoute,
   AuthenticatedDcsInteligenciaRoute: AuthenticatedDcsInteligenciaRoute,
