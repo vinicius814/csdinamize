@@ -66,7 +66,7 @@ export const NAV: ItemNav[] = [
   },
   {
     to: "/dcs/planos",
-    rotulo: "Planos de ação",
+    rotulo: "Oportunidades de melhoria",
     icone: ClipboardList,
     mod: "planos",
     grupo: "Operação",

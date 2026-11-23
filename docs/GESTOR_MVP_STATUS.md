@@ -9,7 +9,8 @@ Frente nova, aditiva, sobre o produto Dinamize CS já publicado (Beta 1.1). Não
   (pendência de segurança A-08; dono decidiu "registrar e seguir depois").
 
 ## Módulos implementados (confirmados por módulo entre `dcs_*`/`src/components/dcs`)
-Visão geral, Carteira de clientes (+ Cliente 360 ampliado), Minhas análises, Planos de ação,
+Visão geral, Carteira de clientes (+ Cliente 360 ampliado), Minhas análises, Oportunidades de
+melhoria (ex-"Planos de ação", renomeado na Prioridade 7),
 Cobertura de CS, **Onboarding** (novo), **Gestão da equipe** (novo), **Atividades e pendências**
 (novo), **Cancelamentos e retenção** (novo), **Radar de inteligência** (evolução de "Alertas e
 pendências"), Inteligência gerencial, Histórico de diagnósticos, Usuários e permissões,
@@ -18,7 +19,9 @@ do app (tours) também existe, mas é funcionalidade diferente do onboarding ope
 clientes (pipeline Pipedrive id 1).
 
 ## Gaps confirmados (pedidos no spec, ainda ausentes)
-- Relatórios gerenciais (Prioridade 8) — "Inteligência gerencial" cobre parte, não a amplitude pedida.
+- Relatórios gerenciais (Prioridade 8) — "Inteligência gerencial" cobre parte, não a amplitude pedida. (Nota:
+  a Prioridade 7 renomeou o antigo módulo "Planos de ação" para **Oportunidades de melhoria**; o módulo
+  "Inteligência gerencial" é outra coisa, hoje focada em KPIs gerenciais, não confundir os dois.)
 - Assistente e Metas (Prioridade 9) — não existem.
 - Onboarding (Prioridade 2): sem "clientes atrasados" (falta regra de prazo por etapa validada — artefato
   Gestor não consultado ainda) nem atividades específicas desse funil.
@@ -72,7 +75,14 @@ clientes (pipeline Pipedrive id 1).
   dado do cliente) e **link direto** ao negócio no Pipedrive (reaproveita `dcs_clientes.deal_id` +
   helper `pipedriveDeal`, já usado em outras telas). Não criei alertas de atraso para
   Onboarding/Implementação por falta de uma regra de prazo por etapa validada (mesmo gap já
-  registrado abaixo) — melhor não ter o alerta do que inventar um prazo. Commit pendente.
+  registrado abaixo) — melhor não ter o alerta do que inventar um prazo. Commit `e5c5ae7`.
+- **Prioridade 7 — Oportunidades de melhoria**: renomeação/reenquadramento do módulo "Planos de
+  ação" (já era completo: diagnósticos/recomendações ligados por ciclo, responsável, prazo,
+  prioridade, complexidade, status, ganhos rápidos e reincidências entre ciclos — histórico real,
+  não novo). Mudança foi só de rótulo/título (nav, Titulo da página, dashboard, tour guiado,
+  dica de ajuda) para o nome pedido no spec — nenhuma lógica nova precisou ser construída porque
+  a funcionalidade já cobria o enquadramento pedido. O motor de diagnóstico continua módulo
+  independente, acessível pela ficha 360. Commit pendente.
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
@@ -104,6 +114,5 @@ clientes (pipeline Pipedrive id 1).
 ## Próxima etapa
 1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver Bloqueio
    aberto); eu ativo e testo cada um com uma execução manual.
-2. Seguir para Prioridade 7 — Oportunidades de melhoria (reapresentar "Planos de ação" sob esse nome/
-   enquadramento, conectando diagnósticos/recomendações/implementações/responsáveis/prazos/prioridades/
-   histórico/status; preservar o motor de diagnóstico como módulo independente, acessível pela ficha 360).
+2. Seguir para Prioridade 8 — Relatórios gerenciais (expandir para cobrir a operação toda com dados reais;
+   não tratar o campo "Valor" do Pipedrive como MRR sem confirmação; não apresentar dado histórico inventado).
