@@ -31,17 +31,35 @@ funcionalidade diferente do onboarding operacional de clientes.
   `cs_*`/`google_tokens`/`registros` com RLS habilitado e sem política (achado, não corrigido ainda);
   leaked password protection desativada (pendência já conhecida).
 
-## Último commit
-`3008d74` — "Status: Beta 1.1 publicado; vínculo duplicado corrigido; repositório privado pendente".
+## Feito (23/11/2026)
+- Lovable (commit `8855377`, ainda não sincronizado com o GitHub): menu reorganizado em
+  Início/Operação/Acompanhamento/Inteligência/Diagnósticos/Administração; itens novos (Assistente, Onboarding,
+  Gestão da equipe, Atividades e pendências, Cancelamentos e retenção, Metas) como "Em breve", sem alterar rotas
+  nem lógica existente. tsc/vitest(293)/lint/build ok.
+- GitHub (branch `dinamize-cs/gestor-operacional-mvp`): commits `9d216e0`→`f7eab44`.
+- Supabase: tabela `dcs_pipeline_onboarding` (funil Onboarding, pipeline_id=1; aditiva, RLS igual a `dcs_clientes`)
+  + função `dcs_publicar_pipeline_onboarding` (espelha `dcs_publicar_carteira`, reusa `dcs_iniciar_sync`/`dcs_falhar_sync`
+  com `p_tipo='onboarding'`). Migrations aplicadas no banco real e commitadas no repo.
+- n8n: workflow `Dinamize CS | 13 — Sincronização do funil Onboarding` (ID `07ed9XQEH6Fw5Qnm`, validado, **inativo**)
+  lê o funil 1 do Pipedrive (paginado) e publica em `dcs_pipeline_onboarding`. Fonte em `n8n/sdk/13-onboarding.sdk.js`.
+
+## Bloqueio aberto
+- **Credenciais do workflow 13 não foram anexadas automaticamente** (5 nós HTTP: Abrir sincronização, Usuários
+  Pipedrive, Negócios do funil Onboarding, Publicar onboarding, Registrar falha). As credenciais existem no n8n
+  com os IDs corretos (`TqXGYCOmVGd2AvKp` Supabase, `RLiF1ChIGaWvWg1f` Pipedrive) mas precisam ser selecionadas
+  manualmente em cada nó na UI do n8n (n8n.dinamize.com.br/workflow/07ed9XQEH6Fw5Qnm) antes de ativar. Até lá o
+  workflow fica inativo — não vou ativá-lo sem credencial confirmada.
+- Lovable (commit `8855377`) ainda não apareceu em nenhuma branch do GitHub via `git ls-remote` — sincronização
+  pendente do lado do Lovable; acompanhar antes de mesclar com o trabalho feito direto no GitHub.
+
+## Pendências antigas (independentes desta frente)
+- Repo público + `.env` commitado (agora em `vinicius814/omunim`): ação do dono no GitHub.
+- RLS sem política em 8 tabelas legadas (`cs_*`/`google_tokens`/`registros`): avaliar antes de criar política ou remover.
+- Transferência de Master, Supabase Auth (leaked password protection), usuário de integração dedicado no Pipedrive:
+  já registradas em `docs/PROJECT_STATUS.md`.
 
 ## Próxima etapa
-1ª mensagem ao agente Lovable (23/11/2026, em andamento): reorganizar `navegacao.ts`/`Shell.tsx` nos grupos
-Início/Operação/Acompanhamento/Inteligência/Diagnósticos/Administração, com itens novos (Assistente, Onboarding,
-Gestão da equipe, Atividades e pendências, Cancelamentos e retenção, Metas) marcados "Em breve" até serem
-implementados um a um. Sem alterar rotas ou lógica existentes.
-
-## Pendências/bloqueios
-- Repo público + `.env` commitado: ação do dono no GitHub.
-- RLS sem política em 8 tabelas legadas: avaliar se ainda são usadas antes de criar políticas ou remover.
-- Pendências antigas já registradas em `docs/PROJECT_STATUS.md` (transferência de Master, Supabase Auth,
-  usuário de integração dedicado no Pipedrive) seguem em aberto, independentes desta frente.
+Com o funil Onboarding mapeável (schema + função + workflow prontos), seguir para:
+1. Você (ou alguém com acesso ao n8n) anexar as credenciais no workflow 13 e eu ativo e testo com uma execução manual.
+2. Enquanto isso, iniciar a Carteira consolidada / Cliente 360 (Prioridade 1 do pedido): auditar `dcs_clientes`
+   (hoje só funil 15) e desenhar como linkar com `dcs_pipeline_onboarding` por `org_id` na ficha do cliente.
