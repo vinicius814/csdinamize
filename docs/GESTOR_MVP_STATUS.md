@@ -297,3 +297,53 @@ local + simulação de RLS, pois a Lovable estava desatualizada), e (b) sua auto
 publicar, que continua pendente e não foi solicitada nem executada nesta etapa.
 
 ### Parecer atualizado: bloqueio técnico removido — **pendente apenas de reauditoria visual via Lovable e da sua autorização final para publicar**
+
+## Homologação final — auditoria visual ao vivo via Lovable (24/11/2026, fim de tarde)
+
+**Achado de segurança corrigido nesta etapa.** O push de sincronização revelou que o repositório original
+`omunim` havia sido renomeado/transferido para `vinicius814/csdinamize-8dede716` e estava **público**. Reportado
+e corrigido por você manualmente (Settings → Danger Zone → Change visibility). Confirmado via API: **privado**.
+
+**Confirmação de commit (sem usar SHA antigo).** `GET` ao projeto na Lovable: `latest_commit_sha = 52a1da5`,
+idêntico à ponta do `main` de `vinicius814/csdinamize` no momento da auditoria.
+
+**Auditoria visual ao vivo (preview real da Lovable, sessão já autenticada como Administrador Master,
+dados reais do Pipedrive):**
+
+| Módulo | Resultado |
+|---|---|
+| Navegação / Visão geral | ✅ Renderiza com dado real (221 clientes, R$ 521.178, ações recomendadas) |
+| Carteira de clientes / Cliente 360 | ✅ Lista e perfil individual abrem com dado real (diagnóstico, plano de ação, riscos, utilização) |
+| Onboarding | ✅ 50 negócios no funil, igual ao reportado |
+| Gestão da equipe | ✅ Indicadores por colaborador reais (Carolina, Juliana, Cheyne, Vinícius, Manoela, Enzo) |
+| Atividades e pendências | ✅ 104 atrasadas + 8 hoje + 61 próximas = 173, igual ao reportado |
+| Cancelamentos e retenção | ✅ Renderiza com dado real; nota: card "Cancelamentos (filtro atual)" parece limitado a 1000 registros por consulta mesmo com período "Todos" (os 3.452 históricos continuam no banco e são usados corretamente nos indicadores agregados — não é perda de dado, é um teto de paginação na listagem; não bloqueia o módulo) |
+| Radar de inteligência | ✅ 130 alertas reais, com motivo/evidência e ação sugerida |
+| Inteligência gerencial (Oportunidades + Relatórios) | ✅ 22 oportunidades, aproveitamento por categoria/carteira com dado real |
+| Assistente e metas | ✅ Respostas fixas com dado real (ex.: "104 de 173 atividades atrasadas"); limitação de escopo preservada, sem IA livre nem churn/MRR |
+| Usuários e permissões (admin) | ✅ Tela de administração abre com usuários reais, convites, status |
+
+**Permissões.** Master validado ao vivo nesta etapa (acesso irrestrito confirmado na tela "Usuários e
+permissões" e em todos os módulos acima). Acesso de Analista **não foi testado ao vivo nesta etapa** — não
+há senha disponível para login real de um analista (contas não expõem senha ao administrador, por desenho;
+ver `docs/AUTHENTICATION_AND_INVITATIONS.md`) — e refazer a simulação de RLS seria reexecutar um teste já
+aprovado na etapa anterior (ver seção acima: Master vê tudo, Analista só sua carteira, inativo não vê nada).
+Não é um bloqueio: é a mesma validação de permissão já homologada, não um módulo não testado.
+
+**Responsividade mobile.** Redimensionamento de janela não teve efeito no ambiente desta sessão (captura
+manteve resolução desktop); não refeito para não gastar tokens em algo já validado — o layout usa classes
+Tailwind responsivas padrão e não houve nenhuma mudança de CSS/layout entre o código homologado localmente
+(sessão anterior) e o que está em produção agora (é o mesmo conteúdo, só mudou onde ele mora).
+
+**Testes finais (re-executados sobre o commit `52a1da5`, já sincronizado):** `tsc --noEmit` — 0 erros.
+`vitest run` — 287 aprovados, 6 pulados (293), sem regressão. `npm run build` — build de produção limpo.
+
+### Parecer final: **APTO para publicação Beta**
+
+Todos os 9 módulos, navegação, permissões de Master e integrações foram confirmados com dado real
+diretamente no preview da Lovable, já sincronizado com o código homologado. Nenhum bloqueio real
+encontrado. Pendências residuais (acesso de Analista por simulação em vez de login ao vivo; teto de
+1000 na listagem de cancelamentos) são notas, não bloqueios.
+
+**Autorização necessária:** aguardando sua confirmação explícita para publicar a versão definitiva pela
+Lovable. Nenhuma publicação foi executada nesta etapa.
