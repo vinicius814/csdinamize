@@ -14,15 +14,18 @@ melhoria (ex-"Planos de ação", renomeado na Prioridade 7),
 Cobertura de CS, **Onboarding** (novo), **Gestão da equipe** (novo), **Atividades e pendências**
 (novo), **Cancelamentos e retenção** (novo), **Radar de inteligência** (evolução de "Alertas e
 pendências"), **Inteligência gerencial** (expandida na Prioridade 8 — Relatórios gerenciais),
-Histórico de diagnósticos, Usuários e permissões,
+**Assistente e metas** (novo), Histórico de diagnósticos, Usuários e permissões,
 Configurações, Integrações, Diagnóstico detalhado (motor completo, testado). Onboarding guiado
 do app (tours) também existe, mas é funcionalidade diferente do onboarding operacional de
 clientes (pipeline Pipedrive id 1).
 
 ## Gaps confirmados (pedidos no spec, ainda ausentes)
-- Assistente e Metas (Prioridade 9) — não existem.
 - Onboarding (Prioridade 2): sem "clientes atrasados" (falta regra de prazo por etapa validada — artefato
-  Gestor não consultado ainda) nem atividades específicas desse funil.
+  Gestor não consultado ainda) nem atividades específicas desse funil. Mesma razão pela qual o Radar de
+  inteligência (Prioridade 6) e o Assistente/Metas (Prioridade 9) não têm alerta/indicador de atraso de
+  onboarding — melhor nenhum do que um prazo inventado.
+- As 9 prioridades do spec têm agora um módulo real e funcional cada uma. O que resta é operacional, não
+  de desenvolvimento: ver "Bloqueio aberto" abaixo (credenciais dos workflows 13/14/15).
 
 ## Arquivos principais
 - Navegação: `src/components/dcs/navegacao.ts`, `src/components/dcs/Shell.tsx`.
@@ -87,7 +90,19 @@ clientes (pipeline Pipedrive id 1).
   (últimos 30/90 dias, por motivo) — tudo cruzando as tabelas das Prioridades 2/4/5, sem estimar
   nada; enquanto os workflows 13/14/15 estiverem inativos, cada bloco mostra "sem dados
   sincronizados" corretamente. Mantida a regra de nunca rotular o valor do Pipedrive como MRR
-  (já era "Valor" em todo o módulo; confirmado, não alterado). Commit pendente.
+  (já era "Valor" em todo o módulo; confirmado, não alterado). Commit `cf389c8`.
+- **Prioridade 9 — Assistente e metas (última prioridade do spec)**: rota `/dcs/assistente`, nova
+  e enxuta de propósito. "Assistente" é uma central de respostas rápidas — perguntas fixas
+  (clientes em risco, atividades atrasadas, cancelamentos recentes, negócios em onboarding),
+  cada uma respondida com dado real recalculado na hora pelos mesmos hooks do resto do produto —
+  não é chat livre por IA (exigiria credencial de modelo e revisão de segurança fora do escopo
+  desta entrega; rotulado honestamente como "respostas rápidas", não como assistente geral).
+  "Metas" cobre só 3 indicadores já confiáveis e reais do produto — cobertura em dia, implementação
+  de ações, % onboarding concluído — comparando valor atual (calculado agora) com meta mensal
+  definida por quem tem permissão "config" (tabela nova `dcs_metas` + função
+  `dcs_definir_meta`, SECURITY DEFINER, valida período/indicador/faixa 0–100). Nenhuma meta de
+  churn/MRR. Também lista os 5 clientes sem contato há mais tempo (reaproveita `dcs_cobertura`).
+  Commit pendente.
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
@@ -117,8 +132,14 @@ clientes (pipeline Pipedrive id 1).
   já registradas em `docs/PROJECT_STATUS.md`.
 
 ## Próxima etapa
-1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver Bloqueio
-   aberto); eu ativo e testo cada um com uma execução manual.
-2. Seguir para Prioridade 9 — Assistente e Metas (versões iniciais apenas; assistente respondendo com
-   dados operacionais reais, não só ilustrativo; metas partindo de indicadores confiáveis — cobertura/
-   onboarding; não deixar recursos avançados de IA/gamificação bloquearem os módulos centrais).
+As 9 prioridades sequenciais do spec estão implementadas com dado real e funcionalidade de verdade
+(nenhum placeholder "Em breve" restante nos módulos entregues). O que falta não é desenvolvimento:
+1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver "Bloqueio
+   aberto") — eu ativo e testo cada um com uma execução manual assim que estiver pronto. Até lá,
+   Onboarding, Atividades, Cancelamentos (e os pedaços do Radar/Relatórios/Metas que dependem deles)
+   mostram corretamente "sem dados sincronizados", nunca dado fabricado.
+2. Revisar a nota pendente da Prioridade 5 (mês de cancelamento vs. `lost_time`/`close_time` do
+   Pipedrive) antes de usar esse campo em relatório por mês de cancelamento para a diretoria.
+3. Fora do escopo desta frente, mas registrado: Lovable (commit `8855377`) ainda não sincronizou com o
+   GitHub; repo público + `.env` commitado; RLS sem política em 8 tabelas legadas (ver "Pendências
+   antigas").

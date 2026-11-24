@@ -528,6 +528,32 @@ export function useCancelamentos() {
   });
 }
 
+/**
+ * Metas (Prioridade 9) — metas mensais sobre indicadores reais já calculados no produto
+ * (cobertura em dia, implementação de ações, onboarding concluído). Leitura liberada a todo
+ * usuário ativo; escrita exige permissão "config" (checada de novo no banco).
+ */
+export function useMetas() {
+  return useQuery({
+    queryKey: ["dcs", "metas"],
+    queryFn: async () => ok(dcs.from("dcs_metas").select("*")),
+  });
+}
+export function useDefinirMeta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: { periodo: string; indicador: string; valor: number }) =>
+      ok(
+        dcs.rpc("dcs_definir_meta", {
+          p_periodo: m.periodo,
+          p_indicador: m.indicador,
+          p_valor: m.valor,
+        }),
+      ),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "metas"] }),
+  });
+}
+
 export function useIntegracoes() {
   return useQuery({
     queryKey: ["dcs", "integracoes"],

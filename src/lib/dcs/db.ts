@@ -72,6 +72,15 @@ export type DcsCancelamento = {
   criado_em: string;
   atualizado_em: string;
 };
+/** Meta mensal (Prioridade 9) sobre um indicador real já calculado no produto. */
+export type DcsMeta = {
+  id: number;
+  periodo: string;
+  indicador: "cobertura_em_dia_pct" | "implementacao_pct" | "onboarding_concluido_pct";
+  meta_valor: number;
+  definido_por: string | null;
+  atualizado_em: string;
+};
 export type DcsFinanceiro = {
   key: string;
   mrr: number | null;
@@ -331,6 +340,7 @@ export type DcsDatabase = {
       dcs_pipeline_onboarding: T<DcsPipelineOnboarding>;
       dcs_atividades: T<DcsAtividade>;
       dcs_cancelamentos: T<DcsCancelamento>;
+      dcs_metas: T<DcsMeta>;
       dcs_clientes_financeiro: T<DcsFinanceiro>;
       dcs_cobertura: T<DcsCobertura>;
       dcs_diagnosticos: T<DcsDiagnostico>;
@@ -532,6 +542,10 @@ export type DcsDatabase = {
       dcs_atualizar_acao: {
         Args: { p_id: string; p_versao: number; p_campos: Json };
         Returns: number;
+      };
+      dcs_definir_meta: {
+        Args: { p_periodo: string; p_indicador: string; p_valor: number };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

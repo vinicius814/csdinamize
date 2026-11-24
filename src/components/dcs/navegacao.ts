@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Bot,
   Bell,
   BookOpenCheck,
   Briefcase,
@@ -120,6 +121,13 @@ export const NAV: ItemNav[] = [
     rotulo: "Inteligência gerencial",
     icone: BarChart3,
     mod: "inteligencia",
+    grupo: "Inteligência",
+  },
+  {
+    to: "/dcs/assistente",
+    rotulo: "Assistente e metas",
+    icone: Bot,
+    mod: "assistente",
     grupo: "Inteligência",
   },
   {
