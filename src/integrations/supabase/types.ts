@@ -1335,6 +1335,45 @@ export type Database = {
           },
         ]
       }
+      dcs_atividades: {
+        Row: {
+          assunto: string | null
+          ativo: boolean
+          atualizado_em: string
+          cliente_key: string
+          data: string | null
+          id: number
+          owner_id: number | null
+          owner_nome: string | null
+          sync_id: string | null
+          tipo: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          cliente_key: string
+          data?: string | null
+          id: number
+          owner_id?: number | null
+          owner_nome?: string | null
+          sync_id?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean
+          atualizado_em?: string
+          cliente_key?: string
+          data?: string | null
+          id?: number
+          owner_id?: number | null
+          owner_nome?: string | null
+          sync_id?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       dcs_auditoria: {
         Row: {
           acao: string
@@ -1362,6 +1401,54 @@ export type Database = {
           entidade?: string
           entidade_id?: string
           id?: never
+        }
+        Relationships: []
+      }
+      dcs_cancelamentos: {
+        Row: {
+          atualizado_em: string
+          cancelado_em: string | null
+          codigo: string | null
+          criado_em: string
+          deal_id: number
+          key: string
+          motivo: string | null
+          nome: string | null
+          org_id: number | null
+          owner_id: number | null
+          owner_nome: string | null
+          sync_id: string | null
+          valor: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cancelado_em?: string | null
+          codigo?: string | null
+          criado_em?: string
+          deal_id: number
+          key: string
+          motivo?: string | null
+          nome?: string | null
+          org_id?: number | null
+          owner_id?: number | null
+          owner_nome?: string | null
+          sync_id?: string | null
+          valor?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          cancelado_em?: string | null
+          codigo?: string | null
+          criado_em?: string
+          deal_id?: number
+          key?: string
+          motivo?: string | null
+          nome?: string | null
+          org_id?: number | null
+          owner_id?: number | null
+          owner_nome?: string | null
+          sync_id?: string | null
+          valor?: number | null
         }
         Relationships: []
       }
@@ -1874,6 +1961,33 @@ export type Database = {
           },
         ]
       }
+      dcs_metas: {
+        Row: {
+          atualizado_em: string
+          definido_por: string | null
+          id: number
+          indicador: string
+          meta_valor: number
+          periodo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          definido_por?: string | null
+          id?: never
+          indicador: string
+          meta_valor: number
+          periodo: string
+        }
+        Update: {
+          atualizado_em?: string
+          definido_por?: string | null
+          id?: never
+          indicador?: string
+          meta_valor?: number
+          periodo?: string
+        }
+        Relationships: []
+      }
       dcs_onboarding: {
         Row: {
           atualizado_em: string
@@ -1907,6 +2021,51 @@ export type Database = {
           tour?: string
           user_id?: string
           versao?: number
+        }
+        Relationships: []
+      }
+      dcs_pipeline_onboarding: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          deal_id: number
+          entrada_etapa_em: string | null
+          inativado_em: string | null
+          key: string
+          org_id: number
+          owner_id: number | null
+          owner_nome: string | null
+          stage_id: number
+          sync_id: string | null
+          titulo: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          deal_id: number
+          entrada_etapa_em?: string | null
+          inativado_em?: string | null
+          key: string
+          org_id: number
+          owner_id?: number | null
+          owner_nome?: string | null
+          stage_id: number
+          sync_id?: string | null
+          titulo?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          deal_id?: number
+          entrada_etapa_em?: string | null
+          inativado_em?: string | null
+          key?: string
+          org_id?: number
+          owner_id?: number | null
+          owner_nome?: string | null
+          stage_id?: number
+          sync_id?: string | null
+          titulo?: string | null
         }
         Relationships: []
       }
@@ -3475,6 +3634,10 @@ export type Database = {
         Args: { p_ativa: boolean }
         Returns: undefined
       }
+      dcs_definir_meta: {
+        Args: { p_indicador: string; p_periodo: string; p_valor: number }
+        Returns: undefined
+      }
       dcs_definir_status_usuario: {
         Args: { p_ativo: boolean; p_user: string }
         Returns: undefined
@@ -3616,6 +3779,24 @@ export type Database = {
         Args: { p_key: string; p_owner: number }
         Returns: boolean
       }
+      dcs_publicar_atividades: {
+        Args: {
+          p_completo: boolean
+          p_lidos: number
+          p_rows: Json
+          p_run: string
+        }
+        Returns: Json
+      }
+      dcs_publicar_cancelamentos: {
+        Args: {
+          p_completo: boolean
+          p_lidos: number
+          p_rows: Json
+          p_run: string
+        }
+        Returns: Json
+      }
       dcs_publicar_carteira: {
         Args: {
           p_completo: boolean
@@ -3633,6 +3814,15 @@ export type Database = {
           p_run: string
         }
         Returns: number
+      }
+      dcs_publicar_pipeline_onboarding: {
+        Args: {
+          p_completo: boolean
+          p_lidos: number
+          p_rows: Json
+          p_run: string
+        }
+        Returns: Json
       }
       dcs_publicar_regras: {
         Args: { p_config: Json; p_metodologia: string }
