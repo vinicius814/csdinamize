@@ -118,9 +118,17 @@ clientes (pipeline Pipedrive id 1).
   `dcs_sync_execucoes_tipo_check` só permitia `carteira`/`responsaveis`/`cobertura` — faltavam
   `onboarding`/`atividades`/`cancelamentos` (tipos novos de sessões anteriores, nunca adicionados à
   constraint). Corrigido via migração aditiva (`ALTER CONSTRAINT`), confirmado com os 3 testes acima.
-  **Os três workflows continuam INATIVOS de propósito** — ativá-los (rodar no agendamento automático,
-  escrevendo dado real todo dia) é decisão do dono do produto, não uma ação que tomo sozinho. Para ativar:
-  `Publish`/toggle "Active" em cada workflow na UI do n8n, ou pedir para eu fazer isso explicitamente.
+  **Ativados em 24/11/2026, após validação e autorização explícita do dono do produto**: onboarding
+  (diário 05:50), atividades (hora em hora, 07h–19h dias úteis), cancelamentos (diário 06:30). Validado
+  antes de ativar: (1) todas as chamadas ao Pipedrive são `GET` (só leitura; escrita só nas funções do
+  Supabase); (2) as 3 funções de publicação fazem `UPSERT` por chave única (key/id/deal_id) — reexecução
+  não duplica; (3) o full-replace (inativar onboarding/apagar atividade resolvida) só roda quando a
+  leitura foi completa (`p_completo=true`) — leitura parcial ou falha nunca apaga dado válido, e
+  `dcs_iniciar_sync` recupera sozinho execuções travadas há mais de 30 min sem perder histórico;
+  (4) conferido nos dados reais: só 1 cancelamento caiu nos últimos 30 dias e o cliente correspondente já
+  está `ativo=false` (sem confusão com cliente ativo); achado 1 caso histórico legítimo de cliente que
+  cancelou (2024) e depois voltou a ficar ativo — não é bug. Reexecutei `dcs_atualizar_alertas()` logo
+  após ativar e o Radar de inteligência já gerou o primeiro alerta real de `cancelamento_recente`.
 - **Nota para a Prioridade 5 (não resolvida ainda, só registrada)**: o dono do produto definiu que "o mês
   do cancelamento é o mês da solicitação confirmada, mesmo que a conta encerre no mês seguinte" — ainda
   não validei se `lost_time`/`close_time` do Pipedrive correspondem a essa data de "solicitação confirmada"
@@ -130,6 +138,33 @@ clientes (pipeline Pipedrive id 1).
 - Lovable (commit `8855377`) ainda não apareceu em nenhuma branch do GitHub via `git ls-remote` —
   sincronização pendente do lado do Lovable; acompanhar antes de mesclar com o trabalho feito direto no GitHub.
 
+## Homologação funcional (auditoria 24/11/2026, pós-ativação)
+Auditoria ponta a ponta com dado real: `get_advisors` (segurança/performance) no Supabase, checagem de
+duplicidade/nulos/cruzamento nas 4 tabelas novas, policies de RLS de cada uma (todas usam
+`dcs_pode_ver(owner_id, key)` ou checagem de membro ativo — mesmo padrão multiusuário do resto do
+produto, nenhuma política permissiva encontrada), `tsc`/`vitest` (293 testes, 287 passando, 6 skipped)
+e `build` limpos.
+
+**Homologados (dado real, sem placeholder, sem inconsistência encontrada):**
+1. Carteira consolidada / Cliente 360 — 2. Onboarding — 3. Gestão da equipe — 4. Atividades e
+pendências — 5. Cancelamentos e retenção — 6. Radar de inteligência — 7. Oportunidades de melhoria
+(ex-Planos de ação) — 8. Relatórios gerenciais / Inteligência gerencial.
+
+**Com pendência conhecida (funcional, mas com um ponto em aberto, não é bug):**
+9. Assistente e metas — funcional e com dado real, mas é deliberadamente uma central de respostas
+   fixas (não chat livre por IA) e as 3 metas não cobrem churn/MRR — decisão de escopo já registrada,
+   não decorre de nenhum problema técnico encontrado na auditoria.
+
+**Pendências que afetam a confiabilidade de leitura, não a funcionalidade (sem código novo, só vigiar):**
+- Nota da Prioridade 5 sobre `lost_time`/`close_time` vs. "mês da solicitação confirmada" (ver acima) —
+  afeta relatório por mês de cancelamento, não os módulos em si.
+- Risco teórico (não observado na prática): `dcs_iniciar_sync` não impede duas execuções concorrentes do
+  mesmo tipo rodarem ao mesmo tempo; mitigado pelos horários dos 3 agendamentos não se sobreporem.
+
+Nenhuma nova funcionalidade foi adicionada nesta etapa; a única mudança de código foi a migração aditiva
+que corrigiu a constraint de tipo de sync (ver "Bloqueio resolvido"). Nenhuma versão foi publicada no
+Lovable — aguardando autorização.
+
 ## Pendências antigas (independentes desta frente)
 - Repo público + `.env` commitado (agora em `vinicius814/omunim`): ação do dono no GitHub.
 - RLS sem política em 8 tabelas legadas (`cs_*`/`google_tokens`/`registros`): avaliar antes de criar política ou remover.
@@ -137,15 +172,15 @@ clientes (pipeline Pipedrive id 1).
   já registradas em `docs/PROJECT_STATUS.md`.
 
 ## Próxima etapa
-As 9 prioridades sequenciais do spec estão implementadas com dado real e funcionalidade de verdade
-(nenhum placeholder "Em breve" restante nos módulos entregues), e os 3 workflows de sincronização
-(Onboarding/Atividades/Cancelamentos) já testados de ponta a ponta com dado real. O que falta não é
+As 9 prioridades sequenciais do spec estão implementadas, homologadas (ver "Homologação funcional") e
+os 3 workflows de sincronização já estão **ativos em produção** desde 24/11/2026. O que falta não é
 desenvolvimento:
-1. Decidir quando ativar os workflows 13/14/15 (ver "Bloqueio resolvido") — hoje rodam só sob demanda
-   (execução manual testada); ativar faz rodarem sozinhos no agendamento (onboarding diário 05:50,
-   atividades de hora em hora em dias úteis, cancelamentos diário 06:30).
-2. Revisar a nota pendente da Prioridade 5 (mês de cancelamento vs. `lost_time`/`close_time` do
+1. Revisar a nota pendente da Prioridade 5 (mês de cancelamento vs. `lost_time`/`close_time` do
    Pipedrive) antes de usar esse campo em relatório por mês de cancelamento para a diretoria.
+2. Acompanhar as primeiras execuções agendadas dos 3 workflows (próxima: atividades, de hora em hora;
+   onboarding e cancelamentos, amanhã de manhã) via `/dcs/integracoes`.
 3. Fora do escopo desta frente, mas registrado: Lovable (commit `8855377`) ainda não sincronizou com o
    GitHub; repo público + `.env` commitado; RLS sem política em 8 tabelas legadas (ver "Pendências
    antigas").
+4. Publicação de uma versão definitiva (Lovable/deploy) aguarda autorização explícita — não foi feita
+   nesta etapa.
