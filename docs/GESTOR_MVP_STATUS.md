@@ -106,16 +106,21 @@ clientes (pipeline Pipedrive id 1).
 - Correção de gap da sessão anterior: tipo `DcsSync.tipo` não incluía `onboarding`/`atividades`.
 - Todas as mudanças com tsc/vitest(293)/eslint/build limpos a cada commit.
 
-## Bloqueio aberto
-- **Credenciais dos workflows 13, 14 e 15 não foram anexadas automaticamente** pelo conector n8n (16 nós
-  HTTP no total). As credenciais existem no n8n com os IDs corretos (`TqXGYCOmVGd2AvKp` Supabase,
-  `RLiF1ChIGaWvWg1f` Pipedrive) mas precisam ser selecionadas manualmente em cada nó, na UI do n8n:
-  - `n8n.dinamize.com.br/workflow/07ed9XQEH6Fw5Qnm` (Onboarding, 5 nós)
-  - `n8n.dinamize.com.br/workflow/vClNoAV71FeudEhr` (Atividades, 6 nós)
-  - `n8n.dinamize.com.br/workflow/JLSSTrhLrJCJbSoD` (Cancelamentos, 5 nós)
-  Até lá os três ficam inativos — não vou ativá-los sem credencial confirmada. As telas correspondentes
-  (`/dcs/onboarding`, `/dcs/atividades`, `/dcs/cancelamentos`, seção de onboarding na ficha 360) mostram
-  corretamente "sem dado sincronizado" — não é bug.
+## Bloqueio resolvido (24/11/2026)
+- **Credenciais dos workflows 13, 14 e 15 anexadas manualmente na UI do n8n** (16 nós HTTP no total —
+  `DCS · Supabase service role` / `Pipedrive account`), já que o conector MCP (`create_workflow_from_code`/
+  `update_workflow`) não anexa credencial em nós HTTP Request automaticamente. Cada workflow foi testado
+  com uma execução real de ponta a ponta (todos os nós verdes, dado real do Pipedrive gravado no Supabase):
+  - `07ed9XQEH6Fw5Qnm` (Onboarding, 5 nós) — 50 negócios em `dcs_pipeline_onboarding`.
+  - `vClNoAV71FeudEhr` (Atividades, 6 nós) — 173 atividades em `dcs_atividades`.
+  - `JLSSTrhLrJCJbSoD` (Cancelamentos, 5 nós) — 3.452 cancelamentos históricos em `dcs_cancelamentos`.
+  No caminho apareceu um bug real e não relacionado a credencial: a constraint
+  `dcs_sync_execucoes_tipo_check` só permitia `carteira`/`responsaveis`/`cobertura` — faltavam
+  `onboarding`/`atividades`/`cancelamentos` (tipos novos de sessões anteriores, nunca adicionados à
+  constraint). Corrigido via migração aditiva (`ALTER CONSTRAINT`), confirmado com os 3 testes acima.
+  **Os três workflows continuam INATIVOS de propósito** — ativá-los (rodar no agendamento automático,
+  escrevendo dado real todo dia) é decisão do dono do produto, não uma ação que tomo sozinho. Para ativar:
+  `Publish`/toggle "Active" em cada workflow na UI do n8n, ou pedir para eu fazer isso explicitamente.
 - **Nota para a Prioridade 5 (não resolvida ainda, só registrada)**: o dono do produto definiu que "o mês
   do cancelamento é o mês da solicitação confirmada, mesmo que a conta encerre no mês seguinte" — ainda
   não validei se `lost_time`/`close_time` do Pipedrive correspondem a essa data de "solicitação confirmada"
@@ -133,11 +138,12 @@ clientes (pipeline Pipedrive id 1).
 
 ## Próxima etapa
 As 9 prioridades sequenciais do spec estão implementadas com dado real e funcionalidade de verdade
-(nenhum placeholder "Em breve" restante nos módulos entregues). O que falta não é desenvolvimento:
-1. Você (ou alguém com acesso ao n8n) anexar as credenciais nos workflows 13, 14 e 15 (ver "Bloqueio
-   aberto") — eu ativo e testo cada um com uma execução manual assim que estiver pronto. Até lá,
-   Onboarding, Atividades, Cancelamentos (e os pedaços do Radar/Relatórios/Metas que dependem deles)
-   mostram corretamente "sem dados sincronizados", nunca dado fabricado.
+(nenhum placeholder "Em breve" restante nos módulos entregues), e os 3 workflows de sincronização
+(Onboarding/Atividades/Cancelamentos) já testados de ponta a ponta com dado real. O que falta não é
+desenvolvimento:
+1. Decidir quando ativar os workflows 13/14/15 (ver "Bloqueio resolvido") — hoje rodam só sob demanda
+   (execução manual testada); ativar faz rodarem sozinhos no agendamento (onboarding diário 05:50,
+   atividades de hora em hora em dias úteis, cancelamentos diário 06:30).
 2. Revisar a nota pendente da Prioridade 5 (mês de cancelamento vs. `lost_time`/`close_time` do
    Pipedrive) antes de usar esse campo em relatório por mês de cancelamento para a diretoria.
 3. Fora do escopo desta frente, mas registrado: Lovable (commit `8855377`) ainda não sincronizou com o
