@@ -272,3 +272,28 @@ impede a publicação **não é o código**, é que **o editor da Lovable — de
 não tem esse código**: publicar agora reverteria o app para a versão anterior ao MVP. Assim que você
 resolver a divergência na tela Git da Lovable (ação acima), o sistema fica pronto e aí sim posso pedir
 sua autorização final para publicar.
+
+## Atualização — sincronização Lovable ⇄ GitHub resolvida (24/11/2026, fim de tarde)
+
+Você reconectou o projeto a uma conta GitHub e isso criou um repositório novo (a Lovable só sabe criar
+repositório novo ao conectar, não importar um existente): `vinicius814/csdinamize` — **privado**, confirmado
+via API (diferente do antigo `omunim`, cujo status de privacidade não era confirmável nesta sessão). Esse
+repositório novo veio com o estado interno antigo da Lovable (snapshot até 19/11, sem as Prioridades
+finais, sem `dcs_cancelamentos`, sem a correção de segurança do dia 24/11).
+
+Levei o histórico completo do MVP homologado (commit `7844fdb`, 19 commits da branch
+`dinamize-cs/gestor-operacional-mvp`) para esse repositório sem sobrescrever nada: subi como branch
+separada, abri PR (#1) e mesclei localmente com `--allow-unrelated-histories` (favorecendo o conteúdo do
+MVP nos conflitos), gerando o commit de merge `661f51c`. O push para `main` foi um fast-forward comum —
+sem forçar nem reescrever histórico.
+
+**Confirmado nos dois lados:**
+- Tela Git da Lovable: `vinicius814/csdinamize`, branch `main`, status **"Connected" / "In sync with GitHub"**.
+- API da Lovable: `latest_commit_sha` = `661f51c` (o commit do merge) — igual ao `main` do GitHub.
+
+O bloqueio de divergência está **resolvido**. Falta apenas: (a) uma nova auditoria visual/funcional ao
+vivo pela Lovable agora que o preview reflete o código real do MVP (a anterior foi feita via ambiente
+local + simulação de RLS, pois a Lovable estava desatualizada), e (b) sua autorização final para
+publicar, que continua pendente e não foi solicitada nem executada nesta etapa.
+
+### Parecer atualizado: bloqueio técnico removido — **pendente apenas de reauditoria visual via Lovable e da sua autorização final para publicar**
