@@ -44,6 +44,9 @@ const TIPO: Record<string, string> = {
   carteira: "Carteira",
   responsaveis: "Responsáveis",
   cobertura: "Cobertura",
+  onboarding: "Onboarding",
+  atividades: "Atividades e pendências",
+  cancelamentos: "Cancelamentos e retenção",
 };
 
 const EST: Record<EstadoSync, [string, Tom]> = {
@@ -151,7 +154,14 @@ function Integracoes() {
         </Painel>
         <h2 className="mb-3 text-base font-semibold">Última execução por fluxo</h2>
         <div className="mb-5 grid gap-4 md:grid-cols-3">
-          {["carteira", "responsaveis", "cobertura"].map((t) => {
+          {[
+            "carteira",
+            "responsaveis",
+            "cobertura",
+            "onboarding",
+            "atividades",
+            "cancelamentos",
+          ].map((t) => {
             const s = ult(t);
             return (
               <Painel key={t} titulo={TIPO[t]}>

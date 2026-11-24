@@ -218,8 +218,8 @@ export function Painel({
 
 /** Ajuda ao lado do título das páginas cujo conceito central merece explicação. */
 const DICA_TITULO: Record<string, Termo> = {
-  "Alertas e pendências": "revisaoVencida",
-  "Planos de ação": "statusRecomendacao",
+  "Radar de inteligência": "revisaoVencida",
+  "Oportunidades de melhoria": "statusRecomendacao",
   "Cobertura de CS": "contatoEfetivo",
   "Integrações e monitoramento": "sincronizacao",
   "Usuários e permissões": "permissoesAdmin",

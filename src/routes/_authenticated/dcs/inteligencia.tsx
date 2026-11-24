@@ -2,7 +2,13 @@ import { IndicadoresSemUso } from "@/components/dcs/Utilizacao";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BarChart3, Gauge, Lightbulb, TrendingDown, TrendingUp, Wrench } from "lucide-react";
-import { useAcessoDcs } from "@/lib/dcs/dados";
+import {
+  useAcessoDcs,
+  useAtividades,
+  useCancelamentos,
+  usePipelineOnboarding,
+} from "@/lib/dcs/dados";
+import { nomeEtapaOnboarding } from "@/lib/dcs/onboarding";
 import * as I from "@/lib/dcs/indicadores";
 import {
   BarraFiltros,
@@ -26,6 +32,9 @@ function Inteligencia() {
     void nav({ search: (s: FiltrosGlobais) => ({ ...s, ...p }), replace: true });
   const fin = !!useAcessoDcs().data?.financeiro;
   const b = useBaseFiltrada(f);
+  const onb = usePipelineOnboarding();
+  const ativ = useAtividades();
+  const cnc = useCancelamentos();
   const [drill, setDrill] = useState<{ titulo: string; chaves: string[] } | null>(null);
   const r = useMemo(() => {
     const evol = I.evolucaoIndices(b.ciclos);
@@ -57,11 +66,45 @@ function Inteligencia() {
   }, [b]);
   const nome = new Map(b.linhas.map((l) => [l.key, l]));
   const semDiag = !r.ap.n;
+  // Visão da operação (Prioridade 8): contagens reais das demais frentes (Onboarding, Atividades,
+  // Cancelamentos) — sem estimar nada. Enquanto os syncs 13/14/15 estiverem inativos, cada bloco
+  // mostra corretamente "sem dados sincronizados", nunca um número fabricado.
+  const op = useMemo(() => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const onbTodos = [...(onb.data?.values() ?? [])].flat();
+    const porEtapa = new Map<number, number>();
+    for (const o of onbTodos) porEtapa.set(o.stage_id, (porEtapa.get(o.stage_id) ?? 0) + 1);
+    const atTodas = ativ.data ?? [];
+    const atAtrasadas = atTodas.filter((a) => !!a.data && a.data < hoje).length;
+    const cncTodos = cnc.data ?? [];
+    const d30 = new Date();
+    d30.setDate(d30.getDate() - 30);
+    const d30s = d30.toISOString().slice(0, 10);
+    const d90 = new Date();
+    d90.setDate(d90.getDate() - 90);
+    const d90s = d90.toISOString().slice(0, 10);
+    const motivos = new Map<string, number>();
+    for (const c of cncTodos) {
+      const m = c.motivo ?? "Sem motivo registrado";
+      motivos.set(m, (motivos.get(m) ?? 0) + 1);
+    }
+    return {
+      onbTotal: onbTodos.length,
+      onbPorEtapa: [...porEtapa.entries()]
+        .map(([stage_id, n]) => ({ stage_id, nome: nomeEtapaOnboarding(stage_id), n }))
+        .sort((a, c2) => c2.n - a.n),
+      atTotal: atTodas.length,
+      atAtrasadas,
+      cnc30: cncTodos.filter((c) => (c.cancelado_em ?? "") >= d30s).length,
+      cnc90: cncTodos.filter((c) => (c.cancelado_em ?? "") >= d90s).length,
+      cncMotivos: [...motivos.entries()].sort((a, c2) => c2[1] - a[1]).slice(0, 5),
+    };
+  }, [onb.data, ativ.data, cnc.data]);
   return (
     <>
       <Titulo
         titulo="Inteligência gerencial"
-        sub="Aproveitamento da plataforma, oportunidades e evolução da carteira. Apenas diagnósticos concluídos entram nos índices."
+        sub="Aproveitamento da plataforma, oportunidades, evolução da carteira e visão da operação (Onboarding, Atividades, Cancelamentos). Apenas diagnósticos concluídos entram nos índices."
       />
       <BarraFiltros f={f} set={set} todos={b.todos} nomes={b.nomes} />
       <Estado carregando={b.carregando} erro={b.erro}>
@@ -389,6 +432,82 @@ function Inteligencia() {
         <section className="mt-8">
           <h2 className="mb-3 text-base font-semibold">Contas sem utilização</h2>
           <IndicadoresSemUso base={b.base} fin={fin} desde={b.desde} completo />
+        </section>
+
+        <section className="mt-8">
+          <h2 className="mb-1 text-base font-semibold">Visão da operação</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Escopo: contagens reais de Onboarding, Atividades e Cancelamentos — sem estimativas.
+            Enquanto a sincronização de cada frente estiver inativa, o bloco mostra corretamente
+            "sem dados sincronizados", nunca um número fabricado.
+          </p>
+          <div className="grid gap-4 xl:grid-cols-3">
+            <Painel titulo="Onboarding" sub="Negócios ativos no funil, por etapa">
+              {op.onbTotal ? (
+                <Ranking
+                  itens={op.onbPorEtapa.map((e) => ({
+                    id: String(e.stage_id),
+                    rotulo: e.nome,
+                    valor: e.n,
+                    total: op.onbTotal,
+                  }))}
+                />
+              ) : (
+                <Vazio
+                  titulo="Sem dados sincronizados"
+                  texto="Workflow de sincronização do Onboarding ainda inativo (credencial pendente)."
+                />
+              )}
+            </Painel>
+            <Painel titulo="Atividades" sub="Atividades abertas no funil CS">
+              {op.atTotal ? (
+                <ul className="space-y-2 text-sm">
+                  <li className="flex justify-between">
+                    <span>Abertas</span>
+                    <span className="tabular-nums font-medium">{op.atTotal}</span>
+                  </li>
+                  <li className="flex justify-between">
+                    <span>Atrasadas</span>
+                    <span className="tabular-nums font-medium text-red-600">{op.atAtrasadas}</span>
+                  </li>
+                </ul>
+              ) : (
+                <Vazio
+                  titulo="Sem dados sincronizados"
+                  texto="Workflow de sincronização de atividades ainda inativo (credencial pendente)."
+                />
+              )}
+            </Painel>
+            <Painel titulo="Cancelamentos" sub="Negócios cancelados, por motivo">
+              {cnc.data?.length ? (
+                <>
+                  <ul className="mb-3 flex gap-4 text-sm">
+                    <li>
+                      <span className="block text-xs text-muted-foreground">Últimos 30 dias</span>
+                      <span className="tabular-nums font-semibold">{op.cnc30}</span>
+                    </li>
+                    <li>
+                      <span className="block text-xs text-muted-foreground">Últimos 90 dias</span>
+                      <span className="tabular-nums font-semibold">{op.cnc90}</span>
+                    </li>
+                  </ul>
+                  <Ranking
+                    itens={op.cncMotivos.map(([m, n]) => ({
+                      id: m,
+                      rotulo: m,
+                      valor: n,
+                      total: cnc.data?.length ?? 0,
+                    }))}
+                  />
+                </>
+              ) : (
+                <Vazio
+                  titulo="Sem dados sincronizados"
+                  texto="Workflow de sincronização de cancelamentos ainda inativo (credencial pendente)."
+                />
+              )}
+            </Painel>
+          </div>
         </section>
 
         <Sheet open={!!drill} onOpenChange={(o) => !o && setDrill(null)}>

@@ -11,6 +11,7 @@ import {
   type DcsCliente,
   type DcsCobertura,
   type DcsDiagnostico,
+  type DcsPipelineOnboarding,
   type DcsPreCadastro,
   type DcsUtilizacao,
   type DcsUtilizacaoEvento,
@@ -179,7 +180,7 @@ export function useCliente(key: string) {
   return useQuery({
     queryKey: ["dcs", "cliente", key],
     queryFn: async () => {
-      const [c, fin, cob, diags, acoes] = await Promise.all([
+      const [c, fin, cob, diags, acoes, alertas] = await Promise.all([
         ok<DcsCliente | null>(dcs.from("dcs_clientes").select("*").eq("key", key).maybeSingle()),
         ok<{ mrr: number | null } | null>(
           dcs.from("dcs_clientes_financeiro").select("mrr").eq("key", key).maybeSingle(),
@@ -199,8 +200,35 @@ export function useCliente(key: string) {
             .eq("cliente_key", key)
             .order("atualizado_em", { ascending: false }),
         ),
+        ok(
+          dcs
+            .from("dcs_alertas")
+            .select("*")
+            .eq("cliente_key", key)
+            .order("gerado_em", { ascending: false }),
+        ),
       ]);
-      return { cliente: c, mrr: fin?.mrr ?? null, cobertura: cob, diagnosticos: diags, acoes };
+      // Onboarding (funil Pipedrive id 1) é consultado por org_id — mesma organização pode ter
+      // conta em CS (dcs_clientes) e negócio em Onboarding (dcs_pipeline_onboarding). Sem org_id
+      // (cliente ainda não sincronizado) ou sem linha publicada (sync ainda inativo), retorna [].
+      const onboarding = c?.org_id
+        ? await ok(
+            dcs
+              .from("dcs_pipeline_onboarding")
+              .select("*")
+              .eq("org_id", c.org_id)
+              .order("atualizado_em", { ascending: false }),
+          )
+        : [];
+      return {
+        cliente: c,
+        mrr: fin?.mrr ?? null,
+        cobertura: cob,
+        diagnosticos: diags,
+        acoes,
+        riscos: alertas,
+        onboarding,
+      };
     },
   });
 }
@@ -459,11 +487,70 @@ export function useAlertas() {
     queryFn: async () => {
       const [alertas, clientes] = await Promise.all([
         ok(dcs.from("dcs_alertas").select("*").order("tipo")),
-        ok(dcs.from("dcs_clientes").select("key,nome,owner_nome")),
+        ok(dcs.from("dcs_clientes").select("key,nome,owner_nome,deal_id")),
       ]);
       const nome = new Map(clientes.map((c) => [c.key, c]));
       return alertas.map((a) => ({ ...a, cliente: nome.get(a.cliente_key) }));
     },
+  });
+}
+
+/**
+ * Central de Atividades e pendências (Prioridade 4) — atividades abertas do Pipedrive (funil
+ * CS), publicadas pelo workflow n8n #14. Join com dcs_clientes só para nome/ativo; RLS da
+ * própria dcs_atividades já limita a carteira visível. Enquanto esse sync está inativo
+ * (credencial pendente, igual ao onboarding), a lista vem vazia — corretamente.
+ */
+export function useAtividades() {
+  return useQuery({
+    queryKey: ["dcs", "atividades"],
+    queryFn: async () => {
+      const [atividades, clientes] = await Promise.all([
+        ok(dcs.from("dcs_atividades").select("*").order("data", { ascending: true })),
+        ok(dcs.from("dcs_clientes").select("key,nome,ativo,deal_id")),
+      ]);
+      const nome = new Map(clientes.map((c) => [c.key, c]));
+      return atividades.map((a) => ({ ...a, cliente: nome.get(a.cliente_key) }));
+    },
+  });
+}
+
+/**
+ * Cancelamentos e retenção (Prioridade 5) — negócios do funil CS na etapa "Cancelados"
+ * (stage_id=105, validada via API), com motivo (lost_reason) e data reais do Pipedrive.
+ * Fonte: workflow n8n #15. RLS já limita à carteira visível pelo acesso do usuário.
+ */
+export function useCancelamentos() {
+  return useQuery({
+    queryKey: ["dcs", "cancelamentos"],
+    queryFn: async () =>
+      ok(dcs.from("dcs_cancelamentos").select("*").order("cancelado_em", { ascending: false })),
+  });
+}
+
+/**
+ * Metas (Prioridade 9) — metas mensais sobre indicadores reais já calculados no produto
+ * (cobertura em dia, implementação de ações, onboarding concluído). Leitura liberada a todo
+ * usuário ativo; escrita exige permissão "config" (checada de novo no banco).
+ */
+export function useMetas() {
+  return useQuery({
+    queryKey: ["dcs", "metas"],
+    queryFn: async () => ok(dcs.from("dcs_metas").select("*")),
+  });
+}
+export function useDefinirMeta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (m: { periodo: string; indicador: string; valor: number }) =>
+      ok(
+        dcs.rpc("dcs_definir_meta", {
+          p_periodo: m.periodo,
+          p_indicador: m.indicador,
+          p_valor: m.valor,
+        }),
+      ),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "metas"] }),
   });
 }
 
@@ -783,6 +870,26 @@ export function useUtilizacao() {
     queryFn: async () => {
       const rows = (await ok(dcs.from("dcs_utilizacao").select("*"))) as DcsUtilizacao[];
       return new Map(rows.map((r) => [r.cliente_key, r]));
+    },
+  });
+}
+/**
+ * Negócios do funil Onboarding (Pipedrive pipeline_id=1), agrupados por org_id — mesma
+ * organização pode ter conta ativa em CS (dcs_clientes) e negócio em Onboarding. Fonte:
+ * dcs_pipeline_onboarding, publicada pelo workflow n8n #13. Enquanto esse sync está inativo
+ * (credencial pendente, ver docs/GESTOR_MVP_STATUS.md), o mapa vem vazio — corretamente, sem
+ * dado fictício. Usado pela Carteira (coluna Onboarding) e pelo módulo Onboarding dedicado.
+ */
+export function usePipelineOnboarding() {
+  return useQuery({
+    queryKey: ["dcs", "pipeline-onboarding"],
+    queryFn: async () => {
+      const rows = (await ok(
+        dcs.from("dcs_pipeline_onboarding").select("*").eq("ativo", true),
+      )) as DcsPipelineOnboarding[];
+      const porOrg = new Map<number, DcsPipelineOnboarding[]>();
+      for (const r of rows) porOrg.set(r.org_id, [...(porOrg.get(r.org_id) ?? []), r]);
+      return porOrg;
     },
   });
 }

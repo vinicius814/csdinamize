@@ -88,9 +88,9 @@ export const TOURS: Tour[] = [
         rota: "/dcs/planos",
         alvo: "#conteudo h1",
         modulo: "planos",
-        titulo: "Planos de ação",
+        titulo: "Oportunidades de melhoria",
         texto:
-          "Acompanhe prioridades, responsáveis, prazos e implementação em tabela ou quadro. Ações atrasadas e críticas aparecem nos alertas.",
+          "Acompanhe prioridades, responsáveis, prazos e implementação em tabela ou quadro. Ações atrasadas e críticas aparecem no radar de inteligência.",
       },
       {
         id: "semuso",

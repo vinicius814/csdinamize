@@ -41,13 +41,18 @@ import { Route as AuthenticatedDcsIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedDcsAjudaRouteImport } from './routes/_authenticated/dcs/ajuda'
 import { Route as AuthenticatedDcsAlertasRouteImport } from './routes/_authenticated/dcs/alertas'
 import { Route as AuthenticatedDcsAnalisesRouteImport } from './routes/_authenticated/dcs/analises'
+import { Route as AuthenticatedDcsAssistenteRouteImport } from './routes/_authenticated/dcs/assistente'
+import { Route as AuthenticatedDcsAtividadesRouteImport } from './routes/_authenticated/dcs/atividades'
+import { Route as AuthenticatedDcsCancelamentosRouteImport } from './routes/_authenticated/dcs/cancelamentos'
 import { Route as AuthenticatedDcsCarteiraRouteImport } from './routes/_authenticated/dcs/carteira'
 import { Route as AuthenticatedDcsCoberturaRouteImport } from './routes/_authenticated/dcs/cobertura'
 import { Route as AuthenticatedDcsConfiguracoesRouteImport } from './routes/_authenticated/dcs/configuracoes'
+import { Route as AuthenticatedDcsEquipeRouteImport } from './routes/_authenticated/dcs/equipe'
 import { Route as AuthenticatedDcsHistoricoRouteImport } from './routes/_authenticated/dcs/historico'
 import { Route as AuthenticatedDcsIntegracoesRouteImport } from './routes/_authenticated/dcs/integracoes'
 import { Route as AuthenticatedDcsInteligenciaRouteImport } from './routes/_authenticated/dcs/inteligencia'
 import { Route as AuthenticatedDcsMinhaContaRouteImport } from './routes/_authenticated/dcs/minha-conta'
+import { Route as AuthenticatedDcsOnboardingRouteImport } from './routes/_authenticated/dcs/onboarding'
 import { Route as AuthenticatedDcsPlanosRouteImport } from './routes/_authenticated/dcs/planos'
 import { Route as AuthenticatedDcsUsuariosRouteImport } from './routes/_authenticated/dcs/usuarios'
 import { Route as AuthenticatedDcsClienteKeyRouteImport } from './routes/_authenticated/dcs/cliente.$key'
@@ -225,6 +230,24 @@ const AuthenticatedDcsAnalisesRoute =
     path: '/analises',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsAssistenteRoute =
+  AuthenticatedDcsAssistenteRouteImport.update({
+    id: '/assistente',
+    path: '/assistente',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsAtividadesRoute =
+  AuthenticatedDcsAtividadesRouteImport.update({
+    id: '/atividades',
+    path: '/atividades',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsCancelamentosRoute =
+  AuthenticatedDcsCancelamentosRouteImport.update({
+    id: '/cancelamentos',
+    path: '/cancelamentos',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
 const AuthenticatedDcsCarteiraRoute =
   AuthenticatedDcsCarteiraRouteImport.update({
     id: '/carteira',
@@ -243,6 +266,11 @@ const AuthenticatedDcsConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
+const AuthenticatedDcsEquipeRoute = AuthenticatedDcsEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedDcsRouteRoute,
+} as any)
 const AuthenticatedDcsHistoricoRoute =
   AuthenticatedDcsHistoricoRouteImport.update({
     id: '/historico',
@@ -265,6 +293,12 @@ const AuthenticatedDcsMinhaContaRoute =
   AuthenticatedDcsMinhaContaRouteImport.update({
     id: '/minha-conta',
     path: '/minha-conta',
+    getParentRoute: () => AuthenticatedDcsRouteRoute,
+  } as any)
+const AuthenticatedDcsOnboardingRoute =
+  AuthenticatedDcsOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
     getParentRoute: () => AuthenticatedDcsRouteRoute,
   } as any)
 const AuthenticatedDcsPlanosRoute = AuthenticatedDcsPlanosRouteImport.update({
@@ -344,13 +378,18 @@ export interface FileRoutesByFullPath {
   '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/dcs/assistente': typeof AuthenticatedDcsAssistenteRoute
+  '/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
+  '/dcs/cancelamentos': typeof AuthenticatedDcsCancelamentosRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs/': typeof AuthenticatedDcsIndexRoute
@@ -391,13 +430,18 @@ export interface FileRoutesByTo {
   '/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/dcs/assistente': typeof AuthenticatedDcsAssistenteRoute
+  '/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
+  '/dcs/cancelamentos': typeof AuthenticatedDcsCancelamentosRoute
   '/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/dcs': typeof AuthenticatedDcsIndexRoute
@@ -441,13 +485,18 @@ export interface FileRoutesById {
   '/_authenticated/dcs/ajuda': typeof AuthenticatedDcsAjudaRoute
   '/_authenticated/dcs/alertas': typeof AuthenticatedDcsAlertasRoute
   '/_authenticated/dcs/analises': typeof AuthenticatedDcsAnalisesRoute
+  '/_authenticated/dcs/assistente': typeof AuthenticatedDcsAssistenteRoute
+  '/_authenticated/dcs/atividades': typeof AuthenticatedDcsAtividadesRoute
+  '/_authenticated/dcs/cancelamentos': typeof AuthenticatedDcsCancelamentosRoute
   '/_authenticated/dcs/carteira': typeof AuthenticatedDcsCarteiraRoute
   '/_authenticated/dcs/cobertura': typeof AuthenticatedDcsCoberturaRoute
   '/_authenticated/dcs/configuracoes': typeof AuthenticatedDcsConfiguracoesRoute
+  '/_authenticated/dcs/equipe': typeof AuthenticatedDcsEquipeRoute
   '/_authenticated/dcs/historico': typeof AuthenticatedDcsHistoricoRoute
   '/_authenticated/dcs/integracoes': typeof AuthenticatedDcsIntegracoesRoute
   '/_authenticated/dcs/inteligencia': typeof AuthenticatedDcsInteligenciaRoute
   '/_authenticated/dcs/minha-conta': typeof AuthenticatedDcsMinhaContaRoute
+  '/_authenticated/dcs/onboarding': typeof AuthenticatedDcsOnboardingRoute
   '/_authenticated/dcs/planos': typeof AuthenticatedDcsPlanosRoute
   '/_authenticated/dcs/usuarios': typeof AuthenticatedDcsUsuariosRoute
   '/_authenticated/dcs/': typeof AuthenticatedDcsIndexRoute
@@ -491,13 +540,18 @@ export interface FileRouteTypes {
     | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
+    | '/dcs/assistente'
+    | '/dcs/atividades'
+    | '/dcs/cancelamentos'
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
+    | '/dcs/equipe'
     | '/dcs/historico'
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
     | '/dcs/minha-conta'
+    | '/dcs/onboarding'
     | '/dcs/planos'
     | '/dcs/usuarios'
     | '/dcs/'
@@ -538,13 +592,18 @@ export interface FileRouteTypes {
     | '/dcs/ajuda'
     | '/dcs/alertas'
     | '/dcs/analises'
+    | '/dcs/assistente'
+    | '/dcs/atividades'
+    | '/dcs/cancelamentos'
     | '/dcs/carteira'
     | '/dcs/cobertura'
     | '/dcs/configuracoes'
+    | '/dcs/equipe'
     | '/dcs/historico'
     | '/dcs/integracoes'
     | '/dcs/inteligencia'
     | '/dcs/minha-conta'
+    | '/dcs/onboarding'
     | '/dcs/planos'
     | '/dcs/usuarios'
     | '/dcs'
@@ -587,13 +646,18 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/ajuda'
     | '/_authenticated/dcs/alertas'
     | '/_authenticated/dcs/analises'
+    | '/_authenticated/dcs/assistente'
+    | '/_authenticated/dcs/atividades'
+    | '/_authenticated/dcs/cancelamentos'
     | '/_authenticated/dcs/carteira'
     | '/_authenticated/dcs/cobertura'
     | '/_authenticated/dcs/configuracoes'
+    | '/_authenticated/dcs/equipe'
     | '/_authenticated/dcs/historico'
     | '/_authenticated/dcs/integracoes'
     | '/_authenticated/dcs/inteligencia'
     | '/_authenticated/dcs/minha-conta'
+    | '/_authenticated/dcs/onboarding'
     | '/_authenticated/dcs/planos'
     | '/_authenticated/dcs/usuarios'
     | '/_authenticated/dcs/'
@@ -846,6 +910,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDcsAnalisesRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
+    '/_authenticated/dcs/assistente': {
+      id: '/_authenticated/dcs/assistente'
+      path: '/assistente'
+      fullPath: '/dcs/assistente'
+      preLoaderRoute: typeof AuthenticatedDcsAssistenteRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/atividades': {
+      id: '/_authenticated/dcs/atividades'
+      path: '/atividades'
+      fullPath: '/dcs/atividades'
+      preLoaderRoute: typeof AuthenticatedDcsAtividadesRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/cancelamentos': {
+      id: '/_authenticated/dcs/cancelamentos'
+      path: '/cancelamentos'
+      fullPath: '/dcs/cancelamentos'
+      preLoaderRoute: typeof AuthenticatedDcsCancelamentosRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
     '/_authenticated/dcs/carteira': {
       id: '/_authenticated/dcs/carteira'
       path: '/carteira'
@@ -865,6 +950,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/dcs/configuracoes'
       preLoaderRoute: typeof AuthenticatedDcsConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/equipe': {
+      id: '/_authenticated/dcs/equipe'
+      path: '/equipe'
+      fullPath: '/dcs/equipe'
+      preLoaderRoute: typeof AuthenticatedDcsEquipeRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
     '/_authenticated/dcs/historico': {
@@ -893,6 +985,13 @@ declare module '@tanstack/react-router' {
       path: '/minha-conta'
       fullPath: '/dcs/minha-conta'
       preLoaderRoute: typeof AuthenticatedDcsMinhaContaRouteImport
+      parentRoute: typeof AuthenticatedDcsRouteRoute
+    }
+    '/_authenticated/dcs/onboarding': {
+      id: '/_authenticated/dcs/onboarding'
+      path: '/onboarding'
+      fullPath: '/dcs/onboarding'
+      preLoaderRoute: typeof AuthenticatedDcsOnboardingRouteImport
       parentRoute: typeof AuthenticatedDcsRouteRoute
     }
     '/_authenticated/dcs/planos': {
@@ -958,13 +1057,18 @@ interface AuthenticatedDcsRouteRouteChildren {
   AuthenticatedDcsAjudaRoute: typeof AuthenticatedDcsAjudaRoute
   AuthenticatedDcsAlertasRoute: typeof AuthenticatedDcsAlertasRoute
   AuthenticatedDcsAnalisesRoute: typeof AuthenticatedDcsAnalisesRoute
+  AuthenticatedDcsAssistenteRoute: typeof AuthenticatedDcsAssistenteRoute
+  AuthenticatedDcsAtividadesRoute: typeof AuthenticatedDcsAtividadesRoute
+  AuthenticatedDcsCancelamentosRoute: typeof AuthenticatedDcsCancelamentosRoute
   AuthenticatedDcsCarteiraRoute: typeof AuthenticatedDcsCarteiraRoute
   AuthenticatedDcsCoberturaRoute: typeof AuthenticatedDcsCoberturaRoute
   AuthenticatedDcsConfiguracoesRoute: typeof AuthenticatedDcsConfiguracoesRoute
+  AuthenticatedDcsEquipeRoute: typeof AuthenticatedDcsEquipeRoute
   AuthenticatedDcsHistoricoRoute: typeof AuthenticatedDcsHistoricoRoute
   AuthenticatedDcsIntegracoesRoute: typeof AuthenticatedDcsIntegracoesRoute
   AuthenticatedDcsInteligenciaRoute: typeof AuthenticatedDcsInteligenciaRoute
   AuthenticatedDcsMinhaContaRoute: typeof AuthenticatedDcsMinhaContaRoute
+  AuthenticatedDcsOnboardingRoute: typeof AuthenticatedDcsOnboardingRoute
   AuthenticatedDcsPlanosRoute: typeof AuthenticatedDcsPlanosRoute
   AuthenticatedDcsUsuariosRoute: typeof AuthenticatedDcsUsuariosRoute
   AuthenticatedDcsIndexRoute: typeof AuthenticatedDcsIndexRoute
@@ -975,13 +1079,18 @@ const AuthenticatedDcsRouteRouteChildren: AuthenticatedDcsRouteRouteChildren = {
   AuthenticatedDcsAjudaRoute: AuthenticatedDcsAjudaRoute,
   AuthenticatedDcsAlertasRoute: AuthenticatedDcsAlertasRoute,
   AuthenticatedDcsAnalisesRoute: AuthenticatedDcsAnalisesRoute,
+  AuthenticatedDcsAssistenteRoute: AuthenticatedDcsAssistenteRoute,
+  AuthenticatedDcsAtividadesRoute: AuthenticatedDcsAtividadesRoute,
+  AuthenticatedDcsCancelamentosRoute: AuthenticatedDcsCancelamentosRoute,
   AuthenticatedDcsCarteiraRoute: AuthenticatedDcsCarteiraRoute,
   AuthenticatedDcsCoberturaRoute: AuthenticatedDcsCoberturaRoute,
   AuthenticatedDcsConfiguracoesRoute: AuthenticatedDcsConfiguracoesRoute,
+  AuthenticatedDcsEquipeRoute: AuthenticatedDcsEquipeRoute,
   AuthenticatedDcsHistoricoRoute: AuthenticatedDcsHistoricoRoute,
   AuthenticatedDcsIntegracoesRoute: AuthenticatedDcsIntegracoesRoute,
   AuthenticatedDcsInteligenciaRoute: AuthenticatedDcsInteligenciaRoute,
   AuthenticatedDcsMinhaContaRoute: AuthenticatedDcsMinhaContaRoute,
+  AuthenticatedDcsOnboardingRoute: AuthenticatedDcsOnboardingRoute,
   AuthenticatedDcsPlanosRoute: AuthenticatedDcsPlanosRoute,
   AuthenticatedDcsUsuariosRoute: AuthenticatedDcsUsuariosRoute,
   AuthenticatedDcsIndexRoute: AuthenticatedDcsIndexRoute,

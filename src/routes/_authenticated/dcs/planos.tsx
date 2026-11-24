@@ -103,8 +103,8 @@ function Planos() {
   return (
     <>
       <Titulo
-        titulo="Planos de ação"
-        sub="Recomendações dos diagnósticos e ações manuais de todos os clientes visíveis para você."
+        titulo="Oportunidades de melhoria"
+        sub="Recomendações dos diagnósticos e ações manuais de todos os clientes visíveis para você — por responsável, prazo, prioridade, status e histórico (reincidências entre ciclos)."
         acao={
           <>
             {acesso.data?.editar && <NovaAcao />}

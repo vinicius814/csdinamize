@@ -25,6 +25,62 @@ export type DcsCliente = {
   inativado_em: string | null;
   atualizado_em: string;
 };
+/** Negócios do funil Onboarding (pipeline_id=1), sincronizados pelo workflow 13. Ligado a dcs_clientes por org_id. */
+export type DcsPipelineOnboarding = {
+  key: string;
+  org_id: number;
+  deal_id: number;
+  stage_id: number;
+  owner_id: number | null;
+  owner_nome: string | null;
+  titulo: string | null;
+  entrada_etapa_em: string | null;
+  ativo: boolean;
+  inativado_em: string | null;
+  sync_id: string | null;
+  atualizado_em: string;
+};
+/** Atividade aberta do Pipedrive (funil CS) ligada a um cliente. Fonte: workflow n8n #14. */
+export type DcsAtividade = {
+  id: number;
+  cliente_key: string;
+  owner_id: number | null;
+  owner_nome: string | null;
+  data: string | null;
+  tipo: string | null;
+  assunto: string | null;
+  ativo: boolean;
+  sync_id: string | null;
+  atualizado_em: string;
+};
+/**
+ * Negócio cancelado do funil CS (stage_id=105 "Cancelados", validado via API). Histórico —
+ * nunca excluído pelo sync. Fonte: workflow n8n #15. Base da Prioridade 5.
+ */
+export type DcsCancelamento = {
+  deal_id: number;
+  key: string;
+  org_id: number | null;
+  owner_id: number | null;
+  owner_nome: string | null;
+  nome: string | null;
+  codigo: string | null;
+  valor: number | null;
+  motivo: string | null;
+  cancelado_em: string | null;
+  sync_id: string | null;
+  criado_em: string;
+  atualizado_em: string;
+};
+/** Meta mensal (Prioridade 9) sobre um indicador real já calculado no produto. */
+export type DcsMeta = {
+  id: number;
+  periodo: string;
+  indicador: "cobertura_em_dia_pct" | "implementacao_pct" | "onboarding_concluido_pct";
+  meta_valor: number;
+  definido_por: string | null;
+  atualizado_em: string;
+};
 export type DcsFinanceiro = {
   key: string;
   mrr: number | null;
@@ -104,7 +160,7 @@ export type DcsAcao = {
 };
 export type DcsSync = {
   id: string;
-  tipo: "carteira" | "responsaveis" | "cobertura";
+  tipo: "carteira" | "responsaveis" | "cobertura" | "onboarding" | "atividades" | "cancelamentos";
   modo: string;
   status: "executando" | "sucesso" | "falha" | "parcial";
   iniciado_em: string;
@@ -124,7 +180,8 @@ export type DcsAlerta = {
     | "acao_atrasada"
     | "cobertura_critica"
     | "oportunidade_critica"
-    | "utilizacao_revisao";
+    | "utilizacao_revisao"
+    | "cancelamento_recente";
   cliente_key: string;
   referencia: string | null;
   detalhe: Record<string, unknown> | null;
@@ -280,6 +337,10 @@ export type DcsDatabase = {
   public: {
     Tables: {
       dcs_clientes: T<DcsCliente>;
+      dcs_pipeline_onboarding: T<DcsPipelineOnboarding>;
+      dcs_atividades: T<DcsAtividade>;
+      dcs_cancelamentos: T<DcsCancelamento>;
+      dcs_metas: T<DcsMeta>;
       dcs_clientes_financeiro: T<DcsFinanceiro>;
       dcs_cobertura: T<DcsCobertura>;
       dcs_diagnosticos: T<DcsDiagnostico>;
@@ -481,6 +542,10 @@ export type DcsDatabase = {
       dcs_atualizar_acao: {
         Args: { p_id: string; p_versao: number; p_campos: Json };
         Returns: number;
+      };
+      dcs_definir_meta: {
+        Args: { p_periodo: string; p_indicador: string; p_valor: number };
+        Returns: undefined;
       };
     };
     Enums: Record<string, never>;

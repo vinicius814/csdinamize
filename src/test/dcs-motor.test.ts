@@ -289,6 +289,26 @@ describe("mensagens e permissões", () => {
       M.podeVerCliente({ perfil: null, carteiras: [5], clientes: [] }, { key: "1", ownerId: 5 }),
     ).toBe(false);
     expect(M.MODULOS_POR_PERFIL.contas).not.toContain("configuracoes");
+    // Onboarding (Prioridade 2, pipeline Pipedrive id 1): visível para admin e CS, não para contas.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("onboarding");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("onboarding");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("onboarding");
+    // Gestão da equipe (Prioridade 3): mesma visibilidade do onboarding.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("equipe");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("equipe");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("equipe");
+    // Atividades e pendências (Prioridade 4): mesma visibilidade do onboarding/equipe.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("atividades");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("atividades");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("atividades");
+    // Cancelamentos e retenção (Prioridade 5): mesma visibilidade do onboarding/equipe/atividades.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("cancelamentos");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("cancelamentos");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("cancelamentos");
+    // Assistente e metas (Prioridade 9): mesma visibilidade do onboarding/equipe/atividades/cancelamentos.
+    expect(M.MODULOS_POR_PERFIL.admin).toContain("assistente");
+    expect(M.MODULOS_POR_PERFIL.cs).toContain("assistente");
+    expect(M.MODULOS_POR_PERFIL.contas).not.toContain("assistente");
   });
   it("chave de idempotência compatível com o artefato", () => {
     expect(M.chaveAtividade("116749", 2)).toBe("DZCS-116749-C2");

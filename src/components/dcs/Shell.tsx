@@ -114,69 +114,49 @@ function ListaNav({ recolhido, aoNavegar }: { recolhido?: boolean; aoNavegar?: (
               ))}
             <Tooltip delayDuration={500}>
               <TooltipTrigger asChild>
-                {i.indisponivel ? (
-                  <span
-                    aria-disabled="true"
+                <Link
+                  to={i.to}
+                  onClick={aoNavegar}
+                  aria-current={ativo ? "page" : undefined}
+                  aria-description={MENU[i.to]}
+                  className={cx(
+                    "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
+                    ativo
+                      ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                      : "text-foreground/80 hover:bg-muted hover:text-foreground",
+                    recolhido && "justify-center px-0",
+                  )}
+                >
+                  <Icone
                     className={cx(
-                      "flex h-9 cursor-not-allowed select-none items-center gap-3 rounded-lg px-3 text-sm text-muted-foreground/50",
-                      recolhido && "justify-center px-0",
+                      "h-[18px] w-[18px] shrink-0",
+                      ativo ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
                     )}
-                  >
-                    <Icone className="h-[18px] w-[18px] shrink-0" />
-                    {!recolhido && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
-                    {!recolhido && (
-                      <span className="rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
-                        Em breve
+                  />
+                  {!recolhido && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
+                  {qtd > 0 &&
+                    (recolhido ? (
+                      <span
+                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary"
+                        aria-label={`${qtd} pendentes`}
+                      />
+                    ) : (
+                      <span
+                        className={cx(
+                          "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                          ativo
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {qtd > 99 ? "99+" : qtd}
                       </span>
-                    )}
-                  </span>
-                ) : (
-                  <Link
-                    to={i.to}
-                    onClick={aoNavegar}
-                    aria-current={ativo ? "page" : undefined}
-                    aria-description={MENU[i.to]}
-                    className={cx(
-                      "group relative flex h-9 items-center gap-3 rounded-lg px-3 text-sm transition-colors",
-                      ativo
-                        ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                        : "text-foreground/80 hover:bg-muted hover:text-foreground",
-                      recolhido && "justify-center px-0",
-                    )}
-                  >
-                    <Icone
-                      className={cx(
-                        "h-[18px] w-[18px] shrink-0",
-                        ativo
-                          ? "text-primary"
-                          : "text-muted-foreground group-hover:text-foreground",
-                      )}
-                    />
-                    {!recolhido && <span className="min-w-0 flex-1 truncate">{i.rotulo}</span>}
-                    {qtd > 0 &&
-                      (recolhido ? (
-                        <span
-                          className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary"
-                          aria-label={`${qtd} pendentes`}
-                        />
-                      ) : (
-                        <span
-                          className={cx(
-                            "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
-                            ativo
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {qtd > 99 ? "99+" : qtd}
-                        </span>
-                      ))}
-                  </Link>
-                )}
+                    ))}
+                </Link>
               </TooltipTrigger>
               <TooltipContent side="right" className="max-w-[260px] text-xs leading-snug">
                 {recolhido && <span className="block font-semibold">{i.rotulo}</span>}
-                {i.indisponivel ? "Em breve — esta área ainda está em construção." : MENU[i.to]}
+                {MENU[i.to]}
               </TooltipContent>
             </Tooltip>
           </div>
@@ -380,7 +360,7 @@ function Notificacoes() {
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuLabel>Alertas e pendências</DropdownMenuLabel>
+        <DropdownMenuLabel>Radar de inteligência</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {porTipo.length === 0 ? (
           <p className="px-2 py-3 text-sm text-muted-foreground">Nenhuma pendência no momento.</p>

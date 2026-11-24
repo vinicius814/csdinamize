@@ -404,7 +404,10 @@ function VisaoGeral() {
           </div>
         </Secao>
 
-        <Secao titulo="Planos de ação" link={{ to: "/dcs/planos", rotulo: "Ver planos de ação" }}>
+        <Secao
+          titulo="Oportunidades de melhoria"
+          link={{ to: "/dcs/planos", rotulo: "Ver oportunidades de melhoria" }}
+        >
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-6">
             <Kpi rotulo="Abertas" valor={r.planos.abertas} to="/dcs/planos" />
             <Kpi
