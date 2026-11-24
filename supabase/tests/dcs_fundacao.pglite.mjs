@@ -445,4 +445,15 @@ neg = await db.query("SELECT dcs_concluir_teste_conexao($1, $2::jsonb, null)", [
 ok(neg, "conexão: resultado com campo de credencial é recusado");
 await db.query("SELECT dcs_concluir_teste_conexao($1, $2::jsonb, null)", [t1, JSON.stringify({ checks: [{ chave: "auth", status: "ok" }] })]);
 ok((await db.query("SELECT status FROM dcs_testes_conexao WHERE id=$1",[t1])).rows[0].status==="concluido", "conexão: teste concluído pelo n8n");
+await db.exec("RESET ROLE");
+// Auditoria 24/11/2026: dcs_publicar_* (chamadas só pelo n8n, service_role) não podem ficar
+// expostas a anon/authenticated via PostgREST (achado corrigido na mesma data). O acesso do
+// service_role não é testado aqui: na Supabase real ele vem do provisionamento da plataforma
+// (fora das migrations), que este harness simplificado não reproduz; foi confirmado à parte
+// por SQL direto no projeto real.
+const execPriv = async (role, fn) => (await q(`SELECT has_function_privilege('${role}', 'public.${fn}(uuid,jsonb,integer,boolean)', 'EXECUTE') p`)).rows[0].p;
+for (const fn of ["dcs_publicar_pipeline_onboarding", "dcs_publicar_atividades", "dcs_publicar_cancelamentos"]) {
+  ok((await execPriv("anon", fn)) === false, `permissão: anon não executa ${fn}`);
+  ok((await execPriv("authenticated", fn)) === false, `permissão: authenticated não executa ${fn}`);
+}
 await db.exec("SET ROLE authenticated");
