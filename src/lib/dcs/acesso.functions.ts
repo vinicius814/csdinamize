@@ -24,6 +24,24 @@ const falha = (e: { message: string } | null | undefined, padrao: string) => {
   );
 };
 
+/** Só aceita domínios oficiais do app; qualquer outra origem cai no domínio publicado. */
+const ORIGEM_PADRAO = "https://csdinamize.lovable.app";
+const origemPermitida = (origem: string): string => {
+  try {
+    const u = new URL(origem);
+    const h = u.hostname;
+    const ok =
+      u.protocol === "https:" &&
+      (h === "csdinamize.lovable.app" ||
+        h === "dinamize.wojetc.com.br" ||
+        h === "id-preview--59f4b37c-7149-4104-929c-5863c7322e7f.lovable.app" ||
+        h === "59f4b37c-7149-4104-929c-5863c7322e7f.lovableproject.com");
+    return ok ? u.origin : ORIGEM_PADRAO;
+  } catch {
+    return ORIGEM_PADRAO;
+  }
+};
+
 const credencialSchema = z.object({
   email: z.string().email().max(254),
   metodo: z.enum(["senha", "email"]),
@@ -47,7 +65,7 @@ export const gerarCredencial = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const adm = supabaseAdmin.auth.admin;
     const rpcServ = rpcDe(supabaseAdmin);
-    const destino = new URL("/definir-senha", data.origem).toString();
+    const destino = new URL("/definir-senha", origemPermitida(data.origem)).toString();
     let userId = a.user_id;
 
     if (data.metodo === "senha") {
