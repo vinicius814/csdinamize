@@ -46,7 +46,7 @@ function Cancelamentos() {
   const exportar = () => {
     const cab = ["negocio_id", "negocio", "cliente", "carteira", "etapa", "responsavel_na_data", "responsavel_confirmado", "entrada_em_cancelados", "perdido_em", "motivo", "valor_mensal_brl", "link"];
     const linhas = lista.map(e => [e.deal_id, e.negocio, e.cliente, CS_PIPELINES[e.pipeline_id as 15 | 16] ?? e.pipeline_id, CS_STAGES[e.pipeline_id === 16 ? 111 : 105], e.owner_nome ?? e.owner_id, e.responsavel_confirmado ? "sim" : "não (responsável atual)", e.dia, e.perdido_em ?? "", e.motivo_perda ?? "", e.mrr_perdido === null ? "" : String(e.mrr_perdido).replace(".", ","), `https://cs-dinamize.pipedrive.com/deal/${e.deal_id}`]);
-    const csv = [cab, ...linhas].map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\r\n");
+    const csv = [cab, ...linhas].map(l => l.map(v => { const t = String(v); const seguro = typeof v === "string" && /^[=+\-@\t\r]/.test(t) ? "'" + t : t; return `"${seguro.replace(/"/g, '""')}"`; }).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = `cancelamentos-${mes}${busca.owner ? "-" + busca.owner : ""}.csv`; a.click(); URL.revokeObjectURL(url);
   };
