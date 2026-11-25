@@ -303,7 +303,8 @@ function EscritaPipedrive() {
       Registro automático dos diagnósticos: <strong>{ativa ? "ativo" : "desativado"}</strong>
       {ativa
         ? " (atividade “Análise” concluída no negócio)."
-        : " — os registros ficam pendentes de confirmação."}
+        : " — novas conclusões ficam pendentes de confirmação, mas são liberadas a cada clique em “Atualizar carteira”, sem precisar deste ajuste."}
+      {" "}O resumo do plano de ação continua exigindo este registro ativo.
       {master && (
         <button
           type="button"

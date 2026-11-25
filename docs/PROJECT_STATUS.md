@@ -167,3 +167,10 @@ já estava implementada desde 18/11 (achado da própria auditoria corrigido). Wo
 tipo de job e o link, mas **salvo só como rascunho**: credenciais dos nós HTTP precisam ser atribuídas manualmente
 no n8n antes de publicar (pendente, sem risco — produção segue na versão de 19/11, sem alteração). Nenhuma escrita
 real no Pipedrive habilitada (`pipedrive_escrita.ativa` continua `false`).
+
+## 25/11/2026 — liberação automática do diagnóstico ao atualizar a carteira (D42)
+A pedido do Vinícius: clicar em "Atualizar carteira" agora libera diagnósticos concluídos aguardando envio ao
+Pipedrive (`pipedrive_atividade_diagnostico`), **sem exigir a ativação do Master**. Confirmado com ele antes de
+implementar (mudança de política de autorização de escrita real) que o escopo é só diagnósticos — o resumo do
+plano de ação continua exigindo a ativação do Master, como antes. Migration
+`20261125133000_dcs_liberar_diagnostico_na_sync.sql`, 154 cenários pglite (0 falhas), `tsc` 0 erros.

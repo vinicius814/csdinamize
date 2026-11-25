@@ -23,6 +23,10 @@ Conta: `cs-dinamize`. Leitura e escrita só pelo n8n (credencial "DCS · Pipedri
 - Escrita (somente após autorização): resumo consolidado do plano de ação — uma atividade "Análise" por cliente (não por
   ciclo, não por ação individual), com a marca `DZCS-ACOES-<cliente>` e contagem de ações ativas/críticas/implementadas/
   atrasadas + link para o plano no Dinamize CS. Atualizada a cada conclusão/revisão de diagnóstico do cliente (D41).
+- **Diagnósticos: liberação sem aprovação do Master (D42).** Diferente do plano de ação acima, o job de diagnóstico
+  concluído (`pipedrive_atividade_diagnostico`) é liberado (`aguardando_autorizacao`→`pendente`) a cada clique em
+  "Atualizar carteira" (`dcs_solicitar_sync('carteira')`), por qualquer pessoa com a permissão `integracoes` — não
+  depende de `dcs_config.pipedrive_escrita` nem é exclusivo do Master. É a única exceção à regra geral de autorização.
 - Webhook: eventos de negócio → n8n 03 (cabeçalho secreto) → sincronização incremental.
 
 ## Conexão, autoria e vínculos (D40, 19/11/2026)

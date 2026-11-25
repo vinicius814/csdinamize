@@ -157,7 +157,18 @@ await as(ADM);
 const s1=(await q("SELECT dcs_solicitar_sync('carteira') id")).rows[0].id, s2=(await q("SELECT dcs_solicitar_sync('carteira') id")).rows[0].id;
 ok(s1===s2, "pedido de atualização idempotente");
 ok((await q("SELECT count(*)::int n FROM dcs_listar_usuarios()")).rows[0].n>=4, "admin lista usuários");
+// D42: clicar em "Atualizar carteira" libera diagnósticos aguardando autorização, sem exigir ativação do Master;
+// o resumo do plano de ação (outro tipo de job) não é tocado pelo mesmo clique.
+await db.exec("RESET ROLE; SELECT set_config('t.uid','',false); SET ROLE service_role");
+await db.exec("UPDATE dcs_jobs SET status='aguardando_autorizacao', tentativas=3, erro='x' WHERE chave='DZCS-2-C1'");
+await db.exec("SET ROLE authenticated"); await as(ADM);
+await q("SELECT dcs_solicitar_sync('carteira')");
 await db.exec("RESET ROLE; SELECT set_config('t.uid','',false)");
+const diagLiberado = (await q("SELECT status, erro, tentativas FROM dcs_jobs WHERE chave='DZCS-2-C1'")).rows[0];
+ok(diagLiberado.status==="pendente" && diagLiberado.erro===null && diagLiberado.tentativas===0,
+  "D42: Atualizar carteira libera diagnóstico aguardando autorização, sem ativação do Master");
+ok((await q("SELECT status FROM dcs_jobs WHERE chave='DZCS-ACOES-2'")).rows[0].status==="aguardando_autorizacao",
+  "D42: resumo do plano de ação não é liberado pelo mesmo clique (continua exigindo o Master)");
 neg = await db.exec(`UPDATE account_access SET status='suspenso' WHERE user_id='${ADM}'`).then(()=>false).catch((e)=>/último Administrador Master/.test(e.message));
 ok(neg, "último master não pode ser suspenso");
 neg = await db.exec(`UPDATE user_roles SET role='admin' WHERE user_id='${ADM}'`).then(()=>false).catch((e)=>/último Administrador Master/.test(e.message));
