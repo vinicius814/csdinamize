@@ -118,6 +118,43 @@ credencial — todos verificados na seção D).
 Nenhuma dessas correções foi implementada. Todas exigiriam: mudança aditiva no banco (nova migration),
 teste novo (conforme `CLAUDE.md`), e autorização explícita separada para qualquer escrita real de teste.
 
+## I. Implementação (25/11/2026, autorizado pelo Vinícius: "pode implementar")
+
+**Correção da própria auditoria primeiro:** ao reler `dcs_concluir_analise` para implementar a correção #3, foi
+constatado que a versão citada na seção D/F era a de `20261117142211_dcs_fundacao.sql` (a original), mas uma
+migration posterior — `20261118144532_dcs_evolucao.sql`, de 18/11 — já havia substituído essa função por uma versão
+que faz `ON CONFLICT (chave) DO UPDATE` (reabrindo inclusive um job já `concluido` para reenvio). **A correção #3
+já estava implementada desde 18/11**; esta auditoria avaliou a função errada por não ter conferido migrations
+posteriores à foundational. Nada foi alterado para a correção #3 além de registrar esta ressalva (D41).
+
+**Correção #1 (plano de ação) e #2 (link):** implementadas em `supabase/migrations/20261125120000_dcs_pipedrive_acoes_plano.sql`,
+aditiva, sem habilitar escrita real (`pipedrive_escrita.ativa` continua `false`):
+- Novo tipo de job `pipedrive_atividade_acao` (CHECK constraint ampliado), um registro por **cliente** (chave
+  `DZCS-ACOES-<cliente>`, não por ciclo nem por ação individual, conforme a recomendação da seção H), com contagem de
+  ações ativas/críticas/implementadas/atrasadas — recalculada e reenfileirada (mesmo mecanismo de upsert da correção
+  #3) a cada conclusão ou revisão de diagnóstico do cliente. Mesmo gate de autorização do job de diagnóstico.
+- Campo `link` (`dcs_config.app_url` + `/dcs/cliente/<key>`) no payload de ambos os tipos de job, exibido na nota da
+  atividade no Pipedrive.
+- `dcs_reprocessar_registro` passa a reprocessar também o job de ações do mesmo cliente.
+- 7 cenários novos no teste de banco (`supabase/tests/dcs_fundacao.pglite.mjs`): job de ações criado junto do
+  diagnóstico; link presente em ambos; contagens corretas (incluindo um caso com ação atrasada e crítica); resumo
+  continua um único registro por cliente após revisão. **152 cenários no total, 0 falhas.** Três asserções
+  pré-existentes que assumiam implicitamente "só existe 1 linha em `dcs_jobs` neste ponto do teste" foram corrigidas
+  para mirar a chave certa — deixaram de valer com dois tipos de job por cliente, não por regressão.
+- Migration aplicada no projeto Supabase real (`dknywurmzgrkxiytvncp`) e confirmada (`dcs_jobs_tipo_check` já aceita
+  o novo valor; `dcs_config` não tinha a chave `app_url`, agora tem).
+
+**Workflow n8n "06 — Registro do diagnóstico no Pipedrive":** atualizado para reservar os dois tipos de job (novo nó
+"Reservar registros (ações)" + nó de combinação) e para montar a nota e o assunto corretos por tipo, incluindo o
+link. A validação (`validate_workflow`) passou e a atualização foi salva — **mas apenas como rascunho**
+(`versionId` novo; `activeVersionId` continua apontando para a versão de 19/11, que seguiu em produção sem
+alteração). O SDK do n8n não vincula automaticamente credencial em nós HTTP com `predefinedCredentialType`
+("autoAssignedCredentials": []); publicar agora deixaria os 7 nós HTTP (incluindo os 5 que já existiam) sem
+credencial. **Pendente:** abrir o rascunho no n8n, atribuir a credencial correta a cada nó HTTP (Supabase service
+role / Pipedrive account) e só então publicar — nenhuma gravação real ocorre enquanto isso não for feito, mas o
+workflow em produção também não processa o novo tipo de job até lá (os jobs de ações ficam retidos em
+`aguardando_autorizacao`/`pendente`, sem perda, só sem processamento).
+
 ## H. Recomendação funcional
 
 Pelo que já está construído e funciona (caso de 18/11), a abordagem atual — **uma atividade "Análise" por

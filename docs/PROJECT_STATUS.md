@@ -159,3 +159,11 @@ Validação: tsc 0 erros, lint sem erros, 222 testes, build de produção ok; no
 
 ## Próxima ação objetiva
 Após o merge: cadastrar a equipe (Cheyne, Manoela, Juliana, Enzo) com suas carteiras e construir Usuários e Configurações.
+
+## 25/11/2026 — implementação das correções da auditoria Pipedrive (D41)
+Correções #1 (plano de ação) e #2 (link) de `docs/PIPEDRIVE_INTEGRATION_AUDIT.md` implementadas e testadas
+(migration `20261125120000_dcs_pipedrive_acoes_plano.sql`, 152 cenários pglite, 0 falhas, `tsc` 0 erros). Correção #3
+já estava implementada desde 18/11 (achado da própria auditoria corrigido). Workflow n8n 06 atualizado para o novo
+tipo de job e o link, mas **salvo só como rascunho**: credenciais dos nós HTTP precisam ser atribuídas manualmente
+no n8n antes de publicar (pendente, sem risco — produção segue na versão de 19/11, sem alteração). Nenhuma escrita
+real no Pipedrive habilitada (`pipedrive_escrita.ativa` continua `false`).

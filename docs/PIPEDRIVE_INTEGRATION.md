@@ -18,7 +18,11 @@ Conta: `cs-dinamize`. Leitura e escrita só pelo n8n (credencial "DCS · Pipedri
 ## Fluxos
 - Leitura: negócios do funil (v2 `/deals`, cursor, 500/página), usuários (v1 `/users`), atividades (v2 `/activities`).
 - Escrita (somente após autorização): uma atividade "Análise" concluída no negócio principal por ciclo de diagnóstico,
-  com a marca `DZCS-<cliente>-C<ciclo>` na nota (idempotência). Nada mais é alterado no Pipedrive.
+  com a marca `DZCS-<cliente>-C<ciclo>` na nota (idempotência) e link de volta ao diagnóstico no Dinamize CS. Reconclusão
+  (inclusive após reabrir) atualiza a mesma atividade com o relatório mais recente (D41).
+- Escrita (somente após autorização): resumo consolidado do plano de ação — uma atividade "Análise" por cliente (não por
+  ciclo, não por ação individual), com a marca `DZCS-ACOES-<cliente>` e contagem de ações ativas/críticas/implementadas/
+  atrasadas + link para o plano no Dinamize CS. Atualizada a cada conclusão/revisão de diagnóstico do cliente (D41).
 - Webhook: eventos de negócio → n8n 03 (cabeçalho secreto) → sincronização incremental.
 
 ## Conexão, autoria e vínculos (D40, 19/11/2026)

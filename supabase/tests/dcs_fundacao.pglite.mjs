@@ -77,8 +77,12 @@ const acoes = [{rec_id:"tec_form",categoria:"tec",problema:"p",acao:"a",priorida
 let job = (await q("SELECT dcs_concluir_analise($1,2,'resumo','{\"score\":80}',$2::jsonb,'2027-02-01',true) j",[d.id, JSON.stringify(acoes)])).rows[0].j;
 ok(!!job, "conclusão enfileira atividade do Pipedrive");
 await db.exec("RESET ROLE; SELECT set_config('t.uid','',false)");
-const jr = (await q("SELECT status, chave FROM dcs_jobs")).rows[0];
+const jr = (await q("SELECT status, chave, payload->>'link' link FROM dcs_jobs WHERE chave='DZCS-2-C1'")).rows[0];
 ok(jr.status==="aguardando_autorizacao" && jr.chave==="DZCS-2-C1", "atividade aguarda autorização e usa chave idempotente");
+ok(jr.link==="https://csdinamize.lovable.app/dcs/cliente/2", "correção #2 (auditoria): nota traz link de volta ao diagnóstico no Dinamize CS");
+const ja = (await q("SELECT tipo, status, payload->>'total' total, payload->>'criticas' criticas, payload->>'link' link FROM dcs_jobs WHERE chave='DZCS-ACOES-2'")).rows[0];
+ok(!!ja && ja.tipo==="pipedrive_atividade_acao" && ja.status==="aguardando_autorizacao" && ja.total==="1" && ja.criticas==="0" && ja.link==="https://csdinamize.lovable.app/dcs/cliente/2",
+  "correção #1 (auditoria): conclusão também enfileira resumo consolidado do plano de ação, mesmo gate de autorização");
 await db.exec("SET ROLE authenticated"); await as(CS2);
 const d3 = (await q("SELECT (dcs_iniciar_analise('2')).*")).rows[0];
 ok(d3.ciclo===2 && d3.itens.tec_dom.s==="funcional", "novo ciclo herda respostas sem sobrescrever o ciclo 1");
@@ -92,12 +96,14 @@ ok(neg, "campos protegidos do plano não são editáveis");
 neg = await q("SELECT dcs_publicar_carteira(gen_random_uuid(),'[]',0,true)").then(()=>false).catch(()=>true);
 ok(neg, "usuário não executa funções de integração");
 await db.exec("RESET ROLE; SELECT set_config('t.uid','',false); SET ROLE service_role");
-await db.exec("UPDATE dcs_jobs SET status='pendente'");
+// As duas linhas a seguir manipulam só o job de diagnóstico (chave DZCS-2-C1), sem interferir no job de
+// ações (DZCS-ACOES-2, já verificado acima).
+await db.exec("UPDATE dcs_jobs SET status='pendente' WHERE chave='DZCS-2-C1'");
 const res = (await q("SELECT * FROM dcs_reservar_jobs('pipedrive_atividade_diagnostico',10)")).rows;
 const res2 = (await q("SELECT * FROM dcs_reservar_jobs('pipedrive_atividade_diagnostico',10)")).rows;
-ok(res.length===1 && res2.length===0, "fila: job reservado uma única vez");
+ok(res.length===1 && res2.length===0, "fila: job reservado uma única vez (não inclui o job de ações, outro tipo)");
 await q("SELECT dcs_finalizar_job($1,'concluido','{\"activity_id\":999}',NULL)",[res[0].id]);
-ok((await q("SELECT resultado->>'activity_id' a FROM dcs_jobs")).rows[0].a==="999", "ID da atividade registrado");
+ok((await q("SELECT resultado->>'activity_id' a FROM dcs_jobs WHERE chave='DZCS-2-C1'")).rows[0].a==="999", "ID da atividade registrado");
 
 // ---- migration 2: responsáveis, cobertura, alertas, reprocessamento (service_role) ----
 let rr = (await q("SELECT dcs_iniciar_sync('responsaveis','completa') id")).rows[0].id;
@@ -117,7 +123,7 @@ await db.exec("UPDATE dcs_diagnosticos SET proxima_revisao='2020-01-01' WHERE ci
 await q("SELECT dcs_atualizar_alertas()");
 const al = (await q("SELECT tipo FROM dcs_alertas ORDER BY tipo")).rows.map(x=>x.tipo).join();
 ok(al==="acao_atrasada,cobertura_critica,oportunidade_critica", "alertas: ação atrasada, cobertura crítica e oportunidade crítica (revisão vencida suprimida por ciclo novo) → " + al);
-await db.exec("UPDATE dcs_jobs SET status='ambiguo', tentativas=1");
+await db.exec("UPDATE dcs_jobs SET status='ambiguo', tentativas=1 WHERE chave='DZCS-2-C1'");
 ok((await q("SELECT dcs_reenfileirar_jobs() n")).rows[0].n===1, "fila: job ambíguo volta para conferência");
 await db.exec("RESET ROLE; SET ROLE authenticated"); await as(CS1);
 neg = await q("SELECT email FROM dcs_responsaveis").then(()=>false).catch(()=>true);
@@ -259,6 +265,11 @@ await db.exec("RESET ROLE; SELECT set_config('t.uid','',false)");
 const jobs2 = (await q("SELECT payload->>'resumo' r, count(*) over () n FROM dcs_jobs WHERE chave='DZCS-2-C2'")).rows;
 ok(jobs2.length===1 && jobs2[0].r===(reab?"relatorio v3":"relatorio v2"), "um único registro por cliente+ciclo; reconclusão atualiza o relatório");
 ok((await q("SELECT status FROM dcs_jobs WHERE chave='DZCS-2-C1'")).rows[0].status==="concluido", "registro já concluído de outro ciclo não é tocado");
+// A ação do cliente 2 foi marcada 'implementado' antes, mas a etapa de alertas (acima) a reabriu como
+// 'aguardando_contato'/crítica/prazo vencido — o resumo deve refletir esse estado atual, não o anterior.
+const jobsAcoes = (await q("SELECT payload->>'total' total, payload->>'criticas' criticas, payload->>'implementadas' impl, payload->>'atrasadas' atraso, count(*) over () n FROM dcs_jobs WHERE chave='DZCS-ACOES-2'")).rows;
+ok(jobsAcoes.length===1 && jobsAcoes[0].total==="1" && jobsAcoes[0].criticas==="1" && jobsAcoes[0].impl==="0" && jobsAcoes[0].atraso==="1",
+  "correção #1: resumo do plano de ação continua um único registro por cliente e reflete o estado atual (1 ativa, crítica, atrasada)");
 await db.exec("SET ROLE authenticated"); await as(ADM);
 await q("SELECT dcs_definir_escrita_pipedrive(true)");
 await db.exec("RESET ROLE; SELECT set_config('t.uid','',false)"); await db.exec(`UPDATE dcs_jobs SET status='falha', erro='timeout' WHERE chave='DZCS-2-C2'`); await db.exec("SET ROLE authenticated"); await as(CS2);
