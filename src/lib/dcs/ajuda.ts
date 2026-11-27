@@ -6,7 +6,7 @@
 export const BETA =
   "Esta é uma versão Beta do Dinamize CS. A ferramenta está em evolução contínua com base na utilização e nos feedbacks da equipe.";
 export const ECOMMERCE =
-  "A metodologia de diagnóstico e acompanhamento desta versão foi desenvolvida exclusivamente para clientes de e-commerce.";
+  "A metodologia de diagnóstico e acompanhamento desta versão foi desenvolvida com foco em clientes de e-commerce, mas cobre toda a carteira do funil Customer Success.";
 export const AVISO_LOGIN =
   "Sistema de uso interno da Dinamize. O acesso é exclusivo para colaboradores previamente convidados por um administrador.";
 export const ACESSO_NEGADO =
@@ -16,8 +16,7 @@ export const ACESSO_NEGADO =
 export const MENU: Record<string, string> = {
   "/dcs":
     "Acompanhe os indicadores da carteira, o progresso dos diagnósticos, riscos e oportunidades.",
-  "/dcs/carteira":
-    "Consulte os clientes de e-commerce, inicie diagnósticos e acompanhe sua situação.",
+  "/dcs/carteira": "Consulte os clientes da carteira, inicie diagnósticos e acompanhe sua situação.",
   "/dcs/analises":
     "Organize os diagnósticos sob sua responsabilidade e acompanhe as próximas revisões.",
   "/dcs/planos": "Gerencie recomendações, responsáveis, prioridades, prazos e implementações.",
@@ -93,7 +92,7 @@ export type Termo = keyof typeof TERMOS;
 export const DICA_KPI: Record<string, Termo> = {
   "Aproveitamento médio": "indice",
   Índice: "indice",
-  "Clientes e-commerce": "elegivel",
+  "Clientes na carteira": "elegivel",
   "Sem utilização a revisar": "semUso",
   "Ganhos rápidos": "ganhoRapido",
   Cobertura: "cobertura",
