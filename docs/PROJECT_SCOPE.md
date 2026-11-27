@@ -1,8 +1,9 @@
 # Escopo funcional
 
 Sistema interno de Customer Success da Dinamize que substitui o artefato do Claude, sem depender do Claude em uso.
-Foco inicial: clientes **e-commerce** do funil Customer Success (Pipedrive, funil 15). Arquitetura preparada para outros
-segmentos (`dcs_clientes.segmento`).
+Cobre toda a carteira ativa do funil Customer Success (Pipedrive, funil 15), classificada por segmento
+(`dcs_clientes.segmento`: "ecommerce" | "geral" — ver D43 em DECISIONS.md). O piloto e a maior parte da
+homologação foram feitos com contas e-commerce, mas o sistema não exclui nenhum segmento.
 
 Módulos (detalhes de regra em BUSINESS_RULES.md; equivalência em ARTIFACT_MAPPING.md):
 1. Visão geral (dashboard executivo com acesso aos clientes de cada indicador).
