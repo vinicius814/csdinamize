@@ -92,14 +92,14 @@ function VisaoGeral() {
     <>
       <Titulo
         titulo="Visão geral"
-        sub="Acompanhamento e inteligência da operação de Customer Success da carteira e-commerce."
+        sub="Acompanhamento e inteligência da operação de Customer Success da carteira."
       />
       <MinhaOperacaoHoje />
       <BarraFiltros f={f} set={set} todos={b.todos} nomes={b.nomes} />
       <Estado carregando={b.carregando} erro={b.erro}>
         <div data-tour="kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Kpi
-            rotulo="Clientes e-commerce"
+            rotulo="Clientes na carteira"
             valor={k.clientes}
             detalhe="ativos no funil Customer Success"
             icone={<Store />}
