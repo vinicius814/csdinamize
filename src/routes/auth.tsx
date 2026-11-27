@@ -131,8 +131,8 @@ function Login() {
             Plano de ação e diagnóstico de contas
           </h2>
           <p className="mt-4 text-base text-white/80">
-            Carteira, cobertura, diagnósticos e planos de ação da operação de Customer Success de
-            e-commerce, sincronizados com o Pipedrive.
+            Carteira, cobertura, diagnósticos e planos de ação da operação de Customer Success,
+            sincronizados com o Pipedrive.
           </p>
         </div>
         <p className="relative text-sm text-white/70">Dinamize · Customer Success · {VERSAO}</p>
