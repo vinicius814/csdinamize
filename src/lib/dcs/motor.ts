@@ -377,10 +377,13 @@ export interface ClienteCarteira {
   ownerName: string;
   personId: number | null;
   labelIds: number[];
+  segmento: "ecommerce" | "geral";
 }
 /**
  * Consolida negócios do funil por organização (porte de syncPortfolio).
  * C4: valor ausente nunca vira zero (mrr = null se algum negócio não tiver valor).
+ * D43 (25/11/2026): o segmento/etiqueta de e-commerce deixou de excluir contas da carteira — todo o
+ * pipeline 15 ativo entra; ehEcommerce agora só classifica o segmento (ver docs/DECISIONS.md).
  */
 export function consolidarCarteira(
   deals: DealPD[],
@@ -390,12 +393,7 @@ export function consolidarCarteira(
   const incl = new Set(cfg.stages.map(Number));
   const grupos: Record<string, DealPD[]> = {};
   for (const d of deals) {
-    if (
-      d.is_archived ||
-      (d.status && d.status !== "open") ||
-      !incl.has(Number(d.stage_id)) ||
-      !ehEcommerce(d, cfg)
-    )
+    if (d.is_archived || (d.status && d.status !== "open") || !incl.has(Number(d.stage_id)))
       continue;
     const org = idDe(d.org_id);
     const key = org ? String(org) : "d" + d.id;
@@ -429,6 +427,7 @@ export function consolidarCarteira(
       ownerName: oname,
       personId: idDe(p.person_id),
       labelIds: p.label_ids || [],
+      segmento: ehEcommerce(p, cfg) ? "ecommerce" : "geral",
     };
   }
   return out;
