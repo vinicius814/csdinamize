@@ -41,6 +41,10 @@ export function itemPermitido(
   if (i.permissao) return !!permissoes?.[i.permissao];
   return mods.includes(i.mod);
 }
+/**
+ * D45 (25/11/2026): o antigo grupo único "Operação" (9 itens) foi dividido em 3 blocos funcionais,
+ * para reduzir a varredura visual do menu. Visão geral, Inteligência e Administração não mudaram.
+ */
 export const NAV: ItemNav[] = [
   {
     to: "/dcs",
@@ -55,14 +59,14 @@ export const NAV: ItemNav[] = [
     rotulo: "Carteira de clientes",
     icone: Briefcase,
     mod: "carteira",
-    grupo: "Operação",
+    grupo: "Carteira e diagnóstico",
   },
   {
     to: "/dcs/analises",
     rotulo: "Minhas análises",
     icone: BookOpenCheck,
     mod: "minhas-analises",
-    grupo: "Operação",
+    grupo: "Carteira e diagnóstico",
     contador: "analises",
   },
   {
@@ -70,50 +74,50 @@ export const NAV: ItemNav[] = [
     rotulo: "Oportunidades de melhoria",
     icone: ClipboardList,
     mod: "planos",
-    grupo: "Operação",
+    grupo: "Carteira e diagnóstico",
     contador: "atrasadas",
-  },
-  {
-    to: "/dcs/cobertura",
-    rotulo: "Cobertura de CS",
-    icone: Activity,
-    mod: "cobertura",
-    grupo: "Operação",
   },
   {
     to: "/dcs/onboarding",
     rotulo: "Onboarding",
     icone: Rocket,
     mod: "onboarding",
-    grupo: "Operação",
+    grupo: "Onboarding e equipe",
   },
   {
     to: "/dcs/equipe",
     rotulo: "Gestão da equipe",
     icone: UserCog,
     mod: "equipe",
-    grupo: "Operação",
+    grupo: "Onboarding e equipe",
+  },
+  {
+    to: "/dcs/cobertura",
+    rotulo: "Cobertura de CS",
+    icone: Activity,
+    mod: "cobertura",
+    grupo: "Relacionamento e cobertura",
   },
   {
     to: "/dcs/atividades",
     rotulo: "Atividades e pendências",
     icone: CalendarCheck2,
     mod: "atividades",
-    grupo: "Operação",
+    grupo: "Relacionamento e cobertura",
   },
   {
     to: "/dcs/cancelamentos",
     rotulo: "Cancelamentos e retenção",
     icone: UserX,
     mod: "cancelamentos",
-    grupo: "Operação",
+    grupo: "Relacionamento e cobertura",
   },
   {
     to: "/dcs/alertas",
     rotulo: "Radar de inteligência",
     icone: Bell,
     mod: "visao-geral",
-    grupo: "Operação",
+    grupo: "Relacionamento e cobertura",
     contador: "alertas",
   },
   {
