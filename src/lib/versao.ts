@@ -5,7 +5,7 @@ declare const __DCS_BUILD__: string;
 export const PRODUTO = "Dinamize CS";
 export const NOME_COMPLETO = "Dinamize CS — Plano de Ação e Diagnóstico de Contas";
 export const SUBTITULO = "Diagnóstico e inteligência de contas";
-export const SEGMENTO = "Exclusivo para e-commerces";
+export const SEGMENTO = "Customer Success Dinamize";
 export const VERSAO = "Beta 1.1";
 export const DATA_VERSAO = "2026-11-19";
 export const COMMIT = typeof __DCS_COMMIT__ === "string" ? __DCS_COMMIT__ : "indisponível";
