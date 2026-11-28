@@ -209,8 +209,8 @@ export function useCliente(key: string) {
         ),
       ]);
       // Onboarding (funil Pipedrive id 1) é consultado por org_id — mesma organização pode ter
-      // conta em CS (dcs_clientes) e negócio em Onboarding (dcs_pipeline_onboarding). Sem org_id
-      // (cliente ainda não sincronizado) ou sem linha publicada (sync ainda inativo), retorna [].
+      // conta em CS (dcs_clientes) e negócio em Onboarding. Sem org_id (cliente ainda não
+      // sincronizado) ou sem linha publicada (sync ainda inativo), retorna [].
       const onboarding = c?.org_id
         ? await ok(
             dcs
@@ -458,6 +458,43 @@ export function useAtualizarAcao(key: string) {
         }),
       ),
     onSuccess: () => invalidarAnalises(qc, key),
+  });
+}
+
+export type NotaCliente = {
+  id: string;
+  texto: string;
+  autor_id: string;
+  autor_nome: string | null;
+  criado_em: string;
+  /** Status do envio ao Pipedrive (dcs_jobs). 'aguardando_autorizacao' até o próximo "Atualizar carteira". */
+  status:
+    | "aguardando_autorizacao"
+    | "pendente"
+    | "processando"
+    | "concluido"
+    | "falha"
+    | "ambiguo"
+    | "cancelado";
+  erro: string | null;
+};
+
+/** Notas manuais do analista na ficha do cliente (Cliente 360), com o status de envio ao Pipedrive (D51). */
+export function useNotasCliente(key: string) {
+  return useQuery({
+    queryKey: ["dcs", "notas-cliente", key],
+    queryFn: async () =>
+      (await ok(dcs.rpc("dcs_notas_cliente_listar", { p_cliente_key: key }))) as NotaCliente[],
+  });
+}
+
+/** Cria a nota e enfileira o envio ao Pipedrive — fica represada até o próximo "Atualizar carteira" (D51). */
+export function useRegistrarNota(key: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (texto: string) =>
+      ok(dcs.rpc("dcs_registrar_nota_cliente", { p_cliente_key: key, p_texto: texto })),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "notas-cliente", key] }),
   });
 }
 
