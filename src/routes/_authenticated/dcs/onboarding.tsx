@@ -10,14 +10,17 @@
  * Dias na etapa é mostrado de forma neutra (sem rótulo de atraso).
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { ExternalLink } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, LayoutGrid, List } from "lucide-react";
 import { useCarteira, usePipelineOnboarding } from "@/lib/dcs/dados";
 import type { DcsPipelineOnboarding } from "@/lib/dcs/db";
 import {
+  agruparPorEtapaOnboarding,
+  colunasKanbanOnboarding,
   ETAPAS_ONBOARDING,
   ETAPA_CANCELAMENTO_ONBOARDING,
   nomeEtapaOnboarding,
+  OUTRAS_ETAPAS_ONBOARDING,
 } from "@/lib/dcs/onboarding";
 import { Button } from "@/components/ui/button";
 import { Estado, Seletor, Tabela, Titulo, cx, pipedriveDeal } from "@/components/dcs/ui";
@@ -36,6 +39,7 @@ export const Route = createFileRoute("/_authenticated/dcs/onboarding")({
 const hojeSP = () => new Date().toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
 const diasEntre = (de: string, ate: string) =>
   Math.round((Date.parse(ate) - Date.parse(de)) / 86_400_000);
+const CHAVE_MODO = "dcs:onboarding-modo";
 
 function Onboarding() {
   const b = Route.useSearch();
@@ -44,6 +48,24 @@ function Onboarding() {
     void nav({ search: (x: Busca) => ({ ...x, ...p }), replace: true });
   const onb = usePipelineOnboarding();
   const carteira = useCarteira(true);
+  // D48 (25/11/2026): segunda forma de ver o Onboarding, ao lado da tabela — board com uma
+  // coluna por etapa do funil. Reaproveita a mesma lista já filtrada; sem paginação.
+  const [modo, setModo] = useState<"lista" | "kanban">("lista");
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(CHAVE_MODO) === "kanban") setModo("kanban");
+    } catch {
+      /* padrão */
+    }
+  }, []);
+  const alternarModo = (m: "lista" | "kanban") => {
+    setModo(m);
+    try {
+      localStorage.setItem(CHAVE_MODO, m);
+    } catch {
+      /* sem armazenamento */
+    }
+  };
 
   // Liga cada negócio de Onboarding a uma conta CS (dcs_clientes) existente pelo mesmo org_id,
   // quando houver — só para abrir a ficha; não cria nem duplica cliente.
@@ -84,6 +106,7 @@ function Onboarding() {
       const ob = ETAPAS_ONBOARDING[b2.stage_id]?.ordem ?? 99;
       return oa - ob || (a.titulo ?? "").localeCompare(b2.titulo ?? "");
     });
+  const kanban = useMemo(() => agruparPorEtapaOnboarding(lista), [lista]);
 
   return (
     <>
@@ -93,6 +116,36 @@ function Onboarding() {
           onb.data && todos.length === 0
             ? "Nenhum negócio sincronizado ainda — a sincronização do funil Onboarding (n8n) está pendente de ativação."
             : `${lista.length} negócio(s) no funil Onboarding (Pipedrive)`
+        }
+        acao={
+          <div
+            role="group"
+            aria-label="Modo de visualização"
+            className="inline-flex h-9 items-center rounded-lg border bg-card p-0.5 text-sm"
+          >
+            <button
+              type="button"
+              aria-pressed={modo === "lista"}
+              onClick={() => alternarModo("lista")}
+              className={cx(
+                "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5",
+                modo === "lista" ? "bg-primary-soft text-primary" : "text-muted-foreground",
+              )}
+            >
+              <List className="h-4 w-4" /> Lista
+            </button>
+            <button
+              type="button"
+              aria-pressed={modo === "kanban"}
+              onClick={() => alternarModo("kanban")}
+              className={cx(
+                "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5",
+                modo === "kanban" ? "bg-primary-soft text-primary" : "text-muted-foreground",
+              )}
+            >
+              <LayoutGrid className="h-4 w-4" /> Kanban
+            </button>
+          </div>
         }
       />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -129,60 +182,139 @@ function Onboarding() {
             : "Sem negócios sincronizados do funil Onboarding ainda.")
         }
       >
-        <Tabela>
-          <thead className="bg-surface-2">
-            <tr>
-              <th>Negócio</th>
-              <th>Etapa</th>
-              <th>Responsável</th>
-              <th>Dias na etapa</th>
-              <th>Conta CS</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {lista.map((n) => {
-              const clienteKey = porOrgCS.get(n.org_id);
-              return (
-                <tr key={n.key} className="border-t">
-                  <td className="px-3 py-2">{n.titulo ?? `Negócio #${n.deal_id}`}</td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={cx(n.stage_id === ETAPA_CANCELAMENTO_ONBOARDING && "text-red-700")}
-                    >
-                      {nomeEtapaOnboarding(n.stage_id)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2">{n.owner_nome ?? "—"}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">
-                    {n.entrada_etapa_em ? diasEntre(n.entrada_etapa_em, hoje) : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    {clienteKey ? (
-                      <Link
-                        to="/dcs/cliente/$key"
-                        params={{ key: clienteKey }}
-                        className="text-primary hover:underline"
+        {modo === "kanban" ? (
+          <KanbanOnboarding negocios={kanban} porOrgCS={porOrgCS} hoje={hoje} />
+        ) : (
+          <Tabela>
+            <thead className="bg-surface-2">
+              <tr>
+                <th>Negócio</th>
+                <th>Etapa</th>
+                <th>Responsável</th>
+                <th>Dias na etapa</th>
+                <th>Conta CS</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((n) => {
+                const clienteKey = porOrgCS.get(n.org_id);
+                return (
+                  <tr key={n.key} className="border-t">
+                    <td className="px-3 py-2">{n.titulo ?? `Negócio #${n.deal_id}`}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={cx(
+                          n.stage_id === ETAPA_CANCELAMENTO_ONBOARDING && "text-red-700",
+                        )}
                       >
-                        Abrir ficha
-                      </Link>
-                    ) : (
-                      <span className="text-muted-foreground">Sem conta CS vinculada</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <a href={pipedriveDeal(n.deal_id)} target="_blank" rel="noreferrer">
-                      <Button variant="ghost" size="sm" aria-label="Abrir no Pipedrive">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Button>
-                    </a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </Tabela>
+                        {nomeEtapaOnboarding(n.stage_id)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">{n.owner_nome ?? "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {n.entrada_etapa_em ? diasEntre(n.entrada_etapa_em, hoje) : "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {clienteKey ? (
+                        <Link
+                          to="/dcs/cliente/$key"
+                          params={{ key: clienteKey }}
+                          className="text-primary hover:underline"
+                        >
+                          Abrir ficha
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">Sem conta CS vinculada</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <a href={pipedriveDeal(n.deal_id)} target="_blank" rel="noreferrer">
+                        <Button variant="ghost" size="sm" aria-label="Abrir no Pipedrive">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </a>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </Tabela>
+        )}
       </Estado>
     </>
+  );
+}
+
+/** D48 (25/11/2026): board com uma coluna por etapa do funil Onboarding. */
+function KanbanOnboarding({
+  negocios,
+  porOrgCS,
+  hoje,
+}: {
+  negocios: Map<number, DcsPipelineOnboarding[]>;
+  porOrgCS: Map<number, string>;
+  hoje: string;
+}) {
+  const colunas = colunasKanbanOnboarding().filter(
+    (c) => c.id !== OUTRAS_ETAPAS_ONBOARDING || (negocios.get(c.id)?.length ?? 0) > 0,
+  );
+  return (
+    <div className="grid auto-cols-[260px] grid-flow-col gap-3 overflow-x-auto pb-2">
+      {colunas.map((col) => {
+        const ns = negocios.get(col.id) ?? [];
+        return (
+          <div key={col.id} className="flex min-w-0 flex-col rounded-xl border bg-card">
+            <div className="flex items-center justify-between gap-2 border-b px-3 py-2.5">
+              <span
+                className={cx(
+                  "truncate text-sm font-semibold",
+                  col.id === OUTRAS_ETAPAS_ONBOARDING && "text-muted-foreground",
+                )}
+              >
+                {col.nome}
+              </span>
+              <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                {ns.length}
+              </span>
+            </div>
+            <div className="flex max-h-[calc(100dvh-340px)] flex-col gap-2 overflow-y-auto p-2">
+              {ns.length ? (
+                ns.map((n) => {
+                  const clienteKey = porOrgCS.get(n.org_id);
+                  const dias = n.entrada_etapa_em ? diasEntre(n.entrada_etapa_em, hoje) : null;
+                  const corpo = (
+                    <div className="rounded-lg border bg-card p-2.5 text-sm shadow-[var(--glow-sm)] hover:border-primary/40">
+                      <p className="truncate font-medium">
+                        {n.titulo ?? `Negócio #${n.deal_id}`}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {n.owner_nome ?? "Sem responsável"}
+                      </p>
+                      {dias != null && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          {dias} dia(s) nesta etapa
+                        </p>
+                      )}
+                    </div>
+                  );
+                  return clienteKey ? (
+                    <Link key={n.key} to="/dcs/cliente/$key" params={{ key: clienteKey }}>
+                      {corpo}
+                    </Link>
+                  ) : (
+                    <div key={n.key}>{corpo}</div>
+                  );
+                })
+              ) : (
+                <p className="px-1 py-6 text-center text-xs text-muted-foreground">
+                  Nenhum negócio nesta etapa.
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
