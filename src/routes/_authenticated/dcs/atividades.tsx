@@ -11,7 +11,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, LayoutGrid, List } from "lucide-react";
-import { useAtividades, useCarteira, type StatusAnalise as _StatusAnalise } from "@/lib/dcs/dados";
+import { useAtividades, useCarteira } from "@/lib/dcs/dados";
 import {
   gradeCalendario,
   mesAnterior,
