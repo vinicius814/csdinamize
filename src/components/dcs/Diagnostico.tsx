@@ -228,6 +228,7 @@ export function EditorDiagnostico(props: {
               {CATS.map((c, i) => {
                 const v = catSc[c.id];
                 const pctCat = v?.total ? Math.round((100 * v.done) / v.total) : 0;
+                const completa = (v?.total ?? 0) > 0 && pctCat === 100;
                 return (
                   <button
                     key={c.id}
@@ -245,18 +246,19 @@ export function EditorDiagnostico(props: {
                   >
                     <span
                       className={cx(
-                        "block truncate text-sm",
+                        "flex items-center gap-1 truncate text-sm",
                         aba === c.id && "font-medium text-primary",
                       )}
                     >
-                      {c.short}
+                      {completa && <CircleCheck className="h-3 w-3 shrink-0 text-emerald-600" />}
+                      <span className="truncate">{c.short}</span>
                     </span>
                     <span className="mt-1 flex items-center gap-1.5">
                       <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
                         <span
                           className={cx(
                             "block h-full rounded-full",
-                            pctCat === 100 ? "bg-emerald-500" : "bg-primary",
+                            completa ? "bg-emerald-500" : "bg-primary",
                           )}
                           style={{ width: `${pctCat}%` }}
                         />
@@ -268,6 +270,23 @@ export function EditorDiagnostico(props: {
                   </button>
                 );
               })}
+              {(() => {
+                const pendente = CATS.find((c) => {
+                  const v = catSc[c.id];
+                  return c.id !== aba && (v?.total ?? 0) > (v?.done ?? 0);
+                });
+                return pendente ? (
+                  <button
+                    type="button"
+                    onClick={() => setAba(pendente.id)}
+                    title="Vai para a próxima categoria com itens não analisados"
+                    className="flex h-[52px] items-center gap-1 whitespace-nowrap rounded-lg border border-dashed px-3 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+                  >
+                    Próxima pendente
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                ) : null;
+              })()}
             </div>
           </div>
         </nav>
