@@ -24,6 +24,7 @@ import {
 } from "@/lib/dcs/dados";
 import { useAnalistas, useUtilizacao, useCarteira } from "@/lib/dcs/dados";
 import { proximoElegivel } from "@/lib/dcs/fila";
+import { agruparPorCausaRaiz } from "@/lib/dcs/plano";
 import { nomeEtapaOnboarding, ETAPA_CANCELAMENTO_ONBOARDING } from "@/lib/dcs/onboarding";
 import { TIPO as TIPO_ALERTA, detalhe as detalheAlerta } from "./alertas";
 import type { DcsPipelineOnboarding } from "@/lib/dcs/db";
@@ -70,6 +71,9 @@ export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({
 });
 
 const A = M.artefato;
+/** Categorias da metodologia (mesma ordem usada nas abas do diagnóstico), para o agrupamento do plano (D52). */
+const CATS_PLANO = A.CATS as unknown as { id: string; name: string }[];
+
 function Cliente() {
   const { key } = Route.useParams();
   const { session, perfil } = useAuth();
@@ -509,6 +513,7 @@ const QUEM: Record<string, string> = {
 function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) {
   const atualizar = useAtualizarAcao(clienteKey);
   const [verObsoletas, setVerObsoletas] = useState(false);
+  const [agrupado, setAgrupado] = useState(true);
   const lista = acoes.filter((a) => verObsoletas || !a.obsoleta);
   const salvar = (a: DcsAcao, campos: Parameters<typeof atualizar.mutate>[0]["campos"]) =>
     atualizar.mutate(
@@ -518,12 +523,26 @@ function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) 
         onSuccess: () => toast.success("Ação atualizada"),
       },
     );
+  // Agrupamento visual por causa raiz (D52): mesma ordem das categorias do diagnóstico; categorias
+  // sem correspondência (ação manual sem categoria reconhecida) caem em "Outros", sempre por último.
+  const grupos = useMemo(
+    () => agruparPorCausaRaiz(lista, CATS_PLANO, agrupado),
+    [lista, agrupado],
+  );
   return (
     <Painel
       titulo="Plano de ação"
       acao={
         <span className="flex flex-wrap items-center gap-3">
           <NovaAcao clienteKey={clienteKey} />
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={agrupado}
+              onChange={(e) => setAgrupado(e.target.checked)}
+            />{" "}
+            Agrupar por causa raiz
+          </label>
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <input
               type="checkbox"
@@ -540,91 +559,107 @@ function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) 
           O plano é gerado ao concluir a análise. Você também pode criar ações manuais.
         </p>
       ) : (
-        <div className="divide-y">
-          {lista.map((a) => {
-            const atrasada =
-              a.prazo && a.prazo < hojeSP() && !["implementado", "nao_aprovado"].includes(a.status);
-            return (
-              <div
-                key={a.id}
-                className={cx(
-                  "grid gap-3 py-3 md:grid-cols-[1fr_220px_150px]",
-                  a.obsoleta && "opacity-60",
-                )}
-              >
-                <div className="text-sm">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <SeloPrioridade p={a.prioridade} />
-                    {a.ganho_rapido && <Selo tom="ok">Ganho rápido</Selo>}
-                    {a.reincidencias > 0 && (
-                      <Selo tom="critico">Reincidência ×{a.reincidencias}</Selo>
-                    )}
-                    {a.obsoleta && <Selo>Não reapareceu no ciclo {a.ultimo_ciclo + 1}</Selo>}
-                  </div>
-                  <p className="mt-1 font-medium">{a.acao}</p>
-                  <p className="text-muted-foreground">{a.problema}</p>
-                  {a.beneficio && (
-                    <p className="text-xs text-muted-foreground">Benefício: {a.beneficio}</p>
-                  )}
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Execução: {QUEM[a.quem ?? "ambos"]} · Complexidade {a.complexidade ?? "—"} ·
-                    Ciclo {a.primeiro_ciclo}
-                    {a.primeiro_ciclo !== a.ultimo_ciclo ? `–${a.ultimo_ciclo}` : ""}
-                  </p>
-                  <Textarea
-                    className="mt-2"
-                    rows={1}
-                    placeholder="Observações"
-                    defaultValue={a.observacoes ?? ""}
-                    onBlur={(e) =>
-                      e.target.value !== (a.observacoes ?? "") &&
-                      salvar(a, { observacoes: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="space-y-2">
-                  <select
-                    value={a.status}
-                    onChange={(e) => salvar(a, { status: e.target.value as StatusAcao })}
-                    className="h-9 w-full rounded-md border bg-card px-2 text-sm"
-                  >
-                    {STATUS_ACAO.map(([k, r]) => (
-                      <option key={k} value={k}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="h-9 w-full rounded-md border bg-card px-2 text-sm"
-                    placeholder="Responsável interno"
-                    defaultValue={a.responsavel ?? ""}
-                    onBlur={(e) =>
-                      e.target.value !== (a.responsavel ?? "") &&
-                      salvar(a, { responsavel: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <input
-                    type="date"
-                    className={cx(
-                      "h-9 w-full rounded-md border bg-card px-2 text-sm",
-                      atrasada && "border-red-400 text-red-700",
-                    )}
-                    defaultValue={a.prazo ?? ""}
-                    onBlur={(e) =>
-                      e.target.value !== (a.prazo ?? "") &&
-                      salvar(a, { prazo: e.target.value || null })
-                    }
-                  />
-                  {atrasada && <p className="mt-1 text-xs text-red-700">Atrasada</p>}
-                </div>
+        <div className="space-y-5">
+          {grupos.map((g) => (
+            <div key={g.id || "flat"}>
+              {g.nome && (
+                <h3 className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {g.nome}
+                  <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] font-normal normal-case tabular-nums text-muted-foreground">
+                    {g.itens.length}
+                  </span>
+                </h3>
+              )}
+              <div className="divide-y">
+                {g.itens.map((a) => (
+                  <LinhaAcao key={a.id} a={a} salvar={salvar} />
+                ))}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </Painel>
+  );
+}
+
+/** Uma ação do plano: prioridade/ganho rápido/reincidência, texto, observações e os 3 campos editáveis. */
+function LinhaAcao({
+  a,
+  salvar,
+}: {
+  a: DcsAcao;
+  salvar: (a: DcsAcao, campos: Parameters<typeof useAtualizarAcao>[0] extends string ? never : Partial<Pick<DcsAcao, "status" | "prioridade" | "responsavel" | "prazo" | "observacoes">>) => void;
+}) {
+  const atrasada =
+    a.prazo && a.prazo < hojeSP() && !["implementado", "nao_aprovado"].includes(a.status);
+  return (
+    <div
+      className={cx("grid gap-3 py-3 md:grid-cols-[1fr_220px_150px]", a.obsoleta && "opacity-60")}
+    >
+      <div className="text-sm">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <SeloPrioridade p={a.prioridade} />
+          {a.ganho_rapido && <Selo tom="ok">Ganho rápido</Selo>}
+          {a.reincidencias > 0 && <Selo tom="critico">Reincidência ×{a.reincidencias}</Selo>}
+          {a.obsoleta && <Selo>Não reapareceu no ciclo {a.ultimo_ciclo + 1}</Selo>}
+        </div>
+        <p className="mt-1 font-medium">{a.acao}</p>
+        <p className="text-muted-foreground">{a.problema}</p>
+        {a.beneficio && <p className="text-xs text-muted-foreground">Benefício: {a.beneficio}</p>}
+        <p className="mt-1 text-xs text-muted-foreground">
+          Execução: {QUEM[a.quem ?? "ambos"]} · Complexidade {a.complexidade ?? "—"} · Ciclo{" "}
+          {a.primeiro_ciclo}
+          {a.primeiro_ciclo !== a.ultimo_ciclo ? `–${a.ultimo_ciclo}` : ""}
+        </p>
+        <Textarea
+          className="mt-2"
+          rows={1}
+          placeholder="Observações"
+          defaultValue={a.observacoes ?? ""}
+          onBlur={(e) =>
+            e.target.value !== (a.observacoes ?? "") &&
+            salvar(a, { observacoes: e.target.value })
+          }
+        />
+      </div>
+      <div className="space-y-2">
+        <select
+          value={a.status}
+          onChange={(e) => salvar(a, { status: e.target.value as StatusAcao })}
+          className="h-9 w-full rounded-md border bg-card px-2 text-sm"
+        >
+          {STATUS_ACAO.map(([k, r]) => (
+            <option key={k} value={k}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <input
+          className="h-9 w-full rounded-md border bg-card px-2 text-sm"
+          placeholder="Responsável interno"
+          defaultValue={a.responsavel ?? ""}
+          onBlur={(e) =>
+            e.target.value !== (a.responsavel ?? "") &&
+            salvar(a, { responsavel: e.target.value })
+          }
+        />
+      </div>
+      <div>
+        <input
+          type="date"
+          className={cx(
+            "h-9 w-full rounded-md border bg-card px-2 text-sm",
+            atrasada && "border-red-400 text-red-700",
+          )}
+          defaultValue={a.prazo ?? ""}
+          onBlur={(e) =>
+            e.target.value !== (a.prazo ?? "") && salvar(a, { prazo: e.target.value || null })
+          }
+        />
+        {atrasada && <p className="mt-1 text-xs text-red-700">Atrasada</p>}
+      </div>
+    </div>
   );
 }
 
