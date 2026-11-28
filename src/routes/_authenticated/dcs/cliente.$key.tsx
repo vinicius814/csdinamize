@@ -73,6 +73,8 @@ export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({
 const A = M.artefato;
 /** Categorias da metodologia (mesma ordem usada nas abas do diagnóstico), para o agrupamento do plano (D52). */
 const CATS_PLANO = A.CATS as unknown as { id: string; name: string }[];
+/** Os três campos editáveis de uma ação do plano, usados por LinhaAcao e pela função salvar() de Plano. */
+type CamposAcao = Partial<Pick<DcsAcao, "status" | "prioridade" | "responsavel" | "prazo" | "observacoes">>;
 
 function Cliente() {
   const { key } = Route.useParams();
@@ -515,7 +517,7 @@ function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) 
   const [verObsoletas, setVerObsoletas] = useState(false);
   const [agrupado, setAgrupado] = useState(true);
   const lista = acoes.filter((a) => verObsoletas || !a.obsoleta);
-  const salvar = (a: DcsAcao, campos: Parameters<typeof atualizar.mutate>[0]["campos"]) =>
+  const salvar = (a: DcsAcao, campos: CamposAcao) =>
     atualizar.mutate(
       { id: a.id, versao: a.versao, campos },
       {
@@ -589,7 +591,7 @@ function LinhaAcao({
   salvar,
 }: {
   a: DcsAcao;
-  salvar: (a: DcsAcao, campos: Parameters<typeof useAtualizarAcao>[0] extends string ? never : Partial<Pick<DcsAcao, "status" | "prioridade" | "responsavel" | "prazo" | "observacoes">>) => void;
+  salvar: (a: DcsAcao, campos: CamposAcao) => void;
 }) {
   const atrasada =
     a.prazo && a.prazo < hojeSP() && !["implementado", "nao_aprovado"].includes(a.status);
