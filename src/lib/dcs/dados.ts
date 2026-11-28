@@ -484,7 +484,7 @@ export function useNotasCliente(key: string) {
   return useQuery({
     queryKey: ["dcs", "notas-cliente", key],
     queryFn: async () =>
-      (await ok(dcs.rpc("dcs_notas_cliente_listar", { p_cliente_key: key }))) as NotaCliente[],
+      rpc<NotaCliente[]>("dcs_notas_cliente_listar", { p_cliente_key: key }),
   });
 }
 
@@ -493,7 +493,7 @@ export function useRegistrarNota(key: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (texto: string) =>
-      ok(dcs.rpc("dcs_registrar_nota_cliente", { p_cliente_key: key, p_texto: texto })),
+      rpc<unknown>("dcs_registrar_nota_cliente", { p_cliente_key: key, p_texto: texto }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["dcs", "notas-cliente", key] }),
   });
 }
