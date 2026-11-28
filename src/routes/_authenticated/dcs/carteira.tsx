@@ -3,7 +3,16 @@ import { AcoesAnalise } from "@/components/dcs/AcoesAnalise";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { mensagemErro } from "@/lib/dcs/db";
-import { ArrowDown, ArrowUp, Columns3, ExternalLink, Layers, Search } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Columns3,
+  ExternalLink,
+  LayoutGrid,
+  Layers,
+  List,
+  Search,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -21,6 +30,7 @@ import {
 import * as SU from "@/lib/dcs/semuso";
 import type { DcsUtilizacao } from "@/lib/dcs/db";
 import { prioridadeCliente, type Prioridade as PriOp } from "@/lib/dcs/prioridade";
+import { agruparPorStatus, COLUNAS_KANBAN_CARTEIRA } from "@/lib/dcs/carteira-kanban";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   useAcessoDcs,
@@ -44,6 +54,7 @@ import {
   Indice,
   moeda,
   pipedriveDeal,
+  Selo,
   SeloAnalise,
   SeloCobertura,
   SeloPrioridade,
@@ -51,12 +62,14 @@ import {
   Titulo,
 } from "@/components/dcs/ui";
 
+type Segmento = "ecommerce" | "geral";
 type Busca = {
   q?: string | undefined;
   responsavel?: string | undefined;
   status?: StatusAnalise | "" | undefined;
   cobertura?: StatusCobertura | "" | undefined;
   analista?: string | undefined;
+  segmento?: Segmento | "" | undefined;
   inativos?: boolean | undefined;
   visao?: "sem_uso" | undefined;
   uso?: "nao_verificado" | "em_uso" | "sem_uso" | "" | undefined;
@@ -69,6 +82,10 @@ export const Route = createFileRoute("/_authenticated/dcs/carteira")({
     status: typeof s["status"] === "string" ? (s["status"] as StatusAnalise) : undefined,
     cobertura: typeof s["cobertura"] === "string" ? (s["cobertura"] as StatusCobertura) : undefined,
     analista: typeof s["analista"] === "string" ? s["analista"] : undefined,
+    segmento:
+      s["segmento"] === "ecommerce" || s["segmento"] === "geral"
+        ? (s["segmento"] as Segmento)
+        : undefined,
     inativos: s["inativos"] === true || s["inativos"] === "true" ? true : undefined,
     visao: s["visao"] === "sem_uso" ? "sem_uso" : undefined,
     uso:
@@ -118,6 +135,13 @@ const COLUNAS: Coluna[] = [
         >
           {l.c.nome}
         </Link>
+        {/* D47 (25/11/2026): selo de segmento ao lado do nome — só e-commerce é destacado,
+            já que a carteira (D43) passou a incluir todos os segmentos por padrão. */}
+        {l.c.segmento === "ecommerce" && (
+          <Selo tom="info" title="Segmento: e-commerce">
+            e-commerce
+          </Selo>
+        )}
         {!l.c.ativo && <span className="ml-1 text-xs text-muted-foreground">(inativo)</span>}
       </>
     ),
@@ -359,6 +383,7 @@ const PADRAO = [
   "pipedrive",
 ];
 const CHAVE_COLS = "dcs:carteira-colunas";
+const CHAVE_MODO = "dcs:carteira-modo";
 
 function Carteira() {
   const busca = Route.useSearch();
@@ -389,6 +414,9 @@ function Carteira() {
   const [ordem, setOrdem] = useState<{ id: string; inv: boolean }>({ id: "atencao", inv: false });
   const [visiveis, setVisiveis] = useState<string[]>(PADRAO);
   const [agrupar, setAgrupar] = useState(false);
+  // D46 (25/11/2026): segunda forma de ver a carteira, ao lado da tabela — board por status de
+  // análise. Reaproveita as mesmas linhas já filtradas/ordenadas; sem paginação nem seleção em lote.
+  const [modo, setModo] = useState<"lista" | "kanban">("lista");
   const [pagina, setPagina] = useState(0);
   // Ações em lote (admin): apenas atribuição de análises ainda não iniciadas. Nada é concluído em massa.
   const admin = acesso.data?.perfil === "admin";
@@ -437,6 +465,11 @@ function Carteira() {
     } catch {
       /* padrão */
     }
+    try {
+      if (localStorage.getItem(CHAVE_MODO) === "kanban") setModo("kanban");
+    } catch {
+      /* padrão */
+    }
   }, []);
   // Filtros persistentes: a ficha do cliente usa isto para voltar à carteira exatamente como estava.
   useEffect(() => {
@@ -457,6 +490,14 @@ function Carteira() {
     setVisiveis(n);
     try {
       localStorage.setItem(CHAVE_COLS, JSON.stringify(n));
+    } catch {
+      /* sem armazenamento */
+    }
+  };
+  const alternarModo = (m: "lista" | "kanban") => {
+    setModo(m);
+    try {
+      localStorage.setItem(CHAVE_MODO, m);
     } catch {
       /* sem armazenamento */
     }
@@ -488,6 +529,7 @@ function Carteira() {
           (busca.status === "concluido" && l.status === "concluido_pendencias")) &&
         (!busca.cobertura || l.cobStatus.k === busca.cobertura) &&
         (!busca.analista || l.diag?.analista_id === busca.analista) &&
+        (!busca.segmento || l.c.segmento === busca.segmento) &&
         (!busca.uso || (usoMap.get(l.c.key)?.status ?? "nao_verificado") === busca.uso),
     );
     const col = COLUNAS.find((c) => c.id === ordemEfetiva.id);
@@ -511,6 +553,7 @@ function Carteira() {
     }
     return m;
   }, [linhas]);
+  const kanban = useMemo(() => agruparPorStatus(linhas), [linhas]);
 
   const ordenar = (id: string) => setOrdem((o) => ({ id, inv: o.id === id ? !o.inv : false }));
 
@@ -518,42 +561,76 @@ function Carteira() {
     <>
       <Titulo
         titulo="Carteira de clientes"
-        sub={`${linhas.length} cliente(s) e-commerce${fin && linhas.length ? ` · ${moeda(total)} em valor registrado no Pipedrive` : ""}`}
+        sub={`${linhas.length} cliente(s)${fin && linhas.length ? ` · ${moeda(total)} em valor registrado no Pipedrive` : ""}`}
         acao={
-          <>
-            <button
-              type="button"
-              onClick={() => setAgrupar(!agrupar)}
-              aria-pressed={agrupar}
-              className={cx(
-                "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm",
-                agrupar
-                  ? "border-primary bg-primary-soft text-primary"
-                  : "bg-card hover:border-primary/40",
+          busca.visao === "sem_uso" ? undefined : (
+            <>
+              <div
+                role="group"
+                aria-label="Modo de visualização"
+                className="inline-flex h-9 items-center rounded-lg border bg-card p-0.5 text-sm"
+              >
+                <button
+                  type="button"
+                  aria-pressed={modo === "lista"}
+                  onClick={() => alternarModo("lista")}
+                  className={cx(
+                    "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5",
+                    modo === "lista" ? "bg-primary-soft text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  <List className="h-4 w-4" /> Lista
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={modo === "kanban"}
+                  onClick={() => alternarModo("kanban")}
+                  className={cx(
+                    "inline-flex h-8 items-center gap-1.5 rounded-md px-2.5",
+                    modo === "kanban" ? "bg-primary-soft text-primary" : "text-muted-foreground",
+                  )}
+                >
+                  <LayoutGrid className="h-4 w-4" /> Kanban
+                </button>
+              </div>
+              {modo === "lista" && (
+                <button
+                  type="button"
+                  onClick={() => setAgrupar(!agrupar)}
+                  aria-pressed={agrupar}
+                  className={cx(
+                    "inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm",
+                    agrupar
+                      ? "border-primary bg-primary-soft text-primary"
+                      : "bg-card hover:border-primary/40",
+                  )}
+                >
+                  <Layers className="h-4 w-4" /> Agrupar por responsável
+                </button>
               )}
-            >
-              <Layers className="h-4 w-4" /> Agrupar por responsável
-            </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="inline-flex h-9 items-center gap-2 rounded-lg border bg-card px-3 text-sm hover:border-primary/40">
-                <Columns3 className="h-4 w-4" /> Colunas
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Colunas visíveis</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {COLUNAS.filter((c) => !c.fixa && (!c.fin || fin)).map((c) => (
-                  <DropdownMenuCheckboxItem
-                    key={c.id}
-                    checked={visiveis.includes(c.id)}
-                    onCheckedChange={() => alternarCol(c.id)}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {c.rotulo}
-                  </DropdownMenuCheckboxItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+              {modo === "lista" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex h-9 items-center gap-2 rounded-lg border bg-card px-3 text-sm hover:border-primary/40">
+                    <Columns3 className="h-4 w-4" /> Colunas
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>Colunas visíveis</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {COLUNAS.filter((c) => !c.fixa && (!c.fin || fin)).map((c) => (
+                      <DropdownMenuCheckboxItem
+                        key={c.id}
+                        checked={visiveis.includes(c.id)}
+                        onCheckedChange={() => alternarCol(c.id)}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {c.rotulo}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </>
+          )
         }
       />
       <div className="dcs-tabela mb-4 border-b" role="tablist" aria-label="Visões da carteira">
@@ -659,6 +736,17 @@ function Carteira() {
               }
               onChange={(v) => set({ uso: (v || undefined) as Busca["uso"] })}
             />
+            <Seletor
+              rotulo="Segmento"
+              valor={busca.segmento ?? ""}
+              opcoes={
+                [
+                  ["ecommerce", "E-commerce"],
+                  ["geral", "Geral"],
+                ] as const
+              }
+              onChange={(v) => set({ segmento: (v || undefined) as Segmento | undefined })}
+            />
             <label className="col-span-full flex items-center gap-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
@@ -674,186 +762,193 @@ function Carteira() {
             erro={q.error}
             vazio={!q.isLoading && !linhas.length && "Nenhum cliente encontrado com esses filtros."}
           >
-            {admin && sel.size > 0 && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 p-3 text-sm">
-                <span className="font-medium">{sel.size} cliente(s) selecionado(s)</span>
-                <select
-                  aria-label="Analista de destino"
-                  value={destino}
-                  onChange={(e) => setDestino(e.target.value)}
-                  className="h-8 rounded-lg border bg-card px-2 text-sm"
-                >
-                  <option value="">Atribuir a…</option>
-                  {destinos.data.map((u) => (
-                    <option key={u.user_id} value={u.user_id}>
-                      {u.nome || u.email}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  disabled={!destino || lote}
-                  onClick={() => void atribuirLote()}
-                  className="h-8 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
-                >
-                  {lote ? "Atribuindo…" : `Atribuir ${sel.size} análise(s)`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSel(new Set())}
-                  className="h-8 rounded-lg border px-3 text-xs"
-                >
-                  Limpar seleção
-                </button>
-                <span className="text-xs text-muted-foreground">
-                  Só clientes aguardando análise e em utilização podem ser atribuídos em lote.
-                </span>
-              </div>
-            )}
-            <div className="dcs-tabela max-h-[calc(100dvh-220px)] rounded-xl border bg-card shadow-[var(--glow-sm)]">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr>
-                    {admin && (
-                      <th scope="col" className="w-8 border-b px-2 py-2.5">
-                        <input
-                          type="checkbox"
-                          aria-label="Selecionar clientes aguardando análise nesta página"
-                          className="h-4 w-4 accent-[var(--primary)]"
-                          checked={
-                            pag.some(selecionavel) &&
-                            pag.filter(selecionavel).every((l) => sel.has(l.c.key))
-                          }
-                          onChange={(e) => {
-                            const n = new Set(sel);
-                            for (const l of pag.filter(selecionavel)) {
-                              if (e.target.checked) n.add(l.c.key);
-                              else n.delete(l.c.key);
+            {modo === "kanban" ? (
+              <KanbanCarteira linhas={kanban} fin={fin} />
+            ) : (
+              <>
+                {admin && sel.size > 0 && (
+                  <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-primary/30 bg-primary-soft/40 p-3 text-sm">
+                    <span className="font-medium">{sel.size} cliente(s) selecionado(s)</span>
+                    <select
+                      aria-label="Analista de destino"
+                      value={destino}
+                      onChange={(e) => setDestino(e.target.value)}
+                      className="h-8 rounded-lg border bg-card px-2 text-sm"
+                    >
+                      <option value="">Atribuir a…</option>
+                      {destinos.data.map((u) => (
+                        <option key={u.user_id} value={u.user_id}>
+                          {u.nome || u.email}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!destino || lote}
+                      onClick={() => void atribuirLote()}
+                      className="h-8 rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+                    >
+                      {lote ? "Atribuindo…" : `Atribuir ${sel.size} análise(s)`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSel(new Set())}
+                      className="h-8 rounded-lg border px-3 text-xs"
+                    >
+                      Limpar seleção
+                    </button>
+                    <span className="text-xs text-muted-foreground">
+                      Só clientes aguardando análise e em utilização podem ser atribuídos em lote.
+                    </span>
+                  </div>
+                )}
+                <div className="dcs-tabela max-h-[calc(100dvh-220px)] rounded-xl border bg-card shadow-[var(--glow-sm)]">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        {admin && (
+                          <th scope="col" className="w-8 border-b px-2 py-2.5">
+                            <input
+                              type="checkbox"
+                              aria-label="Selecionar clientes aguardando análise nesta página"
+                              className="h-4 w-4 accent-[var(--primary)]"
+                              checked={
+                                pag.some(selecionavel) &&
+                                pag.filter(selecionavel).every((l) => sel.has(l.c.key))
+                              }
+                              onChange={(e) => {
+                                const n = new Set(sel);
+                                for (const l of pag.filter(selecionavel)) {
+                                  if (e.target.checked) n.add(l.c.key);
+                                  else n.delete(l.c.key);
+                                }
+                                setSel(n);
+                              }}
+                            />
+                          </th>
+                        )}
+                        {cols.map((c) => (
+                          <th
+                            key={c.id}
+                            scope="col"
+                            aria-sort={
+                              ordemEfetiva.id === c.id
+                                ? ordemEfetiva.inv
+                                  ? "descending"
+                                  : "ascending"
+                                : undefined
                             }
-                            setSel(n);
-                          }}
-                        />
-                      </th>
-                    )}
-                    {cols.map((c) => (
-                      <th
-                        key={c.id}
-                        scope="col"
-                        aria-sort={
-                          ordemEfetiva.id === c.id
-                            ? ordemEfetiva.inv
-                              ? "descending"
-                              : "ascending"
-                            : undefined
-                        }
-                        className={cx(
-                          "whitespace-nowrap border-b px-3 py-2.5 text-xs font-semibold text-muted-foreground",
-                          c.direita ? "text-right" : "text-left",
-                          c.id === "acoes" &&
-                            "right-0 z-20 shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
-                        )}
-                      >
-                        {c.ordem ? (
-                          <button
-                            type="button"
-                            onClick={() => ordenar(c.id)}
-                            className="inline-flex items-center gap-1 hover:text-foreground"
+                            className={cx(
+                              "whitespace-nowrap border-b px-3 py-2.5 text-xs font-semibold text-muted-foreground",
+                              c.direita ? "text-right" : "text-left",
+                              c.id === "acoes" &&
+                                "right-0 z-20 shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
+                            )}
                           >
-                            {c.rotulo}
-                            {ordemEfetiva.id === c.id &&
-                              (ordemEfetiva.inv ? (
-                                <ArrowUp className="h-3 w-3" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3" />
+                            {c.ordem ? (
+                              <button
+                                type="button"
+                                onClick={() => ordenar(c.id)}
+                                className="inline-flex items-center gap-1 hover:text-foreground"
+                              >
+                                {c.rotulo}
+                                {ordemEfetiva.id === c.id &&
+                                  (ordemEfetiva.inv ? (
+                                    <ArrowUp className="h-3 w-3" />
+                                  ) : (
+                                    <ArrowDown className="h-3 w-3" />
+                                  ))}
+                              </button>
+                            ) : (
+                              c.rotulo
+                            )}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody data-tour="acoes-linha">
+                      {pag.map((l, i) => {
+                        const grupo = l.c.owner_nome ?? "—";
+                        const novo =
+                          agrupar && (i === 0 || (pag[i - 1]!.c.owner_nome ?? "—") !== grupo);
+                        const g = grupos.get(grupo);
+                        return (
+                          <FragmentoGrupo key={l.c.key}>
+                            {novo && (
+                              <tr className="bg-surface-2">
+                                <td
+                                  colSpan={cols.length + (admin ? 1 : 0)}
+                                  className="border-t px-3 py-2 text-xs font-semibold"
+                                >
+                                  {grupo} · {g?.n} cliente(s)
+                                  {fin ? ` · ${moeda(g?.valor ?? 0)}` : ""}
+                                </td>
+                              </tr>
+                            )}
+                            <tr className={cx("hover:bg-surface-2", !l.c.ativo && "opacity-60")}>
+                              {admin && (
+                                <td className="border-t px-2 py-2.5">
+                                  {selecionavel(l) && (
+                                    <input
+                                      type="checkbox"
+                                      aria-label={`Selecionar ${l.c.nome}`}
+                                      className="h-4 w-4 accent-[var(--primary)]"
+                                      checked={sel.has(l.c.key)}
+                                      onChange={(e) => {
+                                        const n = new Set(sel);
+                                        if (e.target.checked) n.add(l.c.key);
+                                        else n.delete(l.c.key);
+                                        setSel(n);
+                                      }}
+                                    />
+                                  )}
+                                </td>
+                              )}
+                              {cols.map((c) => (
+                                <td
+                                  key={c.id}
+                                  className={cx(
+                                    "border-t px-3 py-2.5",
+                                    c.direita && "text-right tabular-nums",
+                                    c.id === "cliente" ? "min-w-[220px]" : "whitespace-nowrap",
+                                    c.id === "acoes" &&
+                                      "sticky right-0 z-10 bg-card shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
+                                  )}
+                                >
+                                  {c.celula(l, ctx)}
+                                </td>
                               ))}
-                          </button>
-                        ) : (
-                          c.rotulo
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody data-tour="acoes-linha">
-                  {pag.map((l, i) => {
-                    const grupo = l.c.owner_nome ?? "—";
-                    const novo =
-                      agrupar && (i === 0 || (pag[i - 1]!.c.owner_nome ?? "—") !== grupo);
-                    const g = grupos.get(grupo);
-                    return (
-                      <FragmentoGrupo key={l.c.key}>
-                        {novo && (
-                          <tr className="bg-surface-2">
-                            <td
-                              colSpan={cols.length + (admin ? 1 : 0)}
-                              className="border-t px-3 py-2 text-xs font-semibold"
-                            >
-                              {grupo} · {g?.n} cliente(s){fin ? ` · ${moeda(g?.valor ?? 0)}` : ""}
-                            </td>
-                          </tr>
-                        )}
-                        <tr className={cx("hover:bg-surface-2", !l.c.ativo && "opacity-60")}>
-                          {admin && (
-                            <td className="border-t px-2 py-2.5">
-                              {selecionavel(l) && (
-                                <input
-                                  type="checkbox"
-                                  aria-label={`Selecionar ${l.c.nome}`}
-                                  className="h-4 w-4 accent-[var(--primary)]"
-                                  checked={sel.has(l.c.key)}
-                                  onChange={(e) => {
-                                    const n = new Set(sel);
-                                    if (e.target.checked) n.add(l.c.key);
-                                    else n.delete(l.c.key);
-                                    setSel(n);
-                                  }}
-                                />
-                              )}
-                            </td>
-                          )}
-                          {cols.map((c) => (
-                            <td
-                              key={c.id}
-                              className={cx(
-                                "border-t px-3 py-2.5",
-                                c.direita && "text-right tabular-nums",
-                                c.id === "cliente" ? "min-w-[220px]" : "whitespace-nowrap",
-                                c.id === "acoes" &&
-                                  "sticky right-0 z-10 bg-card shadow-[-8px_0_8px_-8px_rgb(16_24_40/0.12)]",
-                              )}
-                            >
-                              {c.celula(l, ctx)}
-                            </td>
-                          ))}
-                        </tr>
-                      </FragmentoGrupo>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {!agrupar && linhas.length > POR_PAGINA && (
-              <div className="mt-3 flex items-center justify-end gap-2 text-sm">
-                <button
-                  type="button"
-                  disabled={!pagina}
-                  onClick={() => setPagina(pagina - 1)}
-                  className="h-8 rounded-lg border bg-card px-3 disabled:opacity-50"
-                >
-                  Anterior
-                </button>
-                <span className="text-muted-foreground">
-                  Página {pagina + 1} de {Math.ceil(linhas.length / POR_PAGINA)}
-                </span>
-                <button
-                  type="button"
-                  disabled={(pagina + 1) * POR_PAGINA >= linhas.length}
-                  onClick={() => setPagina(pagina + 1)}
-                  className="h-8 rounded-lg border bg-card px-3 disabled:opacity-50"
-                >
-                  Próxima
-                </button>
-              </div>
+                            </tr>
+                          </FragmentoGrupo>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {!agrupar && linhas.length > POR_PAGINA && (
+                  <div className="mt-3 flex items-center justify-end gap-2 text-sm">
+                    <button
+                      type="button"
+                      disabled={!pagina}
+                      onClick={() => setPagina(pagina - 1)}
+                      className="h-8 rounded-lg border bg-card px-3 disabled:opacity-50"
+                    >
+                      Anterior
+                    </button>
+                    <span className="text-muted-foreground">
+                      Página {pagina + 1} de {Math.ceil(linhas.length / POR_PAGINA)}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={(pagina + 1) * POR_PAGINA >= linhas.length}
+                      onClick={() => setPagina(pagina + 1)}
+                      className="h-8 rounded-lg border bg-card px-3 disabled:opacity-50"
+                    >
+                      Próxima
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </Estado>
         </>
@@ -862,6 +957,61 @@ function Carteira() {
   );
 }
 const FragmentoGrupo = ({ children }: { children: ReactNode }) => <>{children}</>;
+
+/** D46 (25/11/2026): board com 4 colunas por status de análise — mesmas linhas já filtradas. */
+function KanbanCarteira({
+  linhas,
+  fin,
+}: {
+  linhas: Record<StatusAnalise, LinhaCarteira[]>;
+  fin: boolean;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 overflow-x-auto pb-2 sm:grid-cols-2 xl:grid-cols-4">
+      {COLUNAS_KANBAN_CARTEIRA.map((col) => {
+        const ls = linhas[col.id];
+        return (
+          <div key={col.id} className="flex min-w-0 flex-col rounded-xl border bg-card">
+            <div className="flex items-center justify-between gap-2 border-b px-3 py-2.5">
+              <span className="text-sm font-semibold">{col.rotulo}</span>
+              <span className="rounded-full bg-muted px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                {ls.length}
+              </span>
+            </div>
+            <div className="flex max-h-[calc(100dvh-340px)] flex-col gap-2 overflow-y-auto p-2">
+              {ls.length ? (
+                ls.map((l) => (
+                  <Link
+                    key={l.c.key}
+                    to="/dcs/cliente/$key"
+                    params={{ key: l.c.key }}
+                    className="rounded-lg border bg-card p-2.5 text-sm shadow-[var(--glow-sm)] hover:border-primary/40"
+                  >
+                    <p className="truncate font-medium">{l.c.nome}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {l.c.owner_nome ?? "Sem responsável"}
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <SeloCobertura k={l.cobStatus.k} />
+                      {l.maxPrioridade && <SeloPrioridade p={l.maxPrioridade} />}
+                      {fin && l.mrr != null && (
+                        <span className="text-xs text-muted-foreground">{moeda(l.mrr)}</span>
+                      )}
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <p className="px-1 py-6 text-center text-xs text-muted-foreground">
+                  Nenhum cliente nesta coluna.
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function Filtro({
   valor,
