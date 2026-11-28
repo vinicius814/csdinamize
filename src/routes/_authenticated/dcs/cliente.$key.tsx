@@ -19,6 +19,8 @@ import {
   useCliente,
   useConfig,
   useIniciarAnalise,
+  useNotasCliente,
+  useRegistrarNota,
 } from "@/lib/dcs/dados";
 import { useAnalistas, useUtilizacao, useCarteira } from "@/lib/dcs/dados";
 import { proximoElegivel } from "@/lib/dcs/fila";
@@ -54,12 +56,15 @@ import {
   Selo,
   SeloCobertura,
   SeloPrioridade,
+  type Tom,
 } from "@/components/dcs/ui";
 
-type Aba = "diagnostico" | "plano" | "evolucao" | "historico" | "mensagens";
+type Aba = "diagnostico" | "plano" | "notas" | "evolucao" | "historico" | "mensagens";
 export const Route = createFileRoute("/_authenticated/dcs/cliente/$key")({
   validateSearch: (s: Record<string, unknown>): { aba?: Aba | undefined } => ({
-    aba: (["plano", "evolucao", "historico", "mensagens"] as const).find((a) => a === s["aba"]),
+    aba: (["plano", "notas", "evolucao", "historico", "mensagens"] as const).find(
+      (a) => a === s["aba"],
+    ),
   }),
   component: Cliente,
 });
@@ -293,6 +298,7 @@ function Cliente() {
                     "plano",
                     `Plano de ação (${dados.acoes.filter((a) => !a.obsoleta && !["implementado", "nao_aprovado"].includes(a.status)).length})`,
                   ],
+                  ["notas", "Notas e registros"],
                   ["evolucao", "Evolução"],
                   ["mensagens", "Comunicação"],
                   ["historico", `Histórico (${dados.diagnosticos.length})`],
@@ -417,6 +423,7 @@ function Cliente() {
             ))}
 
           {aba === "plano" && <Plano clienteKey={key} acoes={dados.acoes} />}
+          {aba === "notas" && <NotasCliente clienteKey={key} />}
           {aba === "evolucao" && (
             <Evolucao nome={dados.cliente.nome} diags={dados.diagnosticos} acoes={dados.acoes} />
           )}
@@ -618,6 +625,87 @@ function Plano({ clienteKey, acoes }: { clienteKey: string; acoes: DcsAcao[] }) 
         </div>
       )}
     </Painel>
+  );
+}
+
+/** Status de envio da nota ao Pipedrive (D51): represada até o próximo "Atualizar carteira". */
+const STATUS_NOTA: Record<string, [string, Tom]> = {
+  aguardando_autorizacao: ["Aguardando Atualizar carteira", "aviso"],
+  pendente: ["Na fila de envio", "info"],
+  processando: ["Enviando…", "info"],
+  concluido: ["Registrado no Pipedrive", "ok"],
+  falha: ["Falha no envio", "critico"],
+  ambiguo: ["Falha no envio", "critico"],
+  cancelado: ["Cancelado", "neutro"],
+};
+
+/**
+ * Notas e registros (D51, 25/11/2026): o analista escreve uma nota de texto livre sobre o
+ * cliente; ela fica salva na hora (histórico com status) e represada como job
+ * `pipedrive_nota_manual` — só sai para o Pipedrive no próximo clique em "Atualizar carteira"
+ * (Integrações), igual ao que já acontece com os diagnósticos concluídos (D42). Nenhuma nota
+ * é enviada automaticamente.
+ */
+function NotasCliente({ clienteKey }: { clienteKey: string }) {
+  const notas = useNotasCliente(clienteKey);
+  const criar = useRegistrarNota(clienteKey);
+  const [texto, setTexto] = useState("");
+  const enviar = () => {
+    const t = texto.trim();
+    if (!t) return;
+    criar.mutate(t, {
+      onSuccess: () => {
+        setTexto("");
+        toast.success("Nota registrada. Será enviada ao Pipedrive na próxima Atualizar carteira.");
+      },
+      onError: (e) => toast.error(mensagemErro(e)),
+    });
+  };
+  return (
+    <div className="space-y-4">
+      <Painel titulo="Nova nota">
+        <div className="space-y-2">
+          <Textarea
+            rows={4}
+            placeholder="Registre um contato, observação ou atualização sobre este cliente…"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Fica salva aqui e entra na fila para o Pipedrive; o envio real só acontece no próximo
+              clique em "Atualizar carteira" (Integrações).
+            </p>
+            <Button size="sm" disabled={!texto.trim() || criar.isPending} onClick={enviar}>
+              Registrar
+            </Button>
+          </div>
+        </div>
+      </Painel>
+      <Painel titulo={`Histórico (${notas.data?.length ?? 0})`} semPadding>
+        {!notas.data || notas.data.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground">Nenhuma nota registrada ainda.</p>
+        ) : (
+          <ul className="divide-y">
+            {notas.data.map((n) => {
+              const [rot, tom] = STATUS_NOTA[n.status] ?? [n.status, "neutro" as Tom];
+              return (
+                <li key={n.id} className="flex flex-col gap-1 px-4 py-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {n.autor_nome ?? "Analista"} · {dataHoraBR(n.criado_em)}
+                    </span>
+                    <Selo tom={tom}>{rot}</Selo>
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm">{n.texto}</p>
+                  {n.erro && <p className="text-xs text-red-700">{n.erro}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Painel>
+    </div>
   );
 }
 
